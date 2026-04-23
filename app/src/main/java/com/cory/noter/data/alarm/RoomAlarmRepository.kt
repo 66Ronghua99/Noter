@@ -1,0 +1,148 @@
+package com.cory.noter.data.alarm
+
+import com.cory.noter.domain.alarm.Alarm
+import com.cory.noter.domain.alarm.AlarmSource
+import com.cory.noter.domain.alarm.NextTriggerCalculator
+import com.cory.noter.domain.alarm.RepeatRule
+import java.time.Clock
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+
+class RoomAlarmRepository(
+    private val alarmDao: AlarmDao,
+    private val clock: Clock = Clock.systemDefaultZone(),
+    private val nextTriggerCalculator: NextTriggerCalculator = NextTriggerCalculator(),
+    private val repeatRuleCodec: RepeatRuleCodec = RepeatRuleCodec(),
+) : AlarmRepository {
+    override val alarms: Flow<List<Alarm>> = alarmDao.observeAll().map { entities ->
+        entities.map(::entityToDomain)
+    }
+
+    override suspend fun get(id: Long): Alarm? = alarmDao.getById(id)?.let(::entityToDomain)
+
+    override suspend fun create(draft: AlarmDraft): Alarm {
+        val nowMillis = clock.millis()
+        val encodedRepeatRule = repeatRuleCodec.encode(draft.repeatRule)
+        val alarmId = alarmDao.insert(
+            AlarmEntity(
+                id = 0,
+                title = draft.title,
+                hour = draft.hour,
+                minute = draft.minute,
+                repeatType = encodedRepeatRule.repeatType,
+                daysOfWeekCsv = encodedRepeatRule.daysOfWeekCsv,
+                onceDate = encodedRepeatRule.onceDate,
+                enabled = draft.enabled,
+                ringtoneUri = draft.ringtoneUri,
+                source = draft.source.toStorageValue(),
+                aiOriginalText = draft.aiOriginalText,
+                nextTriggerAtMillis = computeNextTriggerAtMillis(
+                    hour = draft.hour,
+                    minute = draft.minute,
+                    repeatRule = draft.repeatRule,
+                    enabled = draft.enabled,
+                ),
+                createdAtMillis = nowMillis,
+                updatedAtMillis = nowMillis,
+            ),
+        )
+
+        return requireNotNull(get(alarmId)) { "Created alarm $alarmId could not be loaded." }
+    }
+
+    override suspend fun update(alarm: Alarm): Alarm {
+        val existing = requireNotNull(alarmDao.getById(alarm.id)) {
+            "Alarm ${alarm.id} does not exist."
+        }
+        val nowMillis = clock.millis()
+        val encodedRepeatRule = repeatRuleCodec.encode(alarm.repeatRule)
+        alarmDao.update(
+            AlarmEntity(
+                id = alarm.id,
+                title = alarm.title,
+                hour = alarm.hour,
+                minute = alarm.minute,
+                repeatType = encodedRepeatRule.repeatType,
+                daysOfWeekCsv = encodedRepeatRule.daysOfWeekCsv,
+                onceDate = encodedRepeatRule.onceDate,
+                enabled = alarm.enabled,
+                ringtoneUri = alarm.ringtoneUri,
+                source = alarm.source.toStorageValue(),
+                aiOriginalText = alarm.aiOriginalText,
+                nextTriggerAtMillis = computeNextTriggerAtMillis(
+                    hour = alarm.hour,
+                    minute = alarm.minute,
+                    repeatRule = alarm.repeatRule,
+                    enabled = alarm.enabled,
+                ),
+                createdAtMillis = existing.createdAtMillis,
+                updatedAtMillis = nowMillis,
+            ),
+        )
+
+        return requireNotNull(get(alarm.id)) { "Updated alarm ${alarm.id} could not be loaded." }
+    }
+
+    override suspend fun enable(id: Long): Alarm? {
+        val alarm = get(id) ?: return null
+        return update(alarm.copy(enabled = true))
+    }
+
+    override suspend fun disable(id: Long): Alarm? {
+        val alarm = get(id) ?: return null
+        return update(alarm.copy(enabled = false))
+    }
+
+    override suspend fun delete(id: Long) {
+        alarmDao.deleteById(id)
+    }
+
+    private fun entityToDomain(entity: AlarmEntity): Alarm = Alarm(
+        id = entity.id,
+        title = entity.title,
+        hour = entity.hour,
+        minute = entity.minute,
+        repeatRule = repeatRuleCodec.decode(
+            repeatType = entity.repeatType,
+            daysOfWeekCsv = entity.daysOfWeekCsv,
+            onceDate = entity.onceDate,
+        ),
+        enabled = entity.enabled,
+        ringtoneUri = entity.ringtoneUri,
+        source = entity.source.toAlarmSource(),
+        aiOriginalText = entity.aiOriginalText,
+        nextTriggerAtMillis = entity.nextTriggerAtMillis,
+        createdAtMillis = entity.createdAtMillis,
+        updatedAtMillis = entity.updatedAtMillis,
+    )
+
+    private fun computeNextTriggerAtMillis(
+        hour: Int,
+        minute: Int,
+        repeatRule: RepeatRule,
+        enabled: Boolean,
+    ): Long? {
+        if (!enabled) {
+            return null
+        }
+
+        return nextTriggerCalculator.nextTrigger(
+            hour = hour,
+            minute = minute,
+            repeatRule = repeatRule,
+            now = clock.instant(),
+            zoneId = clock.zone,
+        )?.toEpochMilli()
+    }
+
+    private fun AlarmSource.toStorageValue(): String = when (this) {
+        AlarmSource.MANUAL -> "manual"
+        AlarmSource.AI -> "ai"
+    }
+
+    private fun String.toAlarmSource(): AlarmSource = when (this) {
+        "manual" -> AlarmSource.MANUAL
+        "ai" -> AlarmSource.AI
+        else -> error("Unsupported alarm source: $this")
+    }
+}
