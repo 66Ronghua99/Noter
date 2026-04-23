@@ -3,3 +3,11 @@ superpowers/artifacts/refactor-gate/
 
 # Local implementation worktrees
 .worktrees/
+
+# Android and Gradle build outputs
+.gradle/
+build/
+*/build/
+local.properties
+*.iml
+.idea/
