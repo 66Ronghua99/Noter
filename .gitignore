@@ -1,2 +1,5 @@
 # Harness local verification artifacts
 superpowers/artifacts/refactor-gate/
+
+# Local implementation worktrees
+.worktrees/
