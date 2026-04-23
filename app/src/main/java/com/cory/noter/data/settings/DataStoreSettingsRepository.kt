@@ -13,41 +13,45 @@ class DataStoreSettingsRepository(
     private val dataStore: DataStore<Preferences>,
 ) : SettingsRepository {
     override val settings: Flow<AppSettings> = dataStore.data.map { preferences ->
+        val storedModelId = preferences[SELECTED_MODEL_ID]
         AppSettings(
             openRouterApiKey = preferences[OPEN_ROUTER_API_KEY] ?: "",
-            selectedModelId = preferences[SELECTED_MODEL_ID] ?: OpenRouterModel.DefaultId,
-            defaultRingtoneUri = preferences[DEFAULT_RINGTONE_URI] ?: "",
+            selectedModelId = storedModelId?.also(::requireKnownModelId) ?: OpenRouterModel.DefaultId,
+            defaultRingtoneUri = preferences[DEFAULT_RINGTONE_URI] ?: AppSettings.DefaultRingtoneUri,
         )
     }
 
-    override suspend fun setOpenRouterApiKey(apiKey: String) {
+    override suspend fun setOpenRouterApiKey(apiKey: String): Result<Unit> = runCatching {
         dataStore.edit { preferences ->
             preferences[OPEN_ROUTER_API_KEY] = apiKey
         }
+        Unit
     }
 
-    override suspend fun setSelectedModel(modelId: String): Result<Unit> {
-        if (modelId !in OpenRouterModel.builtInIds) {
-            return Result.failure(
-                IllegalArgumentException("UNKNOWN_MODEL_ID: $modelId"),
-            )
-        }
-
+    override suspend fun setSelectedModel(modelId: String): Result<Unit> = runCatching {
+        requireKnownModelId(modelId)
         dataStore.edit { preferences ->
             preferences[SELECTED_MODEL_ID] = modelId
         }
-        return Result.success(Unit)
+        Unit
     }
 
-    override suspend fun setDefaultRingtoneUri(ringtoneUri: String) {
+    override suspend fun setDefaultRingtoneUri(ringtoneUri: String): Result<Unit> = runCatching {
         dataStore.edit { preferences ->
             preferences[DEFAULT_RINGTONE_URI] = ringtoneUri
         }
+        Unit
     }
 
     private companion object {
         val OPEN_ROUTER_API_KEY = stringPreferencesKey("open_router_api_key")
         val SELECTED_MODEL_ID = stringPreferencesKey("selected_model_id")
         val DEFAULT_RINGTONE_URI = stringPreferencesKey("default_ringtone_uri")
+    }
+
+    private fun requireKnownModelId(modelId: String) {
+        require(modelId in OpenRouterModel.builtInIds) {
+            "UNKNOWN_MODEL_ID: $modelId"
+        }
     }
 }

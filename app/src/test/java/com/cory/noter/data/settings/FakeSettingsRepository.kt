@@ -10,15 +10,16 @@ class FakeSettingsRepository(
     initialSettings: AppSettings = AppSettings(
         openRouterApiKey = "",
         selectedModelId = OpenRouterModel.DefaultId,
-        defaultRingtoneUri = "",
+        defaultRingtoneUri = AppSettings.DefaultRingtoneUri,
     ),
 ) : SettingsRepository {
     private val state = MutableStateFlow(initialSettings)
 
     override val settings: Flow<AppSettings> = state
 
-    override suspend fun setOpenRouterApiKey(apiKey: String) {
+    override suspend fun setOpenRouterApiKey(apiKey: String): Result<Unit> {
         state.update { it.copy(openRouterApiKey = apiKey) }
+        return Result.success(Unit)
     }
 
     override suspend fun setSelectedModel(modelId: String): Result<Unit> {
@@ -32,8 +33,9 @@ class FakeSettingsRepository(
         return Result.success(Unit)
     }
 
-    override suspend fun setDefaultRingtoneUri(ringtoneUri: String) {
+    override suspend fun setDefaultRingtoneUri(ringtoneUri: String): Result<Unit> {
         state.update { it.copy(defaultRingtoneUri = ringtoneUri) }
+        return Result.success(Unit)
     }
 
     suspend fun set(settings: AppSettings) {
