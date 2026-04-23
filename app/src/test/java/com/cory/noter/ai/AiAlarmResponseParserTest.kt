@@ -44,6 +44,73 @@ class AiAlarmResponseParserTest {
     }
 
     @Test
+    fun `extra top level key fails strict response shape`() {
+        val json = """
+            {
+              "title": "Take medicine",
+              "hour": 8,
+              "minute": 30,
+              "repeatRule": { "type": "once", "daysOfWeek": [] },
+              "date": "2026-04-24",
+              "confidence": 0.92,
+              "needsClarification": false,
+              "clarificationReason": "",
+              "unexpected": "do not accept"
+            }
+        """.trimIndent()
+
+        val result = parser.parse(json)
+
+        assertThat(result.isFailure).isTrue()
+        assertThat(result.exceptionOrNull()).hasMessageThat().contains("unexpected key")
+    }
+
+    @Test
+    fun `extra repeat rule key fails strict response shape`() {
+        val json = """
+            {
+              "title": "Take medicine",
+              "hour": 8,
+              "minute": 30,
+              "repeatRule": {
+                "type": "once",
+                "daysOfWeek": [],
+                "unexpected": "do not accept"
+              },
+              "date": "2026-04-24",
+              "confidence": 0.92,
+              "needsClarification": false,
+              "clarificationReason": ""
+            }
+        """.trimIndent()
+
+        val result = parser.parse(json)
+
+        assertThat(result.isFailure).isTrue()
+        assertThat(result.exceptionOrNull()).hasMessageThat().contains("repeatRule unexpected key")
+    }
+
+    @Test
+    fun `missing clarification reason fails declared response shape`() {
+        val json = """
+            {
+              "title": "Take medicine",
+              "hour": 8,
+              "minute": 30,
+              "repeatRule": { "type": "once", "daysOfWeek": [] },
+              "date": "2026-04-24",
+              "confidence": 0.92,
+              "needsClarification": false
+            }
+        """.trimIndent()
+
+        val result = parser.parse(json)
+
+        assertThat(result.isFailure).isTrue()
+        assertThat(result.exceptionOrNull()).hasMessageThat().contains("clarificationReason")
+    }
+
+    @Test
     fun `invalid time fails`() {
         val json = """
             {

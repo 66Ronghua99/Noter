@@ -30,8 +30,21 @@ class AiAlarmResponseParser {
             throw invalid("Invalid JSON", exception)
         }
 
+        root.requireOnlyKeys(
+            allowedKeys = setOf(
+                "title",
+                "hour",
+                "minute",
+                "repeatRule",
+                "date",
+                "confidence",
+                "needsClarification",
+                "clarificationReason",
+            ),
+        )
+
         val needsClarification = root.requiredBoolean("needsClarification")
-        val clarificationReason = root.optionalString("clarificationReason").orEmpty()
+        val clarificationReason = root.requiredString("clarificationReason")
         if (needsClarification) {
             throw invalid("Needs clarification: ${clarificationReason.ifBlank { "No reason provided" }}")
         }
@@ -52,6 +65,10 @@ class AiAlarmResponseParser {
         }
 
         val repeatRuleObject = root.requiredObject("repeatRule")
+        repeatRuleObject.requireOnlyKeys(
+            allowedKeys = setOf("type", "daysOfWeek"),
+            owner = "repeatRule",
+        )
         val repeatRuleType = repeatRuleObject.requiredString("type")
         val daysOfWeek = repeatRuleObject.requiredIntArray("daysOfWeek")
         val invalidDay = daysOfWeek.firstOrNull { it !in 1..7 }
@@ -87,6 +104,12 @@ class AiAlarmResponseParser {
             confidence = confidence,
             originalResponseText = responseText,
         )
+    }
+
+    private fun JsonObject.requireOnlyKeys(allowedKeys: Set<String>, owner: String? = null) {
+        val unexpectedKey = keys.firstOrNull { it !in allowedKeys } ?: return
+        val prefix = owner?.let { "$it " }.orEmpty()
+        throw invalid("${prefix}unexpected key: $unexpectedKey")
     }
 
     private fun JsonObject.requiredObject(name: String): JsonObject {
