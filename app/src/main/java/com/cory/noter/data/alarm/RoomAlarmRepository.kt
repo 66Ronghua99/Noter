@@ -1,10 +1,12 @@
 package com.cory.noter.data.alarm
 
 import com.cory.noter.domain.alarm.Alarm
+import com.cory.noter.domain.alarm.AlarmValidation
 import com.cory.noter.domain.alarm.AlarmSource
 import com.cory.noter.domain.alarm.NextTriggerCalculator
 import com.cory.noter.domain.alarm.RepeatRule
 import java.time.Clock
+import java.time.ZoneId
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -13,6 +15,7 @@ class RoomAlarmRepository(
     private val clock: Clock = Clock.systemDefaultZone(),
     private val nextTriggerCalculator: NextTriggerCalculator = NextTriggerCalculator(),
     private val repeatRuleCodec: RepeatRuleCodec = RepeatRuleCodec(),
+    private val zoneIdProvider: () -> ZoneId = { ZoneId.systemDefault() },
 ) : AlarmRepository {
     override val alarms: Flow<List<Alarm>> = alarmDao.observeAll().map { entities ->
         entities.map(::entityToDomain)
@@ -22,6 +25,15 @@ class RoomAlarmRepository(
 
     override suspend fun create(draft: AlarmDraft): Alarm {
         val nowMillis = clock.millis()
+        val zoneId = zoneIdProvider()
+        validateDraftOrThrow(
+            title = draft.title,
+            hour = draft.hour,
+            minute = draft.minute,
+            repeatRule = draft.repeatRule,
+            enabled = draft.enabled,
+            zoneId = zoneId,
+        )
         val encodedRepeatRule = repeatRuleCodec.encode(draft.repeatRule)
         val alarmId = alarmDao.insert(
             AlarmEntity(
@@ -41,6 +53,7 @@ class RoomAlarmRepository(
                     minute = draft.minute,
                     repeatRule = draft.repeatRule,
                     enabled = draft.enabled,
+                    zoneId = zoneId,
                 ),
                 createdAtMillis = nowMillis,
                 updatedAtMillis = nowMillis,
@@ -55,6 +68,15 @@ class RoomAlarmRepository(
             "Alarm ${alarm.id} does not exist."
         }
         val nowMillis = clock.millis()
+        val zoneId = zoneIdProvider()
+        validateDraftOrThrow(
+            title = alarm.title,
+            hour = alarm.hour,
+            minute = alarm.minute,
+            repeatRule = alarm.repeatRule,
+            enabled = alarm.enabled,
+            zoneId = zoneId,
+        )
         val encodedRepeatRule = repeatRuleCodec.encode(alarm.repeatRule)
         alarmDao.update(
             AlarmEntity(
@@ -74,6 +96,7 @@ class RoomAlarmRepository(
                     minute = alarm.minute,
                     repeatRule = alarm.repeatRule,
                     enabled = alarm.enabled,
+                    zoneId = zoneId,
                 ),
                 createdAtMillis = existing.createdAtMillis,
                 updatedAtMillis = nowMillis,
@@ -121,6 +144,7 @@ class RoomAlarmRepository(
         minute: Int,
         repeatRule: RepeatRule,
         enabled: Boolean,
+        zoneId: ZoneId,
     ): Long? {
         if (!enabled) {
             return null
@@ -131,8 +155,33 @@ class RoomAlarmRepository(
             minute = minute,
             repeatRule = repeatRule,
             now = clock.instant(),
-            zoneId = clock.zone,
+            zoneId = zoneId,
         )?.toEpochMilli()
+    }
+
+    private fun validateDraftOrThrow(
+        title: String,
+        hour: Int,
+        minute: Int,
+        repeatRule: RepeatRule,
+        enabled: Boolean,
+        zoneId: ZoneId,
+    ) {
+        val errors = AlarmValidation.validateDraft(
+            title = title,
+            hour = hour,
+            minute = minute,
+            repeatRule = repeatRule,
+            now = clock.instant(),
+            zoneId = zoneId,
+            nextTriggerCalculator = nextTriggerCalculator,
+        ).filterNot { error ->
+            !enabled && error == AlarmValidation.Error.EXPIRED_ONE_TIME_ALARM
+        }
+
+        require(errors.isEmpty()) {
+            "Alarm validation failed: ${errors.joinToString(", ")}"
+        }
     }
 
     private fun AlarmSource.toStorageValue(): String = when (this) {
