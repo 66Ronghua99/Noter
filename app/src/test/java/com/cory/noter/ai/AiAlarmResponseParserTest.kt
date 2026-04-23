@@ -194,6 +194,29 @@ class AiAlarmResponseParserTest {
     }
 
     @Test
+    fun `needs clarification returns distinct machine readable failure`() {
+        val json = """
+            {
+              "title": "",
+              "hour": 8,
+              "minute": 30,
+              "repeatRule": { "type": "once", "daysOfWeek": [] },
+              "date": "2026-04-24",
+              "confidence": 0.2,
+              "needsClarification": true,
+              "clarificationReason": "Which day should I use?"
+            }
+        """.trimIndent()
+
+        val result = parser.parse(json)
+
+        val error = result.exceptionOrNull()
+        assertThat(error).isInstanceOf(AiAlarmResponseParser.ClarificationRequiredException::class.java)
+        assertThat((error as AiAlarmResponseParser.ClarificationRequiredException).reason)
+            .isEqualTo("Which day should I use?")
+    }
+
+    @Test
     fun `repeating response ignores date after validation`() {
         val json = """
             {
@@ -213,6 +236,129 @@ class AiAlarmResponseParserTest {
         val draft = result.getOrThrow()
         assertThat(draft.repeatRule).isEqualTo(RepeatRule.Weekdays)
         assertThat(draft.originalDate).isEqualTo(LocalDate.of(2026, 4, 24))
+    }
+
+    @Test
+    fun `repeating response with null date fails`() {
+        val json = """
+            {
+              "title": "Standup",
+              "hour": 9,
+              "minute": 15,
+              "repeatRule": { "type": "weekdays", "daysOfWeek": [] },
+              "date": null,
+              "confidence": 0.87,
+              "needsClarification": false,
+              "clarificationReason": ""
+            }
+        """.trimIndent()
+
+        val result = parser.parse(json)
+
+        assertThat(result.isFailure).isTrue()
+        assertThat(result.exceptionOrNull()).hasMessageThat().contains("date")
+    }
+
+    @Test
+    fun `repeating response with blank date fails`() {
+        val json = """
+            {
+              "title": "Standup",
+              "hour": 9,
+              "minute": 15,
+              "repeatRule": { "type": "weekdays", "daysOfWeek": [] },
+              "date": "",
+              "confidence": 0.87,
+              "needsClarification": false,
+              "clarificationReason": ""
+            }
+        """.trimIndent()
+
+        val result = parser.parse(json)
+
+        assertThat(result.isFailure).isTrue()
+        assertThat(result.exceptionOrNull()).hasMessageThat().contains("date")
+    }
+
+    @Test
+    fun `repeating response with invalid date string fails`() {
+        val json = """
+            {
+              "title": "Standup",
+              "hour": 9,
+              "minute": 15,
+              "repeatRule": { "type": "weekdays", "daysOfWeek": [] },
+              "date": "tomorrow",
+              "confidence": 0.87,
+              "needsClarification": false,
+              "clarificationReason": ""
+            }
+        """.trimIndent()
+
+        val result = parser.parse(json)
+
+        assertThat(result.isFailure).isTrue()
+        assertThat(result.exceptionOrNull()).hasMessageThat().contains("date")
+    }
+
+    @Test
+    fun `infinite confidence fails`() {
+        val json = """
+            {
+              "title": "Standup",
+              "hour": 9,
+              "minute": 15,
+              "repeatRule": { "type": "weekdays", "daysOfWeek": [] },
+              "confidence": 1e309,
+              "needsClarification": false,
+              "clarificationReason": ""
+            }
+        """.trimIndent()
+
+        val result = parser.parse(json)
+
+        assertThat(result.isFailure).isTrue()
+        assertThat(result.exceptionOrNull()).hasMessageThat().contains("confidence")
+    }
+
+    @Test
+    fun `negative confidence fails`() {
+        val json = """
+            {
+              "title": "Standup",
+              "hour": 9,
+              "minute": 15,
+              "repeatRule": { "type": "weekdays", "daysOfWeek": [] },
+              "confidence": -0.1,
+              "needsClarification": false,
+              "clarificationReason": ""
+            }
+        """.trimIndent()
+
+        val result = parser.parse(json)
+
+        assertThat(result.isFailure).isTrue()
+        assertThat(result.exceptionOrNull()).hasMessageThat().contains("confidence")
+    }
+
+    @Test
+    fun `confidence greater than one fails`() {
+        val json = """
+            {
+              "title": "Standup",
+              "hour": 9,
+              "minute": 15,
+              "repeatRule": { "type": "weekdays", "daysOfWeek": [] },
+              "confidence": 1.1,
+              "needsClarification": false,
+              "clarificationReason": ""
+            }
+        """.trimIndent()
+
+        val result = parser.parse(json)
+
+        assertThat(result.isFailure).isTrue()
+        assertThat(result.exceptionOrNull()).hasMessageThat().contains("confidence")
     }
 
     @Test

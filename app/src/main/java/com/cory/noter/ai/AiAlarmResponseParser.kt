@@ -8,7 +8,6 @@ import java.time.format.DateTimeParseException
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
@@ -20,6 +19,10 @@ class AiAlarmResponseParser {
     private val json = Json {
         ignoreUnknownKeys = false
     }
+
+    class ClarificationRequiredException(val reason: String) : IllegalArgumentException(
+        "Needs clarification: ${reason.ifBlank { "No reason provided" }}",
+    )
 
     fun parse(responseText: String): Result<AiAlarmDraft> = runCatching {
         val root = try {
@@ -46,7 +49,7 @@ class AiAlarmResponseParser {
         val needsClarification = root.requiredBoolean("needsClarification")
         val clarificationReason = root.requiredString("clarificationReason")
         if (needsClarification) {
-            throw invalid("Needs clarification: ${clarificationReason.ifBlank { "No reason provided" }}")
+            throw ClarificationRequiredException(clarificationReason)
         }
 
         val title = root.requiredString("title").trim()
@@ -94,6 +97,9 @@ class AiAlarmResponseParser {
         }
 
         val confidence = root.requiredDouble("confidence")
+        if (!confidence.isFinite() || confidence !in 0.0..1.0) {
+            throw invalid("confidence must be a finite number from 0.0 through 1.0")
+        }
 
         AiAlarmDraft(
             title = title,
@@ -119,18 +125,6 @@ class AiAlarmResponseParser {
 
     private fun JsonObject.requiredString(name: String): String {
         val primitive = requiredPrimitive(name)
-        if (!primitive.isString) {
-            throw invalid("$name must be a string")
-        }
-        return primitive.content
-    }
-
-    private fun JsonObject.optionalString(name: String): String? {
-        val element = this[name] ?: return null
-        if (element is JsonNull) {
-            return null
-        }
-        val primitive = element as? JsonPrimitive ?: throw invalid("$name must be a string")
         if (!primitive.isString) {
             throw invalid("$name must be a string")
         }
@@ -174,7 +168,13 @@ class AiAlarmResponseParser {
     }
 
     private fun JsonObject.optionalDate(name: String): LocalDate? {
-        val dateText = optionalString(name)?.takeIf { it.isNotBlank() } ?: return null
+        if (!containsKey(name)) {
+            return null
+        }
+        val dateText = requiredString(name)
+        if (dateText.isBlank()) {
+            throw invalid("$name must be an ISO local date")
+        }
         return try {
             LocalDate.parse(dateText)
         } catch (exception: DateTimeParseException) {
