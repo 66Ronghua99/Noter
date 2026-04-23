@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT=$(git rev-parse --show-toplevel)
+BOOTSTRAP="$ROOT/.harness/bootstrap.toml"
+
+python3 - "$ROOT" "$BOOTSTRAP" <<'PY'
+from __future__ import annotations
+
+import fnmatch
+from pathlib import Path
+import subprocess
+import sys
+
+try:
+    import tomllib
+except ModuleNotFoundError:
+    print(
+        "harness:refactor commit gate blocked this commit.\n\n"
+        "Python 3.11+ with tomllib is required to read .harness/bootstrap.toml.\n"
+        "Run the lightweight harness:refactor review in Codex first, then retry.",
+        file=sys.stderr,
+    )
+    raise SystemExit(1)
+
+root = Path(sys.argv[1])
+bootstrap = Path(sys.argv[2])
+
+if not bootstrap.exists():
+    raise SystemExit(0)
+
+data = tomllib.loads(bootstrap.read_text())
+gate = data.get("governance", {}).get("refactor_gate", {})
+
+if not gate.get("enabled", False):
+    raise SystemExit(0)
+
+path_rules = gate.get("path_rules") or []
+if not path_rules:
+    raise SystemExit(0)
+
+artifact_dir = root / gate.get("artifact_dir", "superpowers/artifacts/refactor-gate")
+staged = (
+    subprocess.check_output(
+        ["git", "-C", str(root), "diff", "--cached", "--name-only", "--diff-filter=ACMR"],
+        text=True,
+    )
+    .splitlines()
+)
+matched = [path for path in staged if any(fnmatch.fnmatch(path, rule) for rule in path_rules)]
+
+if not matched:
+    raise SystemExit(0)
+
+tree_hash = subprocess.check_output(["git", "-C", str(root), "write-tree"], text=True).strip()
+
+for artifact in sorted(artifact_dir.glob("*.md"), key=lambda item: item.stat().st_mtime, reverse=True):
+    text = artifact.read_text()
+    if f"tree_hash: {tree_hash}" in text and "\nstatus: pass\n" in text:
+        raise SystemExit(0)
+
+print(
+    "harness:refactor commit gate blocked this commit.\n\n"
+    "This repository requires a lightweight harness:refactor review for staged source changes\n"
+    "matching the configured refactor-gate paths.\n\n"
+    f"Matched staged paths:\n- " + "\n- ".join(matched) + "\n\n"
+    "Required next step:\n"
+    "- run harness:refactor review mode with subagent-first execution in Codex\n"
+    "- fix any must-refactor findings\n"
+    "- write fresh gate evidence under superpowers/artifacts/refactor-gate/\n\n"
+    f"Expected tree_hash: {tree_hash}",
+    file=sys.stderr,
+)
+raise SystemExit(1)
+PY
