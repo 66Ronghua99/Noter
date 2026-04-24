@@ -5,6 +5,7 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import com.cory.noter.domain.alarm.Alarm
 import com.cory.noter.permissions.AndroidPermissionStatusReader
 import com.cory.noter.permissions.PermissionStatusReader
@@ -17,6 +18,7 @@ class AndroidAlarmScheduler(
     ) {
         "AlarmManager is not available."
     },
+    private val nowProvider: () -> Long = System::currentTimeMillis,
 ) : AlarmScheduler {
     override fun schedule(alarm: Alarm): ScheduleResult {
         if (!alarm.enabled) {
@@ -25,7 +27,7 @@ class AndroidAlarmScheduler(
 
         val triggerAtMillis = alarm.nextTriggerAtMillis
             ?: return ScheduleResult.Failed("Alarm ${alarm.id} has no future trigger to schedule.")
-        if (triggerAtMillis <= System.currentTimeMillis()) {
+        if (triggerAtMillis <= nowProvider()) {
             return ScheduleResult.Failed("Alarm ${alarm.id} has a stale trigger and cannot be scheduled.")
         }
 
@@ -65,9 +67,9 @@ class AndroidAlarmScheduler(
 
     fun pendingIntentRequestCode(alarmId: Long): Int = (alarmId xor (alarmId ushr 32)).toInt()
 
-    fun alarmIntent(alarmId: Long): Intent = Intent(ACTION_TRIGGER_ALARM)
-        .setClassName(context.packageName, ALARM_RECEIVER_CLASS_NAME)
-        .setPackage(context.packageName)
+    fun alarmIntent(alarmId: Long): Intent = Intent(context, AlarmReceiver::class.java)
+        .setAction(ACTION_TRIGGER_ALARM)
+        .setData(alarmDataUri(alarmId))
         .putExtra(EXTRA_ALARM_ID, alarmId)
 
     private fun pendingIntent(
@@ -90,6 +92,11 @@ class AndroidAlarmScheduler(
     private companion object {
         const val ACTION_TRIGGER_ALARM = "com.cory.noter.alarm.TRIGGER"
         const val EXTRA_ALARM_ID = "alarm_id"
-        const val ALARM_RECEIVER_CLASS_NAME = "com.cory.noter.alarm.AlarmReceiver"
     }
+
+    private fun alarmDataUri(alarmId: Long): Uri = Uri.Builder()
+        .scheme("noter")
+        .authority("alarm")
+        .appendPath(alarmId.toString())
+        .build()
 }

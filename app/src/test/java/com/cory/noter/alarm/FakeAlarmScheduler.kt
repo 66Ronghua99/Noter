@@ -13,13 +13,19 @@ class FakeAlarmScheduler : AlarmScheduler {
         get() = scheduledAlarms.keys
 
     override fun schedule(alarm: Alarm): ScheduleResult {
-        scheduledAlarms[alarm.id] = alarm
-        return nextScheduleResult
+        val result = nextScheduleResult
+        if (result is ScheduleResult.Scheduled) {
+            scheduledAlarms[alarm.id] = alarm
+        }
+        return result
     }
 
     override fun cancel(alarmId: Long): ScheduleResult {
-        cancelledIds += alarmId
-        scheduledAlarms.remove(alarmId)
-        return nextCancelResult
+        val result = nextCancelResult
+        if (result is ScheduleResult.Cancelled) {
+            cancelledIds += alarmId
+            scheduledAlarms.remove(alarmId)
+        }
+        return result
     }
 }

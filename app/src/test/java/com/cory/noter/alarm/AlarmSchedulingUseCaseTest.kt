@@ -91,15 +91,39 @@ class AlarmSchedulingUseCaseTest {
         val scheduler = AndroidAlarmScheduler(
             context = ApplicationProvider.getApplicationContext(),
             permissionStatusReader = PermissionStatusReader { false },
+            nowProvider = { 1_000L },
         )
 
         val result = scheduler.schedule(
-            alarm(enabled = true, nextTriggerAtMillis = System.currentTimeMillis() + 60_000),
+            alarm(enabled = true, nextTriggerAtMillis = 61_000L),
         )
 
         assertThat(result).isEqualTo(
             ScheduleResult.MissingPermission(Manifest.permission.SCHEDULE_EXACT_ALARM),
         )
+    }
+
+    @Test
+    fun `failed schedule does not record scheduled alarm side effect`() {
+        fakeScheduler.nextScheduleResult = ScheduleResult.Failed("scheduler unavailable")
+
+        val result = schedulingUseCase.syncSchedule(alarm(enabled = true, nextTriggerAtMillis = 1_776_904_200_000))
+
+        assertThat(result).isEqualTo(ScheduleResult.Failed("scheduler unavailable"))
+        assertThat(fakeScheduler.scheduledAlarms).isEmpty()
+    }
+
+    @Test
+    fun `failed cancel does not record cancellation side effect`() {
+        val alarm = alarm(enabled = true, nextTriggerAtMillis = 1_776_904_200_000)
+        fakeScheduler.scheduledAlarms[alarm.id] = alarm
+        fakeScheduler.nextCancelResult = ScheduleResult.Failed("cancel failed")
+
+        val result = schedulingUseCase.cancel(alarm.id)
+
+        assertThat(result).isEqualTo(ScheduleResult.Failed("cancel failed"))
+        assertThat(fakeScheduler.cancelledIds).isEmpty()
+        assertThat(fakeScheduler.scheduledAlarms[alarm.id]).isEqualTo(alarm)
     }
 
     private fun alarm(
@@ -142,6 +166,7 @@ class AndroidAlarmSchedulerTest {
         val scheduler = AndroidAlarmScheduler(
             context = context,
             permissionStatusReader = PermissionStatusReader { true },
+            nowProvider = { 1_000L },
         )
         val alarm = Alarm(
             id = 17L,
@@ -153,7 +178,7 @@ class AndroidAlarmSchedulerTest {
             ringtoneUri = "content://settings/system/alarm_alert",
             source = AlarmSource.MANUAL,
             aiOriginalText = null,
-            nextTriggerAtMillis = futureTriggerAtMillis(),
+            nextTriggerAtMillis = 61_000L,
             createdAtMillis = 1_776_800_000_000,
             updatedAtMillis = 1_776_800_000_000,
         )
@@ -177,6 +202,7 @@ class AndroidAlarmSchedulerTest {
         val scheduler = AndroidAlarmScheduler(
             context = context,
             permissionStatusReader = PermissionStatusReader { true },
+            nowProvider = { 1_000L },
         )
         val alarm = Alarm(
             id = 31L,
@@ -188,7 +214,7 @@ class AndroidAlarmSchedulerTest {
             ringtoneUri = "content://settings/system/alarm_alert",
             source = AlarmSource.MANUAL,
             aiOriginalText = null,
-            nextTriggerAtMillis = 1L,
+            nextTriggerAtMillis = 1_000L,
             createdAtMillis = 1_776_800_000_000,
             updatedAtMillis = 1_776_800_000_000,
         )
@@ -213,9 +239,10 @@ class AndroidAlarmSchedulerTest {
         val scheduler = AndroidAlarmScheduler(
             context = context,
             permissionStatusReader = PermissionStatusReader { true },
+            nowProvider = { 1_000L },
         )
         val alarmId = 24L
-        val futureTriggerAtMillis = futureTriggerAtMillis()
+        val futureTriggerAtMillis = 61_000L
 
         scheduler.schedule(
             Alarm(
@@ -246,5 +273,108 @@ class AndroidAlarmSchedulerTest {
         assertThat(pendingIntent).isNull()
     }
 
-    private fun futureTriggerAtMillis(): Long = System.currentTimeMillis() + 60_000
+    @Test
+    fun `near now future trigger schedules deterministically from injected clock`() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val scheduler = AndroidAlarmScheduler(
+            context = context,
+            permissionStatusReader = PermissionStatusReader { true },
+            nowProvider = { 1_000L },
+        )
+        val alarm = Alarm(
+            id = 52L,
+            title = "Edge",
+            hour = 6,
+            minute = 30,
+            repeatRule = RepeatRule.Daily,
+            enabled = true,
+            ringtoneUri = "content://settings/system/alarm_alert",
+            source = AlarmSource.MANUAL,
+            aiOriginalText = null,
+            nextTriggerAtMillis = 1_001L,
+            createdAtMillis = 1_776_800_000_000,
+            updatedAtMillis = 1_776_800_000_000,
+        )
+
+        val result = scheduler.schedule(alarm)
+
+        assertThat(result).isEqualTo(ScheduleResult.Scheduled)
+    }
+
+    @Test
+    fun `colliding request codes do not share cancellation identity`() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val scheduler = AndroidAlarmScheduler(
+            context = context,
+            permissionStatusReader = PermissionStatusReader { true },
+            nowProvider = { 1_000L },
+        )
+        val firstAlarmId = 1L
+        val secondAlarmId = 4_294_967_296L
+
+        assertThat(scheduler.pendingIntentRequestCode(firstAlarmId))
+            .isEqualTo(scheduler.pendingIntentRequestCode(secondAlarmId))
+
+        scheduler.schedule(scheduledAlarm(id = firstAlarmId, nextTriggerAtMillis = 61_000L))
+        scheduler.schedule(scheduledAlarm(id = secondAlarmId, nextTriggerAtMillis = 62_000L))
+
+        val firstPendingIntent = PendingIntent.getBroadcast(
+            context,
+            scheduler.pendingIntentRequestCode(firstAlarmId),
+            scheduler.alarmIntent(firstAlarmId),
+            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE,
+        )
+        val secondPendingIntent = PendingIntent.getBroadcast(
+            context,
+            scheduler.pendingIntentRequestCode(secondAlarmId),
+            scheduler.alarmIntent(secondAlarmId),
+            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE,
+        )
+
+        val cancelResult = scheduler.cancel(firstAlarmId)
+        val remainingSecondPendingIntent = PendingIntent.getBroadcast(
+            context,
+            scheduler.pendingIntentRequestCode(secondAlarmId),
+            scheduler.alarmIntent(secondAlarmId),
+            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE,
+        )
+
+        assertThat(firstPendingIntent).isNotNull()
+        assertThat(secondPendingIntent).isNotNull()
+        assertThat(cancelResult).isEqualTo(ScheduleResult.Cancelled)
+        assertThat(remainingSecondPendingIntent).isNotNull()
+    }
+
+    @Test
+    fun `alarm intent targets real receiver class`() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val scheduler = AndroidAlarmScheduler(
+            context = context,
+            permissionStatusReader = PermissionStatusReader { true },
+            nowProvider = { 1_000L },
+        )
+
+        val intent = scheduler.alarmIntent(77L)
+
+        assertThat(intent.component?.className).isEqualTo(AlarmReceiver::class.java.name)
+        assertThat(runCatching { Class.forName(intent.component!!.className) }.isSuccess).isTrue()
+    }
+
+    private fun scheduledAlarm(
+        id: Long,
+        nextTriggerAtMillis: Long,
+    ): Alarm = Alarm(
+        id = id,
+        title = "Scheduled",
+        hour = 6,
+        minute = 30,
+        repeatRule = RepeatRule.Daily,
+        enabled = true,
+        ringtoneUri = "content://settings/system/alarm_alert",
+        source = AlarmSource.MANUAL,
+        aiOriginalText = null,
+        nextTriggerAtMillis = nextTriggerAtMillis,
+        createdAtMillis = 1_776_800_000_000,
+        updatedAtMillis = 1_776_800_000_000,
+    )
 }
