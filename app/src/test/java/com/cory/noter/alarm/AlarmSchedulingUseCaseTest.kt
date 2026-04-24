@@ -93,7 +93,9 @@ class AlarmSchedulingUseCaseTest {
             permissionStatusReader = PermissionStatusReader { false },
         )
 
-        val result = scheduler.schedule(alarm(enabled = true, nextTriggerAtMillis = 1_776_904_200_000))
+        val result = scheduler.schedule(
+            alarm(enabled = true, nextTriggerAtMillis = System.currentTimeMillis() + 60_000),
+        )
 
         assertThat(result).isEqualTo(
             ScheduleResult.MissingPermission(Manifest.permission.SCHEDULE_EXACT_ALARM),
@@ -151,7 +153,7 @@ class AndroidAlarmSchedulerTest {
             ringtoneUri = "content://settings/system/alarm_alert",
             source = AlarmSource.MANUAL,
             aiOriginalText = null,
-            nextTriggerAtMillis = 1_776_904_200_000,
+            nextTriggerAtMillis = futureTriggerAtMillis(),
             createdAtMillis = 1_776_800_000_000,
             updatedAtMillis = 1_776_800_000_000,
         )
@@ -170,6 +172,42 @@ class AndroidAlarmSchedulerTest {
     }
 
     @Test
+    fun `schedule rejects stale past trigger`() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val scheduler = AndroidAlarmScheduler(
+            context = context,
+            permissionStatusReader = PermissionStatusReader { true },
+        )
+        val alarm = Alarm(
+            id = 31L,
+            title = "Past due",
+            hour = 6,
+            minute = 30,
+            repeatRule = RepeatRule.Daily,
+            enabled = true,
+            ringtoneUri = "content://settings/system/alarm_alert",
+            source = AlarmSource.MANUAL,
+            aiOriginalText = null,
+            nextTriggerAtMillis = 1L,
+            createdAtMillis = 1_776_800_000_000,
+            updatedAtMillis = 1_776_800_000_000,
+        )
+
+        val result = scheduler.schedule(alarm)
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            scheduler.pendingIntentRequestCode(alarm.id),
+            scheduler.alarmIntent(alarm.id),
+            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE,
+        )
+
+        assertThat(result).isEqualTo(
+            ScheduleResult.Failed("Alarm ${alarm.id} has a stale trigger and cannot be scheduled."),
+        )
+        assertThat(pendingIntent).isNull()
+    }
+
+    @Test
     fun `cancel clears existing pending intent`() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val scheduler = AndroidAlarmScheduler(
@@ -177,6 +215,7 @@ class AndroidAlarmSchedulerTest {
             permissionStatusReader = PermissionStatusReader { true },
         )
         val alarmId = 24L
+        val futureTriggerAtMillis = futureTriggerAtMillis()
 
         scheduler.schedule(
             Alarm(
@@ -189,7 +228,7 @@ class AndroidAlarmSchedulerTest {
                 ringtoneUri = "content://settings/system/alarm_alert",
                 source = AlarmSource.MANUAL,
                 aiOriginalText = null,
-                nextTriggerAtMillis = 1_776_904_200_000,
+                nextTriggerAtMillis = futureTriggerAtMillis,
                 createdAtMillis = 1_776_800_000_000,
                 updatedAtMillis = 1_776_800_000_000,
             ),
@@ -206,4 +245,6 @@ class AndroidAlarmSchedulerTest {
         assertThat(result).isEqualTo(ScheduleResult.Cancelled)
         assertThat(pendingIntent).isNull()
     }
+
+    private fun futureTriggerAtMillis(): Long = System.currentTimeMillis() + 60_000
 }

@@ -25,6 +25,9 @@ class AndroidAlarmScheduler(
 
         val triggerAtMillis = alarm.nextTriggerAtMillis
             ?: return ScheduleResult.Failed("Alarm ${alarm.id} has no future trigger to schedule.")
+        if (triggerAtMillis <= System.currentTimeMillis()) {
+            return ScheduleResult.Failed("Alarm ${alarm.id} has a stale trigger and cannot be scheduled.")
+        }
 
         if (!permissionStatusReader.canScheduleExactAlarms()) {
             return ScheduleResult.MissingPermission(Manifest.permission.SCHEDULE_EXACT_ALARM)
