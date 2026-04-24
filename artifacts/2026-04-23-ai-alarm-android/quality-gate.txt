@@ -1,0 +1,22 @@
+AI Alarm Android quality gate run on 2026-04-24 (Asia/Shanghai)
+
+- `./gradlew testDebugUnitTest`
+  - Result: PASS
+  - Evidence: `artifacts/2026-04-23-ai-alarm-android/testDebugUnitTest.txt`
+
+- `./gradlew lintDebug`
+  - Result: PASS
+  - Evidence: `artifacts/2026-04-23-ai-alarm-android/lintDebug.txt`
+  - Note: fixed manifest foreground-service permission and Compose locale lint before the final passing run.
+
+- `./gradlew assembleDebug`
+  - Result: PASS
+  - Evidence: `artifacts/2026-04-23-ai-alarm-android/assembleDebug.txt`
+
+- `adb devices -l`
+  - Result: emulator available
+  - Evidence: `artifacts/2026-04-23-ai-alarm-android/adb-devices.txt`
+
+- `./gradlew connectedDebugAndroidTest`
+  - Result: PASS
+  - Evidence: `artifacts/2026-04-23-ai-alarm-android/connectedDebugAndroidTest.txt`

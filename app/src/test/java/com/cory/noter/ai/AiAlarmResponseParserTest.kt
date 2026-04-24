@@ -217,6 +217,27 @@ class AiAlarmResponseParserTest {
     }
 
     @Test
+    fun `blank clarification reason fails when clarification is required`() {
+        val json = """
+            {
+              "title": "",
+              "hour": 8,
+              "minute": 30,
+              "repeatRule": { "type": "once", "daysOfWeek": [] },
+              "date": "2026-04-24",
+              "confidence": 0.2,
+              "needsClarification": true,
+              "clarificationReason": ""
+            }
+        """.trimIndent()
+
+        val result = parser.parse(json)
+
+        assertThat(result.isFailure).isTrue()
+        assertThat(result.exceptionOrNull()).hasMessageThat().contains("clarificationReason")
+    }
+
+    @Test
     fun `repeating response ignores date after validation`() {
         val json = """
             {

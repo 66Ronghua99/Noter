@@ -14,3 +14,12 @@ Protect both behavior and architecture.
 ## Evidence Rule
 
 Before claiming completion, record the commands run and the evidence produced.
+
+## Android MVP Gate
+
+Required for Android MVP delivery:
+
+- `./gradlew testDebugUnitTest`
+- `./gradlew lintDebug`
+- `./gradlew assembleDebug`
+- `./gradlew connectedDebugAndroidTest` when a device or emulator is available

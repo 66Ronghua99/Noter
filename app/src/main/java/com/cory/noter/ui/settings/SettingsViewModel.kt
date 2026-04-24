@@ -17,6 +17,7 @@ data class PermissionGuidanceUiModel(
     val title: String,
     val granted: Boolean,
     val summary: String,
+    val actionLabel: String?,
 )
 
 data class SettingsUiState(
@@ -30,37 +31,17 @@ data class SettingsUiState(
 
 class SettingsViewModel(
     private val settingsRepository: SettingsRepository,
-    exactAlarmPermissionReader: PermissionStatusReader,
-    notificationPermissionGranted: Boolean,
-    batteryOptimizationIgnored: Boolean,
+    private val exactAlarmPermissionReader: PermissionStatusReader,
+    private val notificationPermissionProvider: () -> Boolean,
+    private val batteryOptimizationIgnoredProvider: () -> Boolean,
 ) : ViewModel() {
-    private val permissionRows = listOf(
-        PermissionGuidanceUiModel(
-            id = "notifications",
-            title = "Notifications",
-            granted = notificationPermissionGranted,
-            summary = "Needed for alarm alerts on Android 13 and later.",
-        ),
-        PermissionGuidanceUiModel(
-            id = "exact_alarms",
-            title = "Exact alarms",
-            granted = exactAlarmPermissionReader.canScheduleExactAlarms(),
-            summary = "Needed for reliable alarm delivery at the exact minute.",
-        ),
-        PermissionGuidanceUiModel(
-            id = "battery_optimization",
-            title = "Battery optimization",
-            granted = batteryOptimizationIgnored,
-            summary = "Helps the app keep alarms reliable in the background.",
-        ),
-    )
-
     private val mutableUiState = MutableStateFlow(
-        SettingsUiState(permissionRows = permissionRows),
+        SettingsUiState(permissionRows = emptyList()),
     )
     val uiState: StateFlow<SettingsUiState> = mutableUiState.asStateFlow()
 
     init {
+        refreshPermissionRows()
         viewModelScope.launch {
             settingsRepository.settings.collect { settings ->
                 mutableUiState.update { current ->
@@ -68,10 +49,17 @@ class SettingsViewModel(
                         openRouterApiKey = settings.openRouterApiKey,
                         selectedModelId = settings.selectedModelId,
                         defaultRingtoneUri = settings.defaultRingtoneUri,
-                        permissionRows = permissionRows,
                     )
                 }
             }
+        }
+    }
+
+    fun refreshPermissionRows() {
+        mutableUiState.update { current ->
+            current.copy(
+                permissionRows = buildPermissionRows(),
+            )
         }
     }
 
@@ -110,4 +98,28 @@ class SettingsViewModel(
             }
         }
     }
+
+    private fun buildPermissionRows(): List<PermissionGuidanceUiModel> = listOf(
+        PermissionGuidanceUiModel(
+            id = "notifications",
+            title = "Notifications",
+            granted = notificationPermissionProvider(),
+            summary = "Needed for alarm alerts on Android 13 and later.",
+            actionLabel = "Allow notifications",
+        ),
+        PermissionGuidanceUiModel(
+            id = "exact_alarms",
+            title = "Exact alarms",
+            granted = exactAlarmPermissionReader.canScheduleExactAlarms(),
+            summary = "Needed for reliable alarm delivery at the exact minute.",
+            actionLabel = "Open exact alarm settings",
+        ),
+        PermissionGuidanceUiModel(
+            id = "battery_optimization",
+            title = "Battery optimization",
+            granted = batteryOptimizationIgnoredProvider(),
+            summary = "Helps the app keep alarms reliable in the background.",
+            actionLabel = "Open battery settings",
+        ),
+    )
 }

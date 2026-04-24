@@ -229,11 +229,12 @@ class AlarmEditorViewModel(
 
             existingAlarm = savedAlarm
             val scheduleResult = schedulingUseCase.syncSchedule(savedAlarm)
+            val errorMessage = scheduleResult.toEditorMessage()
             mutableUiState.update {
                 it.copy(
-                    savedAlarmId = savedAlarm.id,
+                    savedAlarmId = savedAlarm.id.takeIf { errorMessage == null },
                     validationErrors = emptyList(),
-                    errorMessage = scheduleResult.toEditorMessage(),
+                    errorMessage = errorMessage,
                     isExisting = true,
                 )
             }

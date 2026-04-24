@@ -49,6 +49,9 @@ class AiAlarmResponseParser {
         val needsClarification = root.requiredBoolean("needsClarification")
         val clarificationReason = root.requiredString("clarificationReason")
         if (needsClarification) {
+            if (clarificationReason.isBlank()) {
+                throw invalid("clarificationReason must be non-empty when needsClarification is true")
+            }
             throw ClarificationRequiredException(clarificationReason)
         }
 

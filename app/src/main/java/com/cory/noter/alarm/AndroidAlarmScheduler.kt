@@ -36,7 +36,7 @@ class AndroidAlarmScheduler(
         }
 
         val pendingIntent = pendingIntent(
-            alarmId = alarm.id,
+            alarm = alarm,
             flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
@@ -71,14 +71,21 @@ class AndroidAlarmScheduler(
         .setAction(ACTION_TRIGGER_ALARM)
         .setData(alarmDataUri(alarmId))
         .putExtra(EXTRA_ALARM_ID, alarmId)
+        .putExtra(EXTRA_TRIGGER_AT_MILLIS, INVALID_TRIGGER_AT_MILLIS)
+
+    fun alarmIntent(alarm: Alarm): Intent = Intent(context, AlarmReceiver::class.java)
+        .setAction(ACTION_TRIGGER_ALARM)
+        .setData(alarmDataUri(alarm.id))
+        .putExtra(EXTRA_ALARM_ID, alarm.id)
+        .putExtra(EXTRA_TRIGGER_AT_MILLIS, alarm.nextTriggerAtMillis ?: INVALID_TRIGGER_AT_MILLIS)
 
     private fun pendingIntent(
-        alarmId: Long,
+        alarm: Alarm,
         flags: Int,
     ): PendingIntent = PendingIntent.getBroadcast(
         context,
-        pendingIntentRequestCode(alarmId),
-        alarmIntent(alarmId),
+        pendingIntentRequestCode(alarm.id),
+        alarmIntent(alarm),
         flags,
     )
 
@@ -92,6 +99,8 @@ class AndroidAlarmScheduler(
     private companion object {
         const val ACTION_TRIGGER_ALARM = "com.cory.noter.alarm.TRIGGER"
         const val EXTRA_ALARM_ID = "alarm_id"
+        const val EXTRA_TRIGGER_AT_MILLIS = "trigger_at_millis"
+        const val INVALID_TRIGGER_AT_MILLIS = -1L
     }
 
     private fun alarmDataUri(alarmId: Long): Uri = Uri.Builder()

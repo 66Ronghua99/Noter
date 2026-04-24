@@ -1,5 +1,6 @@
 package com.cory.noter.ui.settings
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -32,6 +33,7 @@ fun SettingsScreen(
     onSaveApiKey: () -> Unit,
     onModelSelected: (String) -> Unit,
     onPickDefaultRingtone: () -> Unit,
+    onPermissionAction: (String) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -83,7 +85,9 @@ fun SettingsScreen(
                     )
                     state.modelOptions.forEach { modelId ->
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onModelSelected(modelId) },
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             RadioButton(
@@ -142,6 +146,11 @@ fun SettingsScreen(
                             text = row.summary,
                             style = MaterialTheme.typography.bodySmall,
                         )
+                        if (!row.granted && row.actionLabel != null) {
+                            Button(onClick = { onPermissionAction(row.id) }) {
+                                Text(text = row.actionLabel)
+                            }
+                        }
                     }
                 }
             }

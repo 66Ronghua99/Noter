@@ -149,6 +149,32 @@ class AiAlarmCreatorTest {
     }
 
     @Test
+    fun `blank clarification reason is rejected as invalid response`() = runTest {
+        settingsRepository.set(validSettings())
+        fakeOpenRouter.nextResult = OpenRouterResult.Success(
+            """
+            {
+              "title": "",
+              "hour": 8,
+              "minute": 0,
+              "repeatRule": { "type": "once", "daysOfWeek": [] },
+              "date": "2026-04-24",
+              "confidence": 0.2,
+              "needsClarification": true,
+              "clarificationReason": ""
+            }
+            """.trimIndent(),
+        )
+
+        val result = creator.createFromText("remind me to take medicine at 8")
+
+        assertThat(result).isInstanceOf(AiCreateResult.InvalidResponse::class.java)
+        assertThat((result as AiCreateResult.InvalidResponse).reason)
+            .contains("clarificationReason")
+        assertThat(repository.alarms.first()).isEmpty()
+    }
+
+    @Test
     fun `valid response creates ai alarm and schedules it`() = runTest {
         settingsRepository.set(validSettings(modelId = "qwen/qwen3-next-80b-a3b-instruct:free"))
         fakeOpenRouter.nextResult = OpenRouterResult.Success(

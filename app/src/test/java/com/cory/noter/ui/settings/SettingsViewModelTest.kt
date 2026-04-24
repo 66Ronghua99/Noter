@@ -18,11 +18,12 @@ class SettingsViewModelTest {
     @Test
     fun `selecting model saves settings value`() = runTest {
         val repository = FakeSettingsRepository()
+        var notificationGranted = false
         val viewModel = SettingsViewModel(
             settingsRepository = repository,
             exactAlarmPermissionReader = PermissionStatusReader { true },
-            notificationPermissionGranted = false,
-            batteryOptimizationIgnored = false,
+            notificationPermissionProvider = { notificationGranted },
+            batteryOptimizationIgnoredProvider = { false },
         )
 
         advanceUntilIdle()
@@ -41,8 +42,8 @@ class SettingsViewModelTest {
         val viewModel = SettingsViewModel(
             settingsRepository = repository,
             exactAlarmPermissionReader = PermissionStatusReader { false },
-            notificationPermissionGranted = true,
-            batteryOptimizationIgnored = true,
+            notificationPermissionProvider = { true },
+            batteryOptimizationIgnoredProvider = { true },
         )
 
         advanceUntilIdle()
@@ -53,5 +54,35 @@ class SettingsViewModelTest {
             .isEqualTo("content://media/internal/audio/media/12")
         assertThat(viewModel.uiState.value.defaultRingtoneUri)
             .isEqualTo("content://media/internal/audio/media/12")
+    }
+
+    @Test
+    fun `refresh permission rows re-reads current permission state`() = runTest {
+        val repository = FakeSettingsRepository()
+        var notificationGranted = false
+        var batteryIgnored = false
+        var exactAllowed = false
+        val viewModel = SettingsViewModel(
+            settingsRepository = repository,
+            exactAlarmPermissionReader = PermissionStatusReader { exactAllowed },
+            notificationPermissionProvider = { notificationGranted },
+            batteryOptimizationIgnoredProvider = { batteryIgnored },
+        )
+
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.permissionRows.first { it.id == "notifications" }.granted)
+            .isFalse()
+
+        notificationGranted = true
+        batteryIgnored = true
+        exactAllowed = true
+        viewModel.refreshPermissionRows()
+
+        assertThat(viewModel.uiState.value.permissionRows.first { it.id == "notifications" }.granted)
+            .isTrue()
+        assertThat(viewModel.uiState.value.permissionRows.first { it.id == "exact_alarms" }.granted)
+            .isTrue()
+        assertThat(viewModel.uiState.value.permissionRows.first { it.id == "battery_optimization" }.granted)
+            .isTrue()
     }
 }

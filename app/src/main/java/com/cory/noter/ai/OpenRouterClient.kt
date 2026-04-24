@@ -1,16 +1,19 @@
 package com.cory.noter.ai
 
 import java.io.IOException
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import kotlin.coroutines.resume
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import okhttp3.Call
+import okhttp3.Callback
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
 
 sealed interface OpenRouterResult {
     data class Success(val responseText: String) : OpenRouterResult
@@ -29,7 +32,7 @@ interface OpenRouterGateway {
 }
 
 class OpenRouterClient(
-    private val httpClient: OkHttpClient = OkHttpClient(),
+    private val callFactory: Call.Factory = OkHttpClient(),
     private val endpoint: String = DEFAULT_ENDPOINT,
     private val json: Json = Json { ignoreUnknownKeys = true },
 ) : OpenRouterGateway {
@@ -37,7 +40,7 @@ class OpenRouterClient(
         apiKey: String,
         modelId: String,
         prompt: String,
-    ): OpenRouterResult = withContext(Dispatchers.IO) {
+    ): OpenRouterResult = suspendCancellableCoroutine { continuation ->
         val requestBody = json.encodeToString(
             ChatCompletionRequest(
                 model = modelId,
@@ -58,29 +61,60 @@ class OpenRouterClient(
             .build()
 
         try {
-            httpClient.newCall(request).execute().use { response ->
-                val responseText = response.body?.string().orEmpty()
-                if (!response.isSuccessful) {
-                    val reason = extractErrorMessage(responseText)
-                    return@withContext when (response.code) {
-                        429 -> OpenRouterResult.RateLimited(reason)
-                        else -> OpenRouterResult.RemoteFailure(
-                            code = response.code,
-                            reason = reason,
+            val call = callFactory.newCall(request)
+            continuation.invokeOnCancellation {
+                call.cancel()
+            }
+            call.enqueue(
+                object : Callback {
+                    override fun onFailure(call: Call, e: IOException) {
+                        if (!continuation.isActive) {
+                            return
+                        }
+                        continuation.resume(
+                            OpenRouterResult.NetworkFailure(
+                                e.message ?: "OpenRouter request failed.",
+                            ),
                         )
                     }
+
+                    override fun onResponse(call: Call, response: Response) {
+                        val result = response.use(::toResult)
+                        if (!continuation.isActive) {
+                            return
+                        }
+                        continuation.resume(result)
+                    }
                 }
-
-                val content = extractAssistantContent(responseText)
-                    ?: return@withContext OpenRouterResult.InvalidResponse(
-                        "OpenRouter response did not contain assistant content.",
-                    )
-
-                OpenRouterResult.Success(content)
-            }
+            )
         } catch (error: IOException) {
-            OpenRouterResult.NetworkFailure(error.message ?: "OpenRouter request failed.")
+            continuation.resume(
+                OpenRouterResult.NetworkFailure(
+                    error.message ?: "OpenRouter request failed.",
+                ),
+            )
         }
+    }
+
+    private fun toResult(response: Response): OpenRouterResult {
+        val responseText = response.body?.string().orEmpty()
+        if (!response.isSuccessful) {
+            val reason = extractErrorMessage(responseText)
+            return when (response.code) {
+                429 -> OpenRouterResult.RateLimited(reason)
+                else -> OpenRouterResult.RemoteFailure(
+                    code = response.code,
+                    reason = reason,
+                )
+            }
+        }
+
+        val content = extractAssistantContent(responseText)
+            ?: return OpenRouterResult.InvalidResponse(
+                "OpenRouter response did not contain assistant content.",
+            )
+
+        return OpenRouterResult.Success(content)
     }
 
     private fun extractAssistantContent(responseText: String): String? = runCatching {

@@ -12,11 +12,8 @@ import android.media.RingtoneManager
 import android.net.Uri
 import android.os.Build
 import android.os.IBinder
-import androidx.room.Room
 import androidx.core.app.NotificationCompat
-import com.cory.noter.data.alarm.AlarmDatabase
-import com.cory.noter.data.alarm.AlarmRepository
-import com.cory.noter.data.alarm.RoomAlarmRepository
+import com.cory.noter.di.appContainer
 import com.cory.noter.ui.ringing.RingingActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -168,7 +165,7 @@ class RingingService : Service() {
             return@withContext AlarmStopResult.MissingAlarm
         }
 
-        AlarmRuntimeGraph.ringingCoordinator(applicationContext).stopRinging(alarmId)
+        applicationContext.appContainer.alarmRingingCoordinator.stopRinging(alarmId)
     }
 
     private fun createNotificationChannel() {
@@ -262,38 +259,5 @@ class RingingService : Service() {
             .setAction(ACTION_STOP_RINGING)
             .putExtra(EXTRA_ALARM_ID, alarmId)
             .putExtra(EXTRA_RINGTONE_URI, ringtoneUri)
-    }
-}
-
-internal object AlarmRuntimeGraph {
-    private const val DATABASE_NAME = "noter.db"
-
-    @Volatile
-    private var database: AlarmDatabase? = null
-
-    fun repository(context: Context): AlarmRepository = RoomAlarmRepository(database(context).alarmDao())
-
-    fun scheduler(context: Context): AlarmScheduler = AndroidAlarmScheduler(context.applicationContext)
-
-    fun ringingCoordinator(context: Context): AlarmRingingCoordinator = AlarmRingingCoordinator(
-        repository = repository(context),
-        schedulingUseCase = AlarmSchedulingUseCase(scheduler(context)),
-    )
-
-    private fun database(context: Context): AlarmDatabase {
-        val existing = database
-        if (existing != null) {
-            return existing
-        }
-
-        return synchronized(this) {
-            database ?: Room.databaseBuilder(
-                context.applicationContext,
-                AlarmDatabase::class.java,
-                DATABASE_NAME,
-            ).build().also { created ->
-                database = created
-            }
-        }
     }
 }

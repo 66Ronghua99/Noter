@@ -2,18 +2,29 @@ package com.cory.noter.ai
 
 import com.google.common.truth.Truth.assertThat
 import java.io.IOException
+import java.util.concurrent.TimeUnit
+import kotlin.reflect.KClass
+import kotlin.time.Duration.Companion.milliseconds
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import okhttp3.Call
+import okhttp3.Callback
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
+import okhttp3.Request
 import okhttp3.Protocol
 import okhttp3.Response
 import okhttp3.ResponseBody.Companion.toResponseBody
 import okio.Buffer
+import okio.Timeout
 import org.junit.Test
 
 class OpenRouterClientTest {
@@ -24,7 +35,7 @@ class OpenRouterClientTest {
         var capturedContentType = ""
         var capturedBody = ""
         val client = OpenRouterClient(
-            httpClient = OkHttpClient.Builder()
+            callFactory = OkHttpClient.Builder()
                 .addInterceptor(Interceptor { chain ->
                     val request = chain.request()
                     capturedRequestUrl = request.url.toString()
@@ -83,7 +94,7 @@ class OpenRouterClientTest {
     @Test
     fun `network exception returns network failure`() = runTest {
         val client = OpenRouterClient(
-            httpClient = OkHttpClient.Builder()
+            callFactory = OkHttpClient.Builder()
                 .addInterceptor {
                     throw IOException("socket timeout")
                 }
@@ -103,7 +114,7 @@ class OpenRouterClientTest {
     @Test
     fun `too many requests returns rate limited failure`() = runTest {
         val client = OpenRouterClient(
-            httpClient = OkHttpClient.Builder()
+            callFactory = OkHttpClient.Builder()
                 .addInterceptor(Interceptor { chain ->
                     Response.Builder()
                         .request(chain.request())
@@ -133,5 +144,76 @@ class OpenRouterClientTest {
         assertThat(result).isEqualTo(
             OpenRouterResult.RateLimited("Rate limit exceeded for model."),
         )
+    }
+
+    @Test
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun `cancelling coroutine cancels in flight http call`() = runTest(timeout = 5_000.milliseconds) {
+        val callFactory = RecordingCallFactory()
+        val client = OpenRouterClient(callFactory = callFactory)
+
+        val job = launch {
+            client.createChatCompletion(
+                apiKey = "sk-or-v1-test",
+                modelId = "openrouter/free",
+                prompt = "hello",
+            )
+        }
+        advanceUntilIdle()
+
+        assertThat(callFactory.call.wasEnqueued).isTrue()
+
+        job.cancelAndJoin()
+
+        assertThat(callFactory.call.cancelCalled).isTrue()
+    }
+
+    private class RecordingCallFactory : Call.Factory {
+        val call = RecordingCall()
+
+        override fun newCall(request: Request): Call {
+            call.request = request
+            return call
+        }
+    }
+
+    private class RecordingCall : Call {
+        var request: Request? = null
+        var wasEnqueued: Boolean = false
+        var cancelCalled: Boolean = false
+
+        override fun request(): Request = requireNotNull(request)
+
+        override fun execute(): Response {
+            error("execute should not be used")
+        }
+
+        override fun enqueue(responseCallback: Callback) {
+            wasEnqueued = true
+        }
+
+        override fun cancel() {
+            cancelCalled = true
+        }
+
+        override fun isExecuted(): Boolean = wasEnqueued
+
+        override fun isCanceled(): Boolean = cancelCalled
+
+        override fun timeout(): Timeout = Timeout.NONE
+
+        override fun clone(): Call = RecordingCall().also {
+            it.request = request
+        }
+
+        override fun <T : Any> tag(type: KClass<T>): T? = null
+
+        override fun <T> tag(type: Class<out T>): T? = null
+
+        override fun <T : Any> tag(type: KClass<T>, computeIfAbsent: () -> T): T =
+            computeIfAbsent()
+
+        override fun <T : Any> tag(type: Class<T>, computeIfAbsent: () -> T): T =
+            computeIfAbsent()
     }
 }

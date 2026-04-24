@@ -1,5 +1,6 @@
 package com.cory.noter.ui.editor
 
+import android.os.Build
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Column
@@ -21,13 +22,13 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import java.time.DayOfWeek
 import java.time.format.TextStyle
-import java.util.Locale
 
 @Composable
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
@@ -45,6 +46,13 @@ fun AlarmEditorScreen(
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val configuration = LocalConfiguration.current
+    val locale = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+        configuration.locales[0]
+    } else {
+        @Suppress("DEPRECATION")
+        configuration.locale
+    }
     val repeatOptions = listOf(
         EditorRepeatOption.ONCE to "Once",
         EditorRepeatOption.DAILY to "Daily",
@@ -126,7 +134,7 @@ fun AlarmEditorScreen(
                                 Text(
                                     text = day.getDisplayName(
                                         TextStyle.SHORT,
-                                        Locale.getDefault(),
+                                        locale,
                                     ),
                                 )
                             },
