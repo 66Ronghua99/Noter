@@ -7,33 +7,49 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.cory.noter.alarm.RingingService
 
 class RingingActivity : ComponentActivity() {
+    private var currentAlarm by mutableStateOf(RingingAlarmState())
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val alarmId = intent.getLongExtra(EXTRA_ALARM_ID, INVALID_ALARM_ID)
-        val alarmTitle = intent.getStringExtra(EXTRA_ALARM_TITLE).orEmpty().ifBlank { "Alarm" }
+        updateFromIntent(intent)
 
         setContent {
             MaterialTheme {
                 Surface(modifier = Modifier) {
                     RingingScreen(
-                        title = alarmTitle,
+                        title = currentAlarm.title,
                         onStop = {
-                            startService(
-                                RingingService.createStopIntent(
-                                    context = this,
-                                    alarmId = alarmId,
-                                ),
-                            )
+                            startService(currentStopIntentForTest())
                             finish()
                         },
                     )
                 }
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        updateFromIntent(intent)
+    }
+
+    internal fun currentAlarmForTest(): RingingAlarmState = currentAlarm
+
+    internal fun currentStopIntentForTest(): Intent = RingingService.createStopIntent(
+        context = this,
+        alarmId = currentAlarm.alarmId,
+    )
+
+    private fun updateFromIntent(intent: Intent?) {
+        currentAlarm = RingingAlarmState.fromIntent(intent)
     }
 
     companion object {
@@ -49,5 +65,21 @@ class RingingActivity : ComponentActivity() {
             .putExtra(EXTRA_ALARM_ID, alarmId)
             .putExtra(EXTRA_ALARM_TITLE, alarmTitle)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+    }
+}
+
+data class RingingAlarmState(
+    val alarmId: Long = -1L,
+    val title: String = "Alarm",
+) {
+    companion object {
+        private const val EXTRA_ALARM_ID = "alarm_id"
+        private const val EXTRA_ALARM_TITLE = "alarm_title"
+        private const val INVALID_ALARM_ID = -1L
+
+        fun fromIntent(intent: Intent?): RingingAlarmState = RingingAlarmState(
+            alarmId = intent?.getLongExtra(EXTRA_ALARM_ID, INVALID_ALARM_ID) ?: INVALID_ALARM_ID,
+            title = intent?.getStringExtra(EXTRA_ALARM_TITLE).orEmpty().ifBlank { "Alarm" },
+        )
     }
 }

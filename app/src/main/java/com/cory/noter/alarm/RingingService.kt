@@ -10,6 +10,7 @@ import android.media.AudioAttributes
 import android.media.Ringtone
 import android.media.RingtoneManager
 import android.net.Uri
+import android.os.Build
 import android.os.IBinder
 import androidx.room.Room
 import androidx.core.app.NotificationCompat
@@ -22,8 +23,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class RingingService : Service() {
+    internal sealed interface StopHandling {
+        data object Finish : StopHandling
+
+        data class ShowFailure(val reason: String) : StopHandling
+    }
+
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var ringtone: Ringtone? = null
 
@@ -59,12 +67,21 @@ class RingingService : Service() {
             ACTION_STOP_RINGING -> {
                 val alarmId = intent.getLongExtra(EXTRA_ALARM_ID, INVALID_ALARM_ID)
                 stopPlayback()
-                serviceScope.launch(Dispatchers.IO) {
-                    if (alarmId != INVALID_ALARM_ID) {
-                        AlarmRuntimeGraph.ringingCoordinator(applicationContext).stopRinging(alarmId)
+                serviceScope.launch {
+                    val stopResult = stopAlarm(alarmId)
+                    when (val handling = stopHandlingFor(stopResult)) {
+                        StopHandling.Finish -> {
+                            stopForeground(STOP_FOREGROUND_REMOVE)
+                            stopSelf()
+                        }
+
+                        is StopHandling.ShowFailure -> {
+                            startForeground(
+                                notificationIdFor(alarmId.takeIf { it != INVALID_ALARM_ID } ?: CLEANUP_FAILURE_NOTIFICATION_ID),
+                                buildCleanupFailureNotification(handling.reason),
+                            )
+                        }
                     }
-                    stopForeground(STOP_FOREGROUND_REMOVE)
-                    stopSelf()
                 }
                 START_NOT_STICKY
             }
@@ -83,57 +100,76 @@ class RingingService : Service() {
         alarmId: Long,
         alarmTitle: String,
         ringtoneUri: String,
-    ) = NotificationCompat.Builder(this, CHANNEL_ID)
-        .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
-        .setContentTitle(alarmTitle)
-        .setContentText("Alarm is ringing")
-        .setPriority(NotificationCompat.PRIORITY_MAX)
-        .setCategory(NotificationCompat.CATEGORY_ALARM)
-        .setOngoing(true)
-        .setAutoCancel(false)
-        .setContentIntent(
-            PendingIntent.getActivity(
-                this,
-                requestCodeFor(alarmId),
-                RingingActivity.createIntent(
-                    context = this,
-                    alarmId = alarmId,
-                    alarmTitle = alarmTitle,
-                ),
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+    ): android.app.Notification {
+        createNotificationChannel()
+        val activityIntent = PendingIntent.getActivity(
+            this,
+            requestCodeFor(alarmId),
+            RingingActivity.createIntent(
+                context = this,
+                alarmId = alarmId,
+                alarmTitle = alarmTitle,
             ),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-        .setFullScreenIntent(
-            PendingIntent.getActivity(
-                this,
-                requestCodeFor(alarmId),
-                RingingActivity.createIntent(
-                    context = this,
-                    alarmId = alarmId,
-                    alarmTitle = alarmTitle,
+
+        return NotificationCompat.Builder(this, CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
+            .setContentTitle(alarmTitle)
+            .setContentText("Alarm is ringing")
+            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setOngoing(true)
+            .setAutoCancel(false)
+            .setContentIntent(activityIntent)
+            .apply {
+                if (shouldUseFullScreenIntent(
+                        sdkInt = Build.VERSION.SDK_INT,
+                        managerAllowsFullScreenIntent = notificationManagerAllowsFullScreenIntent(),
+                    )
+                ) {
+                    setFullScreenIntent(activityIntent, true)
+                }
+            }
+            .addAction(
+                0,
+                "Stop",
+                PendingIntent.getService(
+                    this,
+                    requestCodeFor(alarmId),
+                    createStopIntent(
+                        context = this,
+                        alarmId = alarmId,
+                        ringtoneUri = ringtoneUri,
+                    ),
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
                 ),
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-            ),
-            true,
-        )
-        .addAction(
-            0,
-            "Stop",
-            PendingIntent.getService(
-                this,
-                requestCodeFor(alarmId),
-                createStopIntent(
-                    context = this,
-                    alarmId = alarmId,
-                    ringtoneUri = ringtoneUri,
-                ),
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-            ),
-        )
-        .also {
-            createNotificationChannel()
+            )
+            .build()
+    }
+
+    private fun buildCleanupFailureNotification(reason: String): android.app.Notification =
+        NotificationCompat.Builder(this, CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.stat_notify_error)
+            .setContentTitle("Alarm cleanup failed")
+            .setContentText(reason)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(reason))
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_ERROR)
+            .setOngoing(true)
+            .setAutoCancel(false)
+            .also {
+                createNotificationChannel()
+            }
+            .build()
+
+    private suspend fun stopAlarm(alarmId: Long): AlarmStopResult = withContext(Dispatchers.IO) {
+        if (alarmId == INVALID_ALARM_ID) {
+            return@withContext AlarmStopResult.MissingAlarm
         }
-        .build()
+
+        AlarmRuntimeGraph.ringingCoordinator(applicationContext).stopRinging(alarmId)
+    }
 
     private fun createNotificationChannel() {
         val notificationManager = getSystemService(NotificationManager::class.java) ?: return
@@ -175,14 +211,37 @@ class RingingService : Service() {
 
     private fun notificationIdFor(alarmId: Long): Int = requestCodeFor(alarmId)
 
+    private fun notificationManagerAllowsFullScreenIntent(): Boolean {
+        val notificationManager = getSystemService(NotificationManager::class.java)
+        return when {
+            notificationManager == null -> false
+            Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE -> true
+            else -> notificationManager.canUseFullScreenIntent()
+        }
+    }
+
     companion object {
         private const val CHANNEL_ID = "ringing_alarm"
+        private const val CLEANUP_FAILURE_NOTIFICATION_ID = 40_001L
         private const val ACTION_START_RINGING = "com.cory.noter.alarm.START_RINGING"
         private const val ACTION_STOP_RINGING = "com.cory.noter.alarm.STOP_RINGING"
         private const val EXTRA_ALARM_ID = "alarm_id"
         private const val EXTRA_ALARM_TITLE = "alarm_title"
         private const val EXTRA_RINGTONE_URI = "ringtone_uri"
         private const val INVALID_ALARM_ID = -1L
+
+        internal fun stopHandlingFor(result: AlarmStopResult): StopHandling = when (result) {
+            is AlarmStopResult.Failed -> StopHandling.ShowFailure(result.reason)
+            AlarmStopResult.MissingAlarm,
+            AlarmStopResult.DeletedOneTimeAlarm,
+            is AlarmStopResult.RescheduledRepeatingAlarm,
+            -> StopHandling.Finish
+        }
+
+        internal fun shouldUseFullScreenIntent(
+            sdkInt: Int,
+            managerAllowsFullScreenIntent: Boolean,
+        ): Boolean = sdkInt < Build.VERSION_CODES.UPSIDE_DOWN_CAKE || managerAllowsFullScreenIntent
 
         fun createStartIntent(
             context: Context,
