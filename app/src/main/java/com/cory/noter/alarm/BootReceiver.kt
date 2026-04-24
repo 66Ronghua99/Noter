@@ -3,6 +3,7 @@ package com.cory.noter.alarm
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import com.cory.noter.NoterApplication
 
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(
@@ -13,6 +14,15 @@ class BootReceiver : BroadcastReceiver() {
             return
         }
 
-        // Task 10 owns boot reconciliation and rescheduling.
+        val pendingResult = goAsync()
+        val application = context.applicationContext as? NoterApplication
+        if (application == null) {
+            pendingResult.finish()
+            return
+        }
+
+        application.reconcileStartupState {
+            pendingResult.finish()
+        }
     }
 }
