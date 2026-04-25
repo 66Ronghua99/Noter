@@ -112,6 +112,13 @@ class OpenRouterClientTest {
     }
 
     @Test
+    fun `default call factory has bounded total timeout`() {
+        val callFactory = defaultOpenRouterCallFactory()
+
+        assertThat((callFactory as OkHttpClient).callTimeoutMillis).isEqualTo(60_000)
+    }
+
+    @Test
     fun `too many requests returns rate limited failure`() = runTest {
         val client = OpenRouterClient(
             callFactory = OkHttpClient.Builder()

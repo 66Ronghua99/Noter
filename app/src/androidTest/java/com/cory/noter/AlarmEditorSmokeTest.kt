@@ -59,6 +59,7 @@ class AlarmEditorSmokeTest {
                     onCustomWeekdayToggled = viewModel::onCustomWeekdayToggled,
                     onPickRingtone = {},
                     onEnabledChanged = viewModel::onEnabledChanged,
+                    onOpenExactAlarmSettings = {},
                     onSave = viewModel::save,
                     onDelete = viewModel::delete,
                 )
@@ -121,6 +122,7 @@ class AlarmEditorSmokeTest {
                     onCustomWeekdayToggled = viewModel::onCustomWeekdayToggled,
                     onPickRingtone = {},
                     onEnabledChanged = viewModel::onEnabledChanged,
+                    onOpenExactAlarmSettings = {},
                     onSave = viewModel::save,
                     onDelete = viewModel::delete,
                 )

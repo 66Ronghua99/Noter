@@ -48,6 +48,7 @@ class MainActivity : ComponentActivity() {
                         appContainer = appContainer,
                         notificationPermissionProvider = ::notificationPermissionGranted,
                         batteryOptimizationIgnoredProvider = ::batteryOptimizationIgnored,
+                        onOpenExactAlarmSettings = ::openExactAlarmSettings,
                     )
                 }
             }
@@ -66,6 +67,14 @@ class MainActivity : ComponentActivity() {
         val powerManager = getSystemService(PowerManager::class.java) ?: return false
         return powerManager.isIgnoringBatteryOptimizations(packageName)
     }
+
+    private fun openExactAlarmSettings() {
+        startActivity(
+            Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
+                data = Uri.parse("package:$packageName")
+            },
+        )
+    }
 }
 
 @Composable
@@ -73,6 +82,7 @@ private fun NoterRoot(
     appContainer: AppContainer,
     notificationPermissionProvider: () -> Boolean,
     batteryOptimizationIgnoredProvider: () -> Boolean,
+    onOpenExactAlarmSettings: () -> Unit,
 ) {
     NoterApp(
         alarmListScreen = { onOpenManualCreate, onOpenAiCreate, onEditAlarm, onOpenSettings ->
@@ -88,6 +98,7 @@ private fun NoterRoot(
             AlarmEditorRoute(
                 appContainer = appContainer,
                 alarmId = alarmId,
+                onOpenExactAlarmSettings = onOpenExactAlarmSettings,
                 onDone = onDone,
             )
         },
@@ -95,6 +106,7 @@ private fun NoterRoot(
             AiCreateRoute(
                 appContainer = appContainer,
                 onBack = onBack,
+                onOpenExactAlarmSettings = onOpenExactAlarmSettings,
                 onOpenManualCreate = onOpenManualCreate,
             )
         },
@@ -142,6 +154,7 @@ private fun AlarmListRoute(
 private fun AlarmEditorRoute(
     appContainer: AppContainer,
     alarmId: Long?,
+    onOpenExactAlarmSettings: () -> Unit,
     onDone: () -> Unit,
 ) {
     val viewModel: AlarmEditorViewModel = viewModel(
@@ -187,6 +200,7 @@ private fun AlarmEditorRoute(
             )
         },
         onEnabledChanged = viewModel::onEnabledChanged,
+        onOpenExactAlarmSettings = onOpenExactAlarmSettings,
         onSave = viewModel::save,
         onDelete = viewModel::delete,
     )
@@ -196,6 +210,7 @@ private fun AlarmEditorRoute(
 private fun AiCreateRoute(
     appContainer: AppContainer,
     onBack: () -> Unit,
+    onOpenExactAlarmSettings: () -> Unit,
     onOpenManualCreate: () -> Unit,
 ) {
     val viewModel: AiCreateViewModel = viewModel(
@@ -203,6 +218,7 @@ private fun AiCreateRoute(
             AiCreateViewModel(
                 creator = appContainer.aiAlarmCreator,
                 settingsRepository = appContainer.settingsRepository,
+                backgroundScheduler = appContainer.aiCreateBackgroundScheduler,
             )
         },
     )
@@ -218,6 +234,7 @@ private fun AiCreateRoute(
         state = state,
         onPromptChanged = viewModel::onPromptChanged,
         onSubmit = viewModel::submit,
+        onOpenExactAlarmSettings = onOpenExactAlarmSettings,
         onOpenManualCreate = onOpenManualCreate,
         onBack = onBack,
     )

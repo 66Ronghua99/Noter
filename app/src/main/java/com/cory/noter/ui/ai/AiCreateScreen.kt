@@ -25,6 +25,7 @@ fun AiCreateScreen(
     state: AiCreateUiState,
     onPromptChanged: (String) -> Unit,
     onSubmit: () -> Unit,
+    onOpenExactAlarmSettings: () -> Unit,
     onOpenManualCreate: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
@@ -73,6 +74,20 @@ fun AiCreateScreen(
                     text = errorMessage,
                     color = MaterialTheme.colorScheme.error,
                 )
+            }
+            state.statusMessage?.let { statusMessage ->
+                Text(
+                    text = statusMessage,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+            if (state.exactAlarmPermissionRequired) {
+                Button(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = onOpenExactAlarmSettings,
+                ) {
+                    Text(text = "Open exact alarm settings")
+                }
             }
 
             if (state.isLoading) {

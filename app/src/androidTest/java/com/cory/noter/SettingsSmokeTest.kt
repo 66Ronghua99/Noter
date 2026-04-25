@@ -90,6 +90,7 @@ class SettingsSmokeTest {
                     state = state,
                     onPromptChanged = viewModel::onPromptChanged,
                     onSubmit = viewModel::submit,
+                    onOpenExactAlarmSettings = {},
                     onOpenManualCreate = {},
                     onBack = {},
                 )

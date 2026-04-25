@@ -5,6 +5,7 @@ object OpenRouterModel {
 
     val builtInIds: List<String> = listOf(
         DefaultId,
+        "deepseek/deepseek-v3.2",
         "openrouter/free",
         "qwen/qwen3-next-80b-a3b-instruct:free",
         "z-ai/glm-4.5-air:free",

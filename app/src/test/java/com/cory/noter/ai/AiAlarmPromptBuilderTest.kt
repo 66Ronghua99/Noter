@@ -10,6 +10,7 @@ class AiAlarmPromptBuilderTest {
     fun `built in model ids match approved free catalog`() {
         assertThat(OpenRouterModel.builtInIds).containsExactly(
             "minimax/minimax-m2.5:free",
+            "deepseek/deepseek-v3.2",
             "openrouter/free",
             "qwen/qwen3-next-80b-a3b-instruct:free",
             "z-ai/glm-4.5-air:free",

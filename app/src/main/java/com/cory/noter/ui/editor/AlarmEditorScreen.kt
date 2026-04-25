@@ -42,6 +42,7 @@ fun AlarmEditorScreen(
     onCustomWeekdayToggled: (DayOfWeek) -> Unit,
     onPickRingtone: () -> Unit,
     onEnabledChanged: (Boolean) -> Unit,
+    onOpenExactAlarmSettings: () -> Unit,
     onSave: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
@@ -179,6 +180,11 @@ fun AlarmEditorScreen(
                     text = errorMessage,
                     color = MaterialTheme.colorScheme.error,
                 )
+            }
+            if (state.exactAlarmPermissionRequired) {
+                Button(onClick = onOpenExactAlarmSettings) {
+                    Text(text = "Open exact alarm settings")
+                }
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {

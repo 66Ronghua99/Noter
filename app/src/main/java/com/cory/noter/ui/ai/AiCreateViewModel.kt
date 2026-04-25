@@ -3,6 +3,7 @@ package com.cory.noter.ui.ai
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cory.noter.ai.AiAlarmCreator
+import com.cory.noter.ai.AiCreateBackgroundScheduler
 import com.cory.noter.ai.AiCreateResult
 import com.cory.noter.data.settings.SettingsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,12 +18,15 @@ data class AiCreateUiState(
     val selectedModelId: String = "",
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
+    val statusMessage: String? = null,
+    val exactAlarmPermissionRequired: Boolean = false,
     val createdAlarmId: Long? = null,
 )
 
 class AiCreateViewModel(
     private val creator: AiAlarmCreator,
     settingsRepository: SettingsRepository,
+    private val backgroundScheduler: AiCreateBackgroundScheduler? = null,
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(AiCreateUiState())
     val uiState: StateFlow<AiCreateUiState> = mutableUiState.asStateFlow()
@@ -42,6 +46,8 @@ class AiCreateViewModel(
             it.copy(
                 prompt = prompt,
                 errorMessage = null,
+                statusMessage = null,
+                exactAlarmPermissionRequired = false,
             )
         }
     }
@@ -55,11 +61,28 @@ class AiCreateViewModel(
             return
         }
 
+        val scheduler = backgroundScheduler
+        if (scheduler != null) {
+            scheduler.enqueue(prompt)
+            mutableUiState.update {
+                it.copy(
+                    prompt = "",
+                    isLoading = false,
+                    errorMessage = null,
+                    statusMessage = "Creating alarm in the background. You will get a notification when it finishes.",
+                    exactAlarmPermissionRequired = false,
+                )
+            }
+            return
+        }
+
         viewModelScope.launch {
             mutableUiState.update {
                 it.copy(
                     isLoading = true,
                     errorMessage = null,
+                    statusMessage = null,
+                    exactAlarmPermissionRequired = false,
                 )
             }
 
@@ -68,6 +91,7 @@ class AiCreateViewModel(
                 current.copy(
                     isLoading = false,
                     errorMessage = result.toErrorMessage(),
+                    exactAlarmPermissionRequired = result is AiCreateResult.MissingSchedulingPermission,
                     createdAlarmId = (result as? AiCreateResult.Created)?.alarm?.id,
                 )
             }
@@ -79,7 +103,7 @@ class AiCreateViewModel(
             "Add an OpenRouter API key in Settings before using AI create."
 
         AiCreateResult.MissingModel ->
-            "Choose a supported free model in Settings before using AI create."
+            "Choose a supported model in Settings before using AI create."
 
         is AiCreateResult.NetworkFailure -> "Network error: $reason"
         is AiCreateResult.RateLimited -> "Model rate limit: $reason"

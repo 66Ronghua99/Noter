@@ -41,6 +41,7 @@ data class AlarmEditorUiState(
     val isExisting: Boolean = false,
     val validationErrors: List<AlarmValidation.Error> = emptyList(),
     val errorMessage: String? = null,
+    val exactAlarmPermissionRequired: Boolean = false,
     val savedAlarmId: Long? = null,
     val deleted: Boolean = false,
 )
@@ -95,6 +96,7 @@ class AlarmEditorViewModel(
                 title = title,
                 validationErrors = emptyList(),
                 errorMessage = null,
+                exactAlarmPermissionRequired = false,
             )
         }
     }
@@ -105,6 +107,7 @@ class AlarmEditorViewModel(
                 hourText = hourText,
                 validationErrors = emptyList(),
                 errorMessage = null,
+                exactAlarmPermissionRequired = false,
             )
         }
     }
@@ -115,6 +118,7 @@ class AlarmEditorViewModel(
                 minuteText = minuteText,
                 validationErrors = emptyList(),
                 errorMessage = null,
+                exactAlarmPermissionRequired = false,
             )
         }
     }
@@ -125,6 +129,7 @@ class AlarmEditorViewModel(
                 repeatOption = repeatOption,
                 validationErrors = emptyList(),
                 errorMessage = null,
+                exactAlarmPermissionRequired = false,
             )
         }
     }
@@ -135,6 +140,7 @@ class AlarmEditorViewModel(
                 onceDateText = onceDateText,
                 validationErrors = emptyList(),
                 errorMessage = null,
+                exactAlarmPermissionRequired = false,
             )
         }
     }
@@ -150,6 +156,7 @@ class AlarmEditorViewModel(
                 customWeekdays = nextDays,
                 validationErrors = emptyList(),
                 errorMessage = null,
+                exactAlarmPermissionRequired = false,
             )
         }
     }
@@ -159,6 +166,7 @@ class AlarmEditorViewModel(
             it.copy(
                 ringtoneUri = ringtoneUri,
                 errorMessage = null,
+                exactAlarmPermissionRequired = false,
             )
         }
     }
@@ -168,6 +176,7 @@ class AlarmEditorViewModel(
             it.copy(
                 enabled = enabled,
                 errorMessage = null,
+                exactAlarmPermissionRequired = false,
             )
         }
     }
@@ -235,6 +244,7 @@ class AlarmEditorViewModel(
                     savedAlarmId = savedAlarm.id.takeIf { errorMessage == null },
                     validationErrors = emptyList(),
                     errorMessage = errorMessage,
+                    exactAlarmPermissionRequired = scheduleResult is ScheduleResult.MissingPermission,
                     isExisting = true,
                 )
             }
