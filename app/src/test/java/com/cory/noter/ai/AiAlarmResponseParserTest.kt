@@ -2,6 +2,7 @@ package com.cory.noter.ai
 
 import com.cory.noter.domain.alarm.RepeatRule
 import com.google.common.truth.Truth.assertThat
+import java.time.DayOfWeek
 import java.time.LocalDate
 import org.junit.Test
 
@@ -260,7 +261,7 @@ class AiAlarmResponseParserTest {
     }
 
     @Test
-    fun `repeating response with null date fails`() {
+    fun `repeating response with null date parses because date only applies to once alarms`() {
         val json = """
             {
               "title": "Standup",
@@ -276,12 +277,13 @@ class AiAlarmResponseParserTest {
 
         val result = parser.parse(json)
 
-        assertThat(result.isFailure).isTrue()
-        assertThat(result.exceptionOrNull()).hasMessageThat().contains("date")
+        val draft = result.getOrThrow()
+        assertThat(draft.repeatRule).isEqualTo(RepeatRule.Weekdays)
+        assertThat(draft.originalDate).isNull()
     }
 
     @Test
-    fun `repeating response with blank date fails`() {
+    fun `repeating response with blank date parses because date only applies to once alarms`() {
         val json = """
             {
               "title": "Standup",
@@ -297,12 +299,35 @@ class AiAlarmResponseParserTest {
 
         val result = parser.parse(json)
 
-        assertThat(result.isFailure).isTrue()
-        assertThat(result.exceptionOrNull()).hasMessageThat().contains("date")
+        val draft = result.getOrThrow()
+        assertThat(draft.repeatRule).isEqualTo(RepeatRule.Weekdays)
+        assertThat(draft.originalDate).isNull()
     }
 
     @Test
-    fun `repeating response with invalid date string fails`() {
+    fun `weekly response ignores blank date because date only applies to once alarms`() {
+        val json = """
+            {
+              "title": "Take medicine",
+              "hour": 8,
+              "minute": 0,
+              "repeatRule": { "type": "custom_weekdays", "daysOfWeek": [1] },
+              "date": "",
+              "confidence": 0.91,
+              "needsClarification": false,
+              "clarificationReason": ""
+            }
+        """.trimIndent()
+
+        val result = parser.parse(json)
+
+        val draft = result.getOrThrow()
+        assertThat(draft.repeatRule).isEqualTo(RepeatRule.CustomWeekdays(setOf(DayOfWeek.MONDAY)))
+        assertThat(draft.originalDate).isNull()
+    }
+
+    @Test
+    fun `repeating response with invalid date string parses because date only applies to once alarms`() {
         val json = """
             {
               "title": "Standup",
@@ -318,8 +343,9 @@ class AiAlarmResponseParserTest {
 
         val result = parser.parse(json)
 
-        assertThat(result.isFailure).isTrue()
-        assertThat(result.exceptionOrNull()).hasMessageThat().contains("date")
+        val draft = result.getOrThrow()
+        assertThat(draft.repeatRule).isEqualTo(RepeatRule.Weekdays)
+        assertThat(draft.originalDate).isNull()
     }
 
     @Test

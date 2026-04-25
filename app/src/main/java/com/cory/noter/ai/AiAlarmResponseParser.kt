@@ -82,10 +82,9 @@ class AiAlarmResponseParser {
             throw invalid("repeatRule.daysOfWeek must contain only integers from 1 through 7")
         }
 
-        val originalDate = root.optionalDate("date")
         val repeatRule = when (repeatRuleType) {
             "once" -> {
-                val date = originalDate ?: throw invalid("date is required for once repeatRule")
+                val date = root.requiredDate("date")
                 RepeatRule.Once(date)
             }
             "daily" -> RepeatRule.Daily
@@ -97,6 +96,13 @@ class AiAlarmResponseParser {
                 RepeatRule.CustomWeekdays(daysOfWeek.map { DayOfWeek.of(it) }.toSet())
             }
             else -> throw invalid("repeatRule.type must be one of once, daily, weekdays, custom_weekdays")
+        }
+        val originalDate = when (repeatRule) {
+            is RepeatRule.Once -> repeatRule.date
+            RepeatRule.Daily,
+            RepeatRule.Weekdays,
+            is RepeatRule.CustomWeekdays,
+            -> root.optionalValidDate("date")
         }
 
         val confidence = root.requiredDouble("confidence")
@@ -170,9 +176,9 @@ class AiAlarmResponseParser {
         }
     }
 
-    private fun JsonObject.optionalDate(name: String): LocalDate? {
+    private fun JsonObject.requiredDate(name: String): LocalDate {
         if (!containsKey(name)) {
-            return null
+            throw invalid("$name is required for once repeatRule")
         }
         val dateText = requiredString(name)
         if (dateText.isBlank()) {
@@ -183,6 +189,18 @@ class AiAlarmResponseParser {
         } catch (exception: DateTimeParseException) {
             throw invalid("$name must be an ISO local date", exception)
         }
+    }
+
+    private fun JsonObject.optionalValidDate(name: String): LocalDate? {
+        val primitive = this[name] as? JsonPrimitive ?: return null
+        if (!primitive.isString) {
+            return null
+        }
+        val dateText = primitive.content
+        if (dateText.isBlank()) {
+            return null
+        }
+        return runCatching { LocalDate.parse(dateText) }.getOrNull()
     }
 
     private fun JsonObject.requiredPrimitive(name: String): JsonPrimitive {
