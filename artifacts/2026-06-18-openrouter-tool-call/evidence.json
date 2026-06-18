@@ -1,0 +1,23 @@
+{
+  "checkedAt": "2026-06-18T17:40:00+08:00",
+  "model": "deepseek/deepseek-v4-flash",
+  "httpCode": "200",
+  "finishReason": "tool_calls",
+  "toolCallPresent": true,
+  "toolName": "submit_alarm_draft",
+  "argumentsParseable": true,
+  "arguments": {
+    "title": "Take medicine",
+    "hour": 8,
+    "minute": 0,
+    "repeatRule": {
+      "type": "once",
+      "daysOfWeek": []
+    },
+    "date": "2026-06-19",
+    "confidence": 0.99,
+    "needsClarification": false,
+    "clarificationReason": ""
+  },
+  "error": null
+}

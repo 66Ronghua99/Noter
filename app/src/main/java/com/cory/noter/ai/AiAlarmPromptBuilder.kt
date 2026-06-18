@@ -24,22 +24,7 @@ class AiAlarmPromptBuilder {
             For once alarms, include date as an ISO local date in yyyy-MM-dd format.
             For repeating alarms, omit date or set it only when useful for diagnostics; the app ignores date for scheduling repeat rules.
             If the request is ambiguous, set "needsClarification" to true and explain the missing detail in "clarificationReason".
-
-            Return only JSON. Do not include markdown, comments, code fences, prose, or extra keys.
-            The JSON must match this exact shape:
-            {
-              "title": "Take medicine",
-              "hour": 8,
-              "minute": 30,
-              "repeatRule": {
-                "type": "once",
-                "daysOfWeek": []
-              },
-              "date": "2026-04-24",
-              "confidence": 0.92,
-              "needsClarification": false,
-              "clarificationReason": ""
-            }
+            Call submit_alarm_draft with the alarm draft arguments. Do not answer with prose.
         """.trimIndent()
     }
 }

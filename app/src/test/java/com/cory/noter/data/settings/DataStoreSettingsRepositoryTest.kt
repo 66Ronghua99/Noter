@@ -16,7 +16,7 @@ import org.junit.Test
 
 class DataStoreSettingsRepositoryTest {
     @Test
-    fun `default settings use minimax free model`() = runTest {
+    fun `default settings use deepseek v4 flash model`() = runTest {
         val repository = createRepository(backgroundScope)
 
         val settings = repository.settings.first()
@@ -40,10 +40,10 @@ class DataStoreSettingsRepositoryTest {
     fun `saving selected model persists known built in model`() = runTest {
         val repository = createRepository(backgroundScope)
 
-        val result = repository.setSelectedModel("openrouter/free")
+        val result = repository.setSelectedModel("deepseek/deepseek-v3.2")
 
         assertThat(result.isSuccess).isTrue()
-        assertThat(repository.settings.first().selectedModelId).isEqualTo("openrouter/free")
+        assertThat(repository.settings.first().selectedModelId).isEqualTo("deepseek/deepseek-v3.2")
     }
 
     @Test
@@ -96,7 +96,7 @@ class DataStoreSettingsRepositoryTest {
         val firstRepository = createRepository(file, firstScope)
 
         assertThat(firstRepository.setOpenRouterApiKey("sk-or-v1-999").isSuccess).isTrue()
-        assertThat(firstRepository.setSelectedModel("openrouter/free").isSuccess).isTrue()
+        assertThat(firstRepository.setSelectedModel("deepseek/deepseek-v3.2").isSuccess).isTrue()
         assertThat(
             firstRepository.setDefaultRingtoneUri("content://media/internal/audio/media/99").isSuccess,
         ).isTrue()
@@ -110,7 +110,7 @@ class DataStoreSettingsRepositoryTest {
         assertThat(settings).isEqualTo(
             AppSettings(
                 openRouterApiKey = "sk-or-v1-999",
-                selectedModelId = "openrouter/free",
+                selectedModelId = "deepseek/deepseek-v3.2",
                 defaultRingtoneUri = "content://media/internal/audio/media/99",
             ),
         )

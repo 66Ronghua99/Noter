@@ -100,13 +100,13 @@ class AiAlarmCreatorTest {
 
     @Test
     fun `rate limited model leaves alarms unchanged`() = runTest {
-        settingsRepository.set(validSettings(modelId = "openrouter/free"))
+        settingsRepository.set(validSettings(modelId = "deepseek/deepseek-v3.2"))
         fakeOpenRouter.nextResult = OpenRouterResult.RateLimited("Rate limit exceeded.")
 
         val result = creator.createFromText("tomorrow 8 remind me to take medicine")
 
         assertThat(result).isEqualTo(AiCreateResult.RateLimited("Rate limit exceeded."))
-        assertThat(fakeOpenRouter.requests.single().modelId).isEqualTo("openrouter/free")
+        assertThat(fakeOpenRouter.requests.single().modelId).isEqualTo("deepseek/deepseek-v3.2")
         assertThat(repository.alarms.first()).isEmpty()
     }
 
@@ -176,7 +176,7 @@ class AiAlarmCreatorTest {
 
     @Test
     fun `valid response creates ai alarm and schedules it`() = runTest {
-        settingsRepository.set(validSettings(modelId = "qwen/qwen3-next-80b-a3b-instruct:free"))
+        settingsRepository.set(validSettings(modelId = "deepseek/deepseek-v3.2"))
         fakeOpenRouter.nextResult = OpenRouterResult.Success(
             """
             {
@@ -211,7 +211,7 @@ class AiAlarmCreatorTest {
         assertThat(repository.alarms.first()).containsExactly(created)
         assertThat(fakeScheduler.scheduledAlarms[created.id]).isEqualTo(created)
         assertThat(fakeOpenRouter.requests.single().modelId)
-            .isEqualTo("qwen/qwen3-next-80b-a3b-instruct:free")
+            .isEqualTo("deepseek/deepseek-v3.2")
         assertThat(fakeOpenRouter.requests.single().prompt)
             .contains("Current local date: 2026-04-23")
     }

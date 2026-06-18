@@ -29,7 +29,7 @@ import org.junit.Test
 
 class OpenRouterClientTest {
     @Test
-    fun `create chat completion posts bearer auth selected model and prompt`() = runTest {
+    fun `create chat completion posts bearer auth selected model prompt and alarm draft tool`() = runTest {
         var capturedRequestUrl = ""
         var capturedAuthorization = ""
         var capturedContentType = ""
@@ -57,7 +57,15 @@ class OpenRouterClientTest {
                                 {
                                   "message": {
                                     "role": "assistant",
-                                    "content": "{\"title\":\"Take medicine\"}"
+                                    "tool_calls": [
+                                      {
+                                        "type": "function",
+                                        "function": {
+                                          "name": "submit_alarm_draft",
+                                          "arguments": "{\"title\":\"Take medicine\"}"
+                                        }
+                                      }
+                                    ]
                                   }
                                 }
                               ]
@@ -71,7 +79,7 @@ class OpenRouterClientTest {
 
         val result = client.createChatCompletion(
             apiKey = "sk-or-v1-test",
-            modelId = "openrouter/free",
+            modelId = OpenRouterModel.DefaultId,
             prompt = "tomorrow at 8 remind me to take medicine",
         )
 
@@ -83,12 +91,89 @@ class OpenRouterClientTest {
         assertThat(capturedAuthorization).isEqualTo("Bearer sk-or-v1-test")
         assertThat(capturedContentType).contains("application/json")
         val body = Json.parseToJsonElement(capturedBody).jsonObject
-        assertThat(body["model"]!!.jsonPrimitive.content).isEqualTo("openrouter/free")
+        assertThat(body["model"]!!.jsonPrimitive.content).isEqualTo(OpenRouterModel.DefaultId)
         val messages = body["messages"]!!.jsonArray
         assertThat(messages).hasSize(1)
         assertThat(messages[0].jsonObject["role"]!!.jsonPrimitive.content).isEqualTo("user")
         assertThat(messages[0].jsonObject["content"]!!.jsonPrimitive.content)
             .isEqualTo("tomorrow at 8 remind me to take medicine")
+        val tools = body["tools"]!!.jsonArray
+        assertThat(tools).hasSize(1)
+        val tool = tools[0].jsonObject
+        assertThat(tool["type"]!!.jsonPrimitive.content).isEqualTo("function")
+        val function = tool["function"]!!.jsonObject
+        assertThat(function["name"]!!.jsonPrimitive.content).isEqualTo("submit_alarm_draft")
+        val parameters = function["parameters"]!!.jsonObject
+        assertThat(parameters["type"]!!.jsonPrimitive.content).isEqualTo("object")
+        assertThat(parameters["required"]!!.jsonArray.map { it.jsonPrimitive.content })
+            .containsExactly(
+                "title",
+                "hour",
+                "minute",
+                "repeatRule",
+                "date",
+                "confidence",
+                "needsClarification",
+                "clarificationReason",
+            )
+            .inOrder()
+        assertThat(
+            body["tool_choice"]!!
+                .jsonObject["function"]!!
+                .jsonObject["name"]!!
+                .jsonPrimitive
+                .content,
+        ).isEqualTo("submit_alarm_draft")
+    }
+
+    @Test
+    fun `successful tool call returns function arguments`() = runTest {
+        val client = OpenRouterClient(
+            callFactory = OkHttpClient.Builder()
+                .addInterceptor(Interceptor { chain ->
+                    Response.Builder()
+                        .request(chain.request())
+                        .protocol(Protocol.HTTP_1_1)
+                        .code(200)
+                        .message("OK")
+                        .body(
+                            """
+                            {
+                              "choices": [
+                                {
+                                  "message": {
+                                    "role": "assistant",
+                                    "tool_calls": [
+                                      {
+                                        "type": "function",
+                                        "function": {
+                                          "name": "submit_alarm_draft",
+                                          "arguments": "{\"title\":\"Take medicine\",\"hour\":8,\"minute\":30,\"repeatRule\":{\"type\":\"once\",\"daysOfWeek\":[]},\"date\":\"2026-04-24\",\"confidence\":0.92,\"needsClarification\":false,\"clarificationReason\":\"\"}"
+                                        }
+                                      }
+                                    ]
+                                  }
+                                }
+                              ]
+                            }
+                            """.trimIndent().toResponseBody("application/json".toMediaType()),
+                        )
+                        .build()
+                })
+                .build(),
+        )
+
+        val result = client.createChatCompletion(
+            apiKey = "sk-or-v1-test",
+            modelId = "deepseek/deepseek-v4-flash",
+            prompt = "tomorrow at 8 remind me to take medicine",
+        )
+
+        assertThat(result).isEqualTo(
+            OpenRouterResult.Success(
+                "{\"title\":\"Take medicine\",\"hour\":8,\"minute\":30,\"repeatRule\":{\"type\":\"once\",\"daysOfWeek\":[]},\"date\":\"2026-04-24\",\"confidence\":0.92,\"needsClarification\":false,\"clarificationReason\":\"\"}",
+            ),
+        )
     }
 
     @Test
@@ -103,7 +188,7 @@ class OpenRouterClientTest {
 
         val result = client.createChatCompletion(
             apiKey = "sk-or-v1-test",
-            modelId = "openrouter/free",
+            modelId = OpenRouterModel.DefaultId,
             prompt = "hello",
         )
 
@@ -144,7 +229,7 @@ class OpenRouterClientTest {
 
         val result = client.createChatCompletion(
             apiKey = "sk-or-v1-test",
-            modelId = "openrouter/free",
+            modelId = OpenRouterModel.DefaultId,
             prompt = "hello",
         )
 
@@ -162,7 +247,7 @@ class OpenRouterClientTest {
         val job = launch {
             client.createChatCompletion(
                 apiKey = "sk-or-v1-test",
-                modelId = "openrouter/free",
+                modelId = OpenRouterModel.DefaultId,
                 prompt = "hello",
             )
         }
