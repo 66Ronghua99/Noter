@@ -1,6 +1,9 @@
 # Harness local verification artifacts
 superpowers/artifacts/refactor-gate/
 
+# Humanize RLCR local runtime state
+.humanize*
+
 # Local implementation worktrees
 .worktrees/
 
