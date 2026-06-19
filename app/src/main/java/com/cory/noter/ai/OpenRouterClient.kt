@@ -3,10 +3,17 @@ package com.cory.noter.ai
 import java.io.IOException
 import kotlin.coroutines.resume
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonArray
+import kotlinx.serialization.json.putJsonObject
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.MediaType.Companion.toMediaType
@@ -66,6 +73,11 @@ class OpenRouterClient(
                         role = "user",
                         content = prompt,
                     ),
+                ),
+                tools = listOf(alarmDraftTool()),
+                toolChoice = ToolChoice(
+                    type = "function",
+                    function = ToolChoiceFunction(name = ALARM_DRAFT_TOOL_NAME),
                 ),
             ),
         )
@@ -146,28 +158,36 @@ class OpenRouterClient(
             }
         }
 
-        val content = extractAssistantContent(responseText)
-        if (content == null) {
+        val arguments = extractAlarmDraftArguments(responseText)
+        if (arguments == null) {
             debugLogger.warn(
                 "response.invalid $responseSummary bodyPreview=${responseText.previewForLog()}",
             )
             return OpenRouterResult.InvalidResponse(
-                "OpenRouter response did not contain assistant content.",
+                "OpenRouter response did not contain a submit_alarm_draft tool call.",
             )
         }
 
-        debugLogger.debug("response.success $responseSummary contentChars=${content.length}")
-        return OpenRouterResult.Success(content)
+        debugLogger.debug("response.success $responseSummary argumentChars=${arguments.length}")
+        return OpenRouterResult.Success(arguments)
     }
 
-    private fun extractAssistantContent(responseText: String): String? = runCatching {
-        json.parseToJsonElement(responseText).jsonObject["choices"]
-            ?.jsonObjectSafeListFirst("message")
-            ?.jsonObject
-            ?.get("content")
-            ?.jsonPrimitive
-            ?.content
-            ?.takeIf { it.isNotBlank() }
+    private fun extractAlarmDraftArguments(responseText: String): String? = runCatching {
+        val choices = json.parseToJsonElement(responseText).jsonObject["choices"] as? JsonArray
+            ?: return@runCatching null
+        choices
+            .mapNotNull { choice ->
+                choice.jsonObject["message"]
+                    ?.jsonObject
+                    ?.get("tool_calls") as? JsonArray
+            }
+            .flatMap { it }
+            .firstNotNullOfOrNull { toolCall ->
+                val function = toolCall.jsonObject["function"]?.jsonObject ?: return@firstNotNullOfOrNull null
+                val name = function["name"]?.jsonPrimitive?.content
+                val arguments = function["arguments"]?.jsonPrimitive?.content
+                arguments?.takeIf { name == ALARM_DRAFT_TOOL_NAME && it.isNotBlank() }
+            }
     }.getOrNull()
 
     private fun extractErrorMessage(responseText: String): String = runCatching {
@@ -178,14 +198,6 @@ class OpenRouterClient(
             ?.content
             ?.takeIf { it.isNotBlank() }
     }.getOrNull() ?: "OpenRouter request failed."
-
-    private fun kotlinx.serialization.json.JsonElement.jsonObjectSafeListFirst(
-        key: String,
-    ): kotlinx.serialization.json.JsonElement? {
-        val choices = this as? kotlinx.serialization.json.JsonArray ?: return null
-        val firstChoice = choices.firstOrNull()?.jsonObject ?: return null
-        return firstChoice[key]
-    }
 
     private fun Response.summaryForLogs(modelId: String): String =
         "code=$code message=${message.compactForLog()} model=$modelId " +
@@ -202,6 +214,9 @@ class OpenRouterClient(
     private data class ChatCompletionRequest(
         val model: String,
         val messages: List<ChatMessage>,
+        val tools: List<ChatTool>,
+        @SerialName("tool_choice")
+        val toolChoice: ToolChoice,
     )
 
     @Serializable
@@ -210,8 +225,155 @@ class OpenRouterClient(
         val content: String,
     )
 
+    @Serializable
+    private data class ChatTool(
+        val type: String,
+        val function: ToolFunction,
+    )
+
+    @Serializable
+    private data class ToolFunction(
+        val name: String,
+        val description: String,
+        val parameters: JsonObject,
+    )
+
+    @Serializable
+    private data class ToolChoice(
+        val type: String,
+        val function: ToolChoiceFunction,
+    )
+
+    @Serializable
+    private data class ToolChoiceFunction(
+        val name: String,
+    )
+
+    private fun alarmDraftTool(): ChatTool = ChatTool(
+        type = "function",
+        function = ToolFunction(
+            name = ALARM_DRAFT_TOOL_NAME,
+            description = "Submit one validated alarm draft for the user's Android alarm request.",
+            parameters = alarmDraftParameters(),
+        ),
+    )
+
+    private fun alarmDraftParameters(): JsonObject = buildJsonObject {
+        put("type", "object")
+        put("additionalProperties", false)
+        putJsonObject("properties") {
+            putJsonObject("title") {
+                put("type", "string")
+                put("description", "Short alarm title, such as Take medicine.")
+            }
+            putJsonObject("hour") {
+                put("type", "integer")
+                put("minimum", 0)
+                put("maximum", 23)
+                put("description", "Local 24-hour clock hour.")
+            }
+            putJsonObject("minute") {
+                put("type", "integer")
+                put("minimum", 0)
+                put("maximum", 59)
+                put("description", "Local clock minute.")
+            }
+            putJsonObject("repeatRule") {
+                put("type", "object")
+                put("additionalProperties", false)
+                putJsonObject("properties") {
+                    putJsonObject("type") {
+                        put("type", "string")
+                        putJsonArray("enum") {
+                            addString("once")
+                            addString("daily")
+                            addString("weekdays")
+                            addString("custom_weekdays")
+                            addString("weekly_interval")
+                        }
+                    }
+                    putJsonObject("daysOfWeek") {
+                        put("type", "array")
+                        put(
+                            "description",
+                            "ISO weekdays for custom_weekdays and weekly_interval. Monday is 1 and Sunday is 7.",
+                        )
+                        putJsonObject("items") {
+                            put("type", "integer")
+                            put("minimum", 1)
+                            put("maximum", 7)
+                        }
+                    }
+                    putJsonObject("startDate") {
+                        putJsonArray("type") {
+                            addString("string")
+                            addString("null")
+                        }
+                        put("description", "ISO local date yyyy-MM-dd required for weekly_interval; use null otherwise.")
+                    }
+                    putJsonObject("endDate") {
+                        putJsonArray("type") {
+                            addString("string")
+                            addString("null")
+                        }
+                        put(
+                            "description",
+                            "ISO local date yyyy-MM-dd for weekly_interval when the user gives an end date; use null so the app defaults to one year after startDate when omitted.",
+                        )
+                    }
+                    putJsonObject("intervalWeeks") {
+                        putJsonArray("type") {
+                            addString("integer")
+                            addString("null")
+                        }
+                        put("minimum", 1)
+                        put("description", "Positive week interval required for weekly_interval; use null otherwise.")
+                    }
+                }
+                putJsonArray("required") {
+                    addString("type")
+                    addString("daysOfWeek")
+                }
+            }
+            putJsonObject("date") {
+                putJsonArray("type") {
+                    addString("string")
+                    addString("null")
+                }
+                put("description", "ISO local date yyyy-MM-dd for once alarms. Use null for repeating alarms.")
+            }
+            putJsonObject("confidence") {
+                put("type", "number")
+                put("minimum", 0.0)
+                put("maximum", 1.0)
+            }
+            putJsonObject("needsClarification") {
+                put("type", "boolean")
+            }
+            putJsonObject("clarificationReason") {
+                put("type", "string")
+                put("description", "Non-empty only when needsClarification is true.")
+            }
+        }
+        putJsonArray("required") {
+            addString("title")
+            addString("hour")
+            addString("minute")
+            addString("repeatRule")
+            addString("date")
+            addString("confidence")
+            addString("needsClarification")
+            addString("clarificationReason")
+        }
+    }
+
+    private fun kotlinx.serialization.json.JsonArrayBuilder.addString(value: String) {
+        add(kotlinx.serialization.json.JsonPrimitive(value))
+    }
+
     private companion object {
         const val DEFAULT_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions"
+        const val ALARM_DRAFT_TOOL_NAME = "submit_alarm_draft"
         val JSON_MEDIA_TYPE = "application/json".toMediaType()
     }
 }

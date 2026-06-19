@@ -492,4 +492,104 @@ class AiAlarmResponseParserTest {
             ),
         )
     }
+
+    @Test
+    fun `weekly interval response rejects empty days`() {
+        val json = """
+            {
+              "title": "Water plants",
+              "hour": 9,
+              "minute": 0,
+              "repeatRule": {
+                "type": "weekly_interval",
+                "daysOfWeek": [],
+                "startDate": "2026-05-01",
+                "intervalWeeks": 2
+              },
+              "confidence": 0.9,
+              "needsClarification": false,
+              "clarificationReason": ""
+            }
+        """.trimIndent()
+
+        val result = parser.parse(json)
+
+        assertThat(result.isFailure).isTrue()
+        assertThat(result.exceptionOrNull()).hasMessageThat().contains("daysOfWeek")
+    }
+
+    @Test
+    fun `weekly interval response rejects missing start date`() {
+        val json = """
+            {
+              "title": "Water plants",
+              "hour": 9,
+              "minute": 0,
+              "repeatRule": {
+                "type": "weekly_interval",
+                "daysOfWeek": [1],
+                "intervalWeeks": 2
+              },
+              "confidence": 0.9,
+              "needsClarification": false,
+              "clarificationReason": ""
+            }
+        """.trimIndent()
+
+        val result = parser.parse(json)
+
+        assertThat(result.isFailure).isTrue()
+        assertThat(result.exceptionOrNull()).hasMessageThat().contains("startDate is required")
+    }
+
+    @Test
+    fun `weekly interval response rejects non positive interval`() {
+        val json = """
+            {
+              "title": "Water plants",
+              "hour": 9,
+              "minute": 0,
+              "repeatRule": {
+                "type": "weekly_interval",
+                "daysOfWeek": [1],
+                "startDate": "2026-05-01",
+                "intervalWeeks": 0
+              },
+              "confidence": 0.9,
+              "needsClarification": false,
+              "clarificationReason": ""
+            }
+        """.trimIndent()
+
+        val result = parser.parse(json)
+
+        assertThat(result.isFailure).isTrue()
+        assertThat(result.exceptionOrNull()).hasMessageThat().contains("intervalWeeks")
+    }
+
+    @Test
+    fun `weekly interval response rejects end date before start date`() {
+        val json = """
+            {
+              "title": "Water plants",
+              "hour": 9,
+              "minute": 0,
+              "repeatRule": {
+                "type": "weekly_interval",
+                "daysOfWeek": [1],
+                "startDate": "2026-05-01",
+                "endDate": "2026-04-30",
+                "intervalWeeks": 2
+              },
+              "confidence": 0.9,
+              "needsClarification": false,
+              "clarificationReason": ""
+            }
+        """.trimIndent()
+
+        val result = parser.parse(json)
+
+        assertThat(result.isFailure).isTrue()
+        assertThat(result.exceptionOrNull()).hasMessageThat().contains("endDate")
+    }
 }

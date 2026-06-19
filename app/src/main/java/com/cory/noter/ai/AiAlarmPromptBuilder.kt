@@ -26,25 +26,7 @@ class AiAlarmPromptBuilder {
             For weekly_interval alarms, include repeatRule.startDate as yyyy-MM-dd, repeatRule.intervalWeeks as a positive integer, and repeatRule.daysOfWeek as the active weekdays.
             For weekly_interval alarms, include repeatRule.endDate as yyyy-MM-dd when the user gives an end date; if the user does not mention an end date, set repeatRule.endDate to one year after repeatRule.startDate.
             If the request is ambiguous, set "needsClarification" to true and explain the missing detail in "clarificationReason".
-
-            Return only JSON. Do not include markdown, comments, code fences, prose, or extra keys.
-            The JSON must match this exact shape:
-            {
-              "title": "Take medicine",
-              "hour": 8,
-              "minute": 30,
-              "repeatRule": {
-                "type": "once",
-                "daysOfWeek": [],
-                "startDate": null,
-                "endDate": null,
-                "intervalWeeks": null
-              },
-              "date": "2026-04-24",
-              "confidence": 0.92,
-              "needsClarification": false,
-              "clarificationReason": ""
-            }
+            Call submit_alarm_draft with the alarm draft arguments. Do not answer with prose.
         """.trimIndent()
     }
 }
