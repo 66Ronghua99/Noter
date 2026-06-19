@@ -26,7 +26,7 @@
   - Command: `git diff --check`
   - Result: passed with no output.
 
-## Remaining Verification
+## Task 3 Wheel Controls
 
 - Task 3 wheel compile/regression evidence: `artifacts/2026-06-19-manual-alarm-picker-ui/task3-viewmodel-regression.log`
   - Command: `GRADLE_USER_HOME=$PWD/.gradle-user ./gradlew testDebugUnitTest --tests com.cory.noter.ui.editor.AlarmEditorViewModelTest -Dkotlin.compiler.execution.strategy=in-process`
@@ -39,6 +39,34 @@
 - Diff hygiene evidence: `artifacts/2026-06-19-manual-alarm-picker-ui/task3-diff-check.log`
   - Command: `git diff --check`
   - Result: passed with no output.
-- Run picker UI instrumentation smoke coverage on a connected device after Tasks 4-6.
-- Run full local gate after the UI implementation is complete: `./gradlew testDebugUnitTest lintDebug assembleDebug`.
-- Run `git diff --check` before each round handoff.
+
+## Task 4 Calendar Dialog Date Controls
+
+- Red evidence: `artifacts/2026-06-19-manual-alarm-picker-ui/task4-date-controls-red.log`
+  - Command: `GRADLE_USER_HOME=$PWD/.gradle-user ./gradlew assembleDebugAndroidTest -Dkotlin.compiler.execution.strategy=in-process`
+  - Result: failed as expected before production changes because `AlarmEditorScreen` did not yet expose typed date picker callbacks.
+- ViewModel regression evidence: `artifacts/2026-06-19-manual-alarm-picker-ui/task4-viewmodel-regression.log`
+  - Command: `GRADLE_USER_HOME=$PWD/.gradle-user ./gradlew testDebugUnitTest --tests com.cory.noter.ui.editor.AlarmEditorViewModelTest -Dkotlin.compiler.execution.strategy=in-process`
+  - Result: passed.
+- Instrumentation compile evidence: `artifacts/2026-06-19-manual-alarm-picker-ui/task4-assemble-androidtest.log`
+  - Command: `GRADLE_USER_HOME=$PWD/.gradle-user ./gradlew assembleDebug assembleDebugAndroidTest -Dkotlin.compiler.execution.strategy=in-process`
+  - Result: passed after replacing date text fields with dialog-backed date controls.
+- Connected-device availability: `artifacts/2026-06-19-manual-alarm-picker-ui/task4-adb-devices.log`
+  - Result: `adb devices` listed no attached devices, so connected smoke execution remains pending.
+- Diff hygiene evidence: `artifacts/2026-06-19-manual-alarm-picker-ui/task4-diff-check.log`
+  - Command: `git diff --check`
+  - Result: passed with no output.
+
+## Task 7 Local Gate
+
+- Full local gate evidence: `artifacts/2026-06-19-manual-alarm-picker-ui/task7-full-local-gate.log`
+  - Command: `GRADLE_USER_HOME=$PWD/.gradle-user ./gradlew testDebugUnitTest lintDebug assembleDebug -Dkotlin.compiler.execution.strategy=in-process`
+  - Result: passed.
+- Final diff hygiene evidence: `artifacts/2026-06-19-manual-alarm-picker-ui/task7-diff-check.log`
+  - Command: `git diff --check`
+  - Result: passed with no output.
+
+## Remaining Verification
+
+- Run picker UI instrumentation smoke coverage on a connected device when a device or emulator is available.
+- Record final handoff after connected smoke evidence is available.

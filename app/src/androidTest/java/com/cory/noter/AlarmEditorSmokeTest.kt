@@ -60,9 +60,9 @@ class AlarmEditorSmokeTest {
                     onHourSelected = viewModel::onHourSelected,
                     onMinuteSelected = viewModel::onMinuteSelected,
                     onRepeatRuleChanged = viewModel::onRepeatRuleChanged,
-                    onOnceDateChanged = viewModel::onOnceDateChanged,
-                    onIntervalStartDateChanged = viewModel::onIntervalStartDateChanged,
-                    onIntervalEndDateChanged = viewModel::onIntervalEndDateChanged,
+                    onOnceDateSelected = viewModel::onOnceDateSelected,
+                    onIntervalStartDateSelected = viewModel::onIntervalStartDateSelected,
+                    onIntervalEndDateSelected = viewModel::onIntervalEndDateSelected,
                     onIntervalWeeksSelected = viewModel::onIntervalWeeksSelected,
                     onCustomWeekdayToggled = viewModel::onCustomWeekdayToggled,
                     onPickRingtone = {},
@@ -77,6 +77,11 @@ class AlarmEditorSmokeTest {
         composeRule.onNodeWithText("Title").performTextInput("Morning run")
         composeRule.onAllNodesWithText("Hour").assertCountEquals(0)
         composeRule.onAllNodesWithText("Minute").assertCountEquals(0)
+        composeRule.onAllNodesWithText("Date (YYYY-MM-DD)").assertCountEquals(0)
+        composeRule.onNodeWithTag("OnceDateControl").assertIsDisplayed()
+        composeRule.onNodeWithTag("OnceDateControl").performClick()
+        composeRule.onNodeWithTag("DatePickerDialog-OnceDate").assertIsDisplayed()
+        composeRule.onNodeWithText("Cancel").performClick()
         composeRule.onNodeWithTag("HourWheel").performScrollToNode(hasTestTag("HourWheel-06"))
         composeRule.onNodeWithTag("HourWheel-06").performClick()
         composeRule.onNodeWithTag("MinuteWheel").performScrollToNode(hasTestTag("MinuteWheel-30"))
@@ -130,9 +135,9 @@ class AlarmEditorSmokeTest {
                     onHourSelected = viewModel::onHourSelected,
                     onMinuteSelected = viewModel::onMinuteSelected,
                     onRepeatRuleChanged = viewModel::onRepeatRuleChanged,
-                    onOnceDateChanged = viewModel::onOnceDateChanged,
-                    onIntervalStartDateChanged = viewModel::onIntervalStartDateChanged,
-                    onIntervalEndDateChanged = viewModel::onIntervalEndDateChanged,
+                    onOnceDateSelected = viewModel::onOnceDateSelected,
+                    onIntervalStartDateSelected = viewModel::onIntervalStartDateSelected,
+                    onIntervalEndDateSelected = viewModel::onIntervalEndDateSelected,
                     onIntervalWeeksSelected = viewModel::onIntervalWeeksSelected,
                     onCustomWeekdayToggled = viewModel::onCustomWeekdayToggled,
                     onPickRingtone = {},
@@ -154,5 +159,50 @@ class AlarmEditorSmokeTest {
 
         val updatedAlarm = runBlocking { repository.get(7L) }
         assert(updatedAlarm?.title == "Updated title")
+    }
+
+    @Test
+    fun interval_date_controls_open_dialogs_without_text_fields() {
+        val repository = AndroidTestAlarmRepository(clock = clock, zoneId = zoneId)
+        val viewModel = AlarmEditorViewModel(
+            alarmId = null,
+            repository = repository,
+            settingsRepository = AndroidTestSettingsRepository(),
+            schedulingUseCase = AlarmSchedulingUseCase(AndroidTestAlarmScheduler()),
+            clock = clock,
+            zoneId = zoneId,
+        )
+
+        composeRule.setContent {
+            val state by viewModel.uiState.collectAsState()
+            MaterialTheme {
+                AlarmEditorScreen(
+                    state = state,
+                    onTitleChanged = viewModel::onTitleChanged,
+                    onHourSelected = viewModel::onHourSelected,
+                    onMinuteSelected = viewModel::onMinuteSelected,
+                    onRepeatRuleChanged = viewModel::onRepeatRuleChanged,
+                    onOnceDateSelected = viewModel::onOnceDateSelected,
+                    onIntervalStartDateSelected = viewModel::onIntervalStartDateSelected,
+                    onIntervalEndDateSelected = viewModel::onIntervalEndDateSelected,
+                    onIntervalWeeksSelected = viewModel::onIntervalWeeksSelected,
+                    onCustomWeekdayToggled = viewModel::onCustomWeekdayToggled,
+                    onPickRingtone = {},
+                    onEnabledChanged = viewModel::onEnabledChanged,
+                    onOpenExactAlarmSettings = {},
+                    onSave = viewModel::save,
+                    onDelete = viewModel::delete,
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Interval").performClick()
+        composeRule.onAllNodesWithText("Start date").assertCountEquals(0)
+        composeRule.onAllNodesWithText("End date").assertCountEquals(0)
+        composeRule.onNodeWithTag("IntervalStartDateControl").assertIsDisplayed()
+        composeRule.onNodeWithTag("IntervalEndDateControl").assertIsDisplayed()
+        composeRule.onNodeWithTag("IntervalStartDateControl").performClick()
+        composeRule.onNodeWithTag("DatePickerDialog-IntervalStartDate").assertIsDisplayed()
+        composeRule.onNodeWithText("Cancel").performClick()
     }
 }

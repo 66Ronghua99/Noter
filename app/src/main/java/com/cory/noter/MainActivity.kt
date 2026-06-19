@@ -189,9 +189,9 @@ private fun AlarmEditorRoute(
         onHourSelected = viewModel::onHourSelected,
         onMinuteSelected = viewModel::onMinuteSelected,
         onRepeatRuleChanged = viewModel::onRepeatRuleChanged,
-        onOnceDateChanged = viewModel::onOnceDateChanged,
-        onIntervalStartDateChanged = viewModel::onIntervalStartDateChanged,
-        onIntervalEndDateChanged = viewModel::onIntervalEndDateChanged,
+        onOnceDateSelected = viewModel::onOnceDateSelected,
+        onIntervalStartDateSelected = viewModel::onIntervalStartDateSelected,
+        onIntervalEndDateSelected = viewModel::onIntervalEndDateSelected,
         onIntervalWeeksSelected = viewModel::onIntervalWeeksSelected,
         onCustomWeekdayToggled = viewModel::onCustomWeekdayToggled,
         onPickRingtone = {
