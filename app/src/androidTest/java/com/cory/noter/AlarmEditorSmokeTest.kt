@@ -5,13 +5,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import com.cory.noter.alarm.AlarmSchedulingUseCase
@@ -81,9 +80,13 @@ class AlarmEditorSmokeTest {
         composeRule.onNodeWithTag("OnceDateControl").performClick()
         composeRule.onNodeWithTag("DatePickerDialog-OnceDate").assertIsDisplayed()
         composeRule.onNodeWithTag("DatePickerDialog-OnceDate-Cancel").performClick()
-        composeRule.onNodeWithTag("HourWheel").performScrollToNode(hasTestTag("HourWheel-06"))
+        composeRule.onNodeWithTag("HourWheelSelectionFrame").assertIsDisplayed()
+        composeRule.onNodeWithTag("MinuteWheelSelectionFrame").assertIsDisplayed()
+        composeRule.onNodeWithTag("HourWheel").performScrollToIndex(6)
+        composeRule.waitForIdle()
         composeRule.onNodeWithTag("HourWheel-selected-06").assertIsDisplayed()
-        composeRule.onNodeWithTag("MinuteWheel").performScrollToNode(hasTestTag("MinuteWheel-30"))
+        composeRule.onNodeWithTag("MinuteWheel").performScrollToIndex(30)
+        composeRule.waitForIdle()
         composeRule.onNodeWithTag("MinuteWheel-selected-30").assertIsDisplayed()
         composeRule.onNodeWithText("Save").performClick()
         composeRule.waitForIdle()
@@ -202,7 +205,9 @@ class AlarmEditorSmokeTest {
         composeRule.onNodeWithTag("IntervalEndDateControl").assertIsDisplayed()
         composeRule.onNodeWithTag("IntervalWeeksRow").assertIsDisplayed()
         composeRule.onNodeWithTag("IntervalWeeksLabel").assertIsDisplayed()
-        composeRule.onNodeWithTag("IntervalWeeksWheel").performScrollToNode(hasTestTag("IntervalWeeksWheel-3"))
+        composeRule.onNodeWithTag("IntervalWeeksWheelSelectionFrame").assertIsDisplayed()
+        composeRule.onNodeWithTag("IntervalWeeksWheel").performScrollToIndex(2)
+        composeRule.waitForIdle()
         composeRule.onNodeWithTag("IntervalWeeksWheel-selected-3").assertIsDisplayed()
         composeRule.onNodeWithTag("IntervalStartDateControl").performClick()
         composeRule.onNodeWithTag("DatePickerDialog-IntervalStartDate").assertIsDisplayed()

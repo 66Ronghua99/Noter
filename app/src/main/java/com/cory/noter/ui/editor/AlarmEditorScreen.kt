@@ -3,7 +3,10 @@ package com.cory.noter.ui.editor
 import android.os.Build
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.snapping.SnapPosition
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,7 +21,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -38,6 +41,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,12 +49,14 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -249,7 +255,7 @@ fun AlarmEditorScreen(
                         displayText = { it.toString() },
                         width = 88.dp,
                         itemHeight = 40.dp,
-                        visibleItemCount = 2,
+                        visibleItemCount = 3,
                         showLabel = false,
                     )
                 }
@@ -455,7 +461,12 @@ private fun NumberWheelPicker(
     val listState = rememberLazyListState(
         initialFirstVisibleItemIndex = selectedIndex,
     )
+    val flingBehavior = rememberSnapFlingBehavior(
+        lazyListState = listState,
+        snapPosition = SnapPosition.Center,
+    )
     val coroutineScope = rememberCoroutineScope()
+    val hapticFeedback = LocalHapticFeedback.current
     val currentSelectedValue by rememberUpdatedState(selectedValue)
     val currentOnValueSelected by rememberUpdatedState(onValueSelected)
     val pickerContentDescription = stringResource(
@@ -463,10 +474,15 @@ private fun NumberWheelPicker(
         label,
         displayText(selectedValue),
     )
+    val centeredIndex by remember {
+        derivedStateOf {
+            listState.centeredIndex()
+        }
+    }
 
     LaunchedEffect(selectedValue, selectedIndex) {
         if (!listState.isScrollInProgress) {
-            listState.scrollToItem(selectedIndex)
+            listState.scrollToItem(index = selectedIndex)
         }
     }
 
@@ -476,6 +492,7 @@ private fun NumberWheelPicker(
         }.collect { (isScrolling, centeredValue) ->
             if (!isScrolling) {
                 if (centeredValue != null && centeredValue != currentSelectedValue) {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     currentOnValueSelected(centeredValue)
                 }
             }
@@ -494,85 +511,103 @@ private fun NumberWheelPicker(
                 fontWeight = FontWeight.SemiBold,
             )
         }
-        LazyColumn(
+        Box(
             modifier = Modifier
                 .height(viewportHeight)
                 .fillMaxWidth()
-                .testTag(tagPrefix)
                 .semantics {
                     contentDescription = pickerContentDescription
                 },
-            state = listState,
-            contentPadding = PaddingValues(vertical = edgePadding),
-            horizontalAlignment = Alignment.CenterHorizontally,
+            contentAlignment = Alignment.Center,
         ) {
-            items(valueList) { value ->
-                val selected = value == selectedValue
-                val selectedDistance = abs(valueList.indexOf(value) - selectedIndex)
-                val valueContentDescription = stringResource(
-                    R.string.picker_value_content_description,
-                    label,
-                    displayText(value),
-                )
-                val itemTag = if (selected) {
-                    "$tagPrefix-selected-${displayText(value)}"
-                } else {
-                    "$tagPrefix-${displayText(value)}"
-                }
-                Box(
-                    modifier = Modifier
-                        .height(itemHeight)
-                        .fillMaxWidth()
-                        .padding(horizontal = 4.dp, vertical = 3.dp)
-                        .clip(MaterialTheme.shapes.small)
-                        .background(
-                            if (selected) {
-                                MaterialTheme.colorScheme.primaryContainer
-                            } else {
-                                MaterialTheme.colorScheme.surface
-                            },
-                        )
-                        .clickable {
-                            onValueSelected(value)
-                            coroutineScope.launch {
-                                listState.animateScrollToItem(valueList.indexOf(value))
-                            }
-                        }
-                        .testTag(itemTag)
-                        .semantics {
-                            contentDescription = valueContentDescription
-                        },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = displayText(value),
-                        style = if (selected) {
-                            MaterialTheme.typography.headlineSmall
-                        } else {
-                            MaterialTheme.typography.titleMedium
-                        },
-                        color = if (selected) {
-                            MaterialTheme.colorScheme.onPrimaryContainer
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        },
-                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.alpha(
-                            when {
-                                selected -> 1f
-                                selectedDistance == 1 -> 0.68f
-                                else -> 0.38f
-                            },
-                        ),
+            Box(
+                modifier = Modifier
+                    .height(itemHeight)
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp, vertical = 3.dp)
+                    .clip(MaterialTheme.shapes.small)
+                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.72f))
+                    .border(
+                        width = 1.dp,
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.48f),
+                        shape = MaterialTheme.shapes.small,
                     )
+                    .testTag(wheelSelectionFrameTag(tagPrefix)),
+            )
+            LazyColumn(
+                modifier = Modifier
+                    .height(viewportHeight)
+                    .fillMaxWidth()
+                    .testTag(tagPrefix),
+                state = listState,
+                contentPadding = PaddingValues(vertical = edgePadding),
+                flingBehavior = flingBehavior,
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                itemsIndexed(valueList) { index, value ->
+                    val selected = value == selectedValue
+                    val visualDistance = centeredIndex?.let { abs(index - it) }
+                        ?: abs(index - selectedIndex)
+                    val valueContentDescription = stringResource(
+                        R.string.picker_value_content_description,
+                        label,
+                        displayText(value),
+                    )
+                    val itemTag = if (selected) {
+                        "$tagPrefix-selected-${displayText(value)}"
+                    } else {
+                        "$tagPrefix-${displayText(value)}"
+                    }
+                    Box(
+                        modifier = Modifier
+                            .height(itemHeight)
+                            .fillMaxWidth()
+                            .padding(horizontal = 4.dp, vertical = 3.dp)
+                            .clip(MaterialTheme.shapes.small)
+                            .clickable {
+                                onValueSelected(value)
+                                coroutineScope.launch {
+                                    listState.animateScrollToItem(index = index)
+                                }
+                            }
+                            .testTag(itemTag)
+                            .semantics {
+                                contentDescription = valueContentDescription
+                            },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = displayText(value),
+                            style = if (visualDistance == 0) {
+                                MaterialTheme.typography.headlineSmall
+                            } else {
+                                MaterialTheme.typography.titleMedium
+                            },
+                            color = if (visualDistance == 0) {
+                                MaterialTheme.colorScheme.onPrimaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                            fontWeight = if (visualDistance == 0) FontWeight.Bold else FontWeight.Normal,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.alpha(
+                                when (visualDistance) {
+                                    0 -> 1f
+                                    1 -> 0.68f
+                                    else -> 0.38f
+                                },
+                            ),
+                        )
+                    }
                 }
             }
         }
     }
 }
 
-private fun LazyListState.centeredValue(values: List<Int>): Int? {
+internal fun wheelSelectionFrameTag(tagPrefix: String): String = "${tagPrefix}SelectionFrame"
+
+private fun LazyListState.centeredIndex(): Int? {
     val layoutInfo = layoutInfo
     val viewportCenter = (layoutInfo.viewportStartOffset + layoutInfo.viewportEndOffset) / 2
     return layoutInfo.visibleItemsInfo
@@ -580,6 +615,10 @@ private fun LazyListState.centeredValue(values: List<Int>): Int? {
             abs((item.offset + item.size / 2) - viewportCenter)
         }
         ?.index
+}
+
+private fun LazyListState.centeredValue(values: List<Int>): Int? {
+    return centeredIndex()
         ?.let(values::getOrNull)
 }
 
