@@ -114,4 +114,68 @@ class NextTriggerCalculatorTest {
             ZonedDateTime.of(2026, 4, 30, 7, 45, 0, 0, zone).toInstant(),
         )
     }
+
+    @Test
+    fun `weekly interval alarm starts from first matching day on or after start date`() {
+        val now = ZonedDateTime.of(2026, 5, 2, 9, 0, 0, 0, zone).toInstant()
+
+        val result = calculator.nextTrigger(
+            hour = 8,
+            minute = 0,
+            repeatRule = RepeatRule.WeeklyInterval(
+                startDate = LocalDate.of(2026, 5, 1),
+                endDate = LocalDate.of(2026, 6, 1),
+                intervalWeeks = 2,
+                days = setOf(DayOfWeek.MONDAY),
+            ),
+            now = now,
+            zoneId = zone,
+        )
+
+        assertThat(result).isEqualTo(
+            ZonedDateTime.of(2026, 5, 4, 8, 0, 0, 0, zone).toInstant(),
+        )
+    }
+
+    @Test
+    fun `weekly interval alarm skips inactive interval weeks after first matching day`() {
+        val now = ZonedDateTime.of(2026, 5, 5, 9, 0, 0, 0, zone).toInstant()
+
+        val result = calculator.nextTrigger(
+            hour = 8,
+            minute = 0,
+            repeatRule = RepeatRule.WeeklyInterval(
+                startDate = LocalDate.of(2026, 5, 1),
+                endDate = LocalDate.of(2026, 6, 1),
+                intervalWeeks = 2,
+                days = setOf(DayOfWeek.MONDAY),
+            ),
+            now = now,
+            zoneId = zone,
+        )
+
+        assertThat(result).isEqualTo(
+            ZonedDateTime.of(2026, 5, 18, 8, 0, 0, 0, zone).toInstant(),
+        )
+    }
+
+    @Test
+    fun `weekly interval alarm returns null after end date`() {
+        val now = ZonedDateTime.of(2026, 6, 2, 9, 0, 0, 0, zone).toInstant()
+
+        val result = calculator.nextTrigger(
+            hour = 8,
+            minute = 0,
+            repeatRule = RepeatRule.WeeklyInterval(
+                startDate = LocalDate.of(2026, 5, 1),
+                endDate = LocalDate.of(2026, 6, 1),
+                intervalWeeks = 2,
+                days = setOf(DayOfWeek.MONDAY),
+            ),
+            now = now,
+            zoneId = zone,
+        )
+
+        assertThat(result).isNull()
+    }
 }

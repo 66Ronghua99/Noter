@@ -19,10 +19,12 @@ class AiAlarmPromptBuilder {
             Current local time: $localTime
             Timezone: $timezone
 
-            Allowed repeatRule.type values: once, daily, weekdays, custom_weekdays.
+            Allowed repeatRule.type values: once, daily, weekdays, custom_weekdays, weekly_interval.
             Use ISO weekday numbering for repeatRule.daysOfWeek: Monday is 1 and Sunday is 7.
             For once alarms, include date as an ISO local date in yyyy-MM-dd format.
             For repeating alarms, omit date or set it only when useful for diagnostics; the app ignores date for scheduling repeat rules.
+            For weekly_interval alarms, include repeatRule.startDate as yyyy-MM-dd, repeatRule.intervalWeeks as a positive integer, and repeatRule.daysOfWeek as the active weekdays.
+            For weekly_interval alarms, include repeatRule.endDate as yyyy-MM-dd when the user gives an end date; if the user does not mention an end date, set repeatRule.endDate to one year after repeatRule.startDate.
             If the request is ambiguous, set "needsClarification" to true and explain the missing detail in "clarificationReason".
 
             Return only JSON. Do not include markdown, comments, code fences, prose, or extra keys.
@@ -33,7 +35,10 @@ class AiAlarmPromptBuilder {
               "minute": 30,
               "repeatRule": {
                 "type": "once",
-                "daysOfWeek": []
+                "daysOfWeek": [],
+                "startDate": null,
+                "endDate": null,
+                "intervalWeeks": null
               },
               "date": "2026-04-24",
               "confidence": 0.92,

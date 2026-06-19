@@ -57,6 +57,7 @@ class StartupReconciliation(
             RepeatRule.Daily,
             RepeatRule.Weekdays,
             is RepeatRule.CustomWeekdays,
+            is RepeatRule.WeeklyInterval,
             -> recalculateAndSchedule(alarm)
         }
 

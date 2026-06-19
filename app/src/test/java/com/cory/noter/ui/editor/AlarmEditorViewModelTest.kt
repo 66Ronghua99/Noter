@@ -6,11 +6,14 @@ import com.cory.noter.alarm.FakeAlarmScheduler
 import com.cory.noter.alarm.ScheduleResult
 import com.cory.noter.data.settings.FakeSettingsRepository
 import com.cory.noter.domain.alarm.AlarmValidation
+import com.cory.noter.domain.alarm.RepeatRule
 import com.cory.noter.ui.FakeAlarmRepository
 import com.cory.noter.ui.MainDispatcherRule
 import com.google.common.truth.Truth.assertThat
 import java.time.Clock
+import java.time.DayOfWeek
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -80,6 +83,41 @@ class AlarmEditorViewModelTest {
         assertThat(savedAlarm.source.name).isEqualTo("MANUAL")
         assertThat(viewModel.uiState.value.savedAlarmId).isEqualTo(savedAlarm.id)
         assertThat(scheduler.scheduledIds).contains(savedAlarm.id)
+    }
+
+    @Test
+    fun `save creates weekly interval alarm with explicit date range`() = runTest {
+        val repository = FakeAlarmRepository(clock = clock, zoneId = zoneId)
+        val viewModel = AlarmEditorViewModel(
+            alarmId = null,
+            repository = repository,
+            settingsRepository = FakeSettingsRepository(),
+            schedulingUseCase = AlarmSchedulingUseCase(FakeAlarmScheduler()),
+            clock = clock,
+            zoneId = zoneId,
+        )
+
+        advanceUntilIdle()
+        viewModel.onTitleChanged("Team sync")
+        viewModel.onHourChanged("8")
+        viewModel.onMinuteChanged("15")
+        viewModel.onRepeatRuleChanged(EditorRepeatOption.INTERVAL)
+        viewModel.onIntervalStartDateChanged("2026-05-04")
+        viewModel.onIntervalEndDateChanged("2027-05-04")
+        viewModel.onIntervalWeeksChanged("2")
+        viewModel.onCustomWeekdayToggled(DayOfWeek.MONDAY)
+        viewModel.save()
+        advanceUntilIdle()
+
+        val savedAlarm = repository.alarms.first().single()
+        assertThat(savedAlarm.repeatRule).isEqualTo(
+            RepeatRule.WeeklyInterval(
+                startDate = LocalDate.of(2026, 5, 4),
+                endDate = LocalDate.of(2027, 5, 4),
+                intervalWeeks = 2,
+                days = setOf(DayOfWeek.MONDAY),
+            ),
+        )
     }
 
     @Test

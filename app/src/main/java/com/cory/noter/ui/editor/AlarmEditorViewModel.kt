@@ -27,6 +27,7 @@ enum class EditorRepeatOption {
     DAILY,
     WEEKDAYS,
     CUSTOM,
+    INTERVAL,
 }
 
 data class AlarmEditorUiState(
@@ -35,6 +36,9 @@ data class AlarmEditorUiState(
     val minuteText: String = "00",
     val repeatOption: EditorRepeatOption = EditorRepeatOption.ONCE,
     val onceDateText: String = "",
+    val intervalStartDateText: String = "",
+    val intervalEndDateText: String = "",
+    val intervalWeeksText: String = "2",
     val customWeekdays: Set<DayOfWeek> = emptySet(),
     val ringtoneUri: String = "",
     val enabled: Boolean = true,
@@ -54,9 +58,13 @@ class AlarmEditorViewModel(
     private val clock: Clock = Clock.systemDefaultZone(),
     private val zoneId: ZoneId = ZoneId.systemDefault(),
 ) : ViewModel() {
+    private val initialDate: LocalDate = LocalDate.now(clock.withZone(zoneId))
+
     private val mutableUiState = MutableStateFlow(
         AlarmEditorUiState(
-            onceDateText = LocalDate.now(clock.withZone(zoneId)).plusDays(1).toString(),
+            onceDateText = initialDate.plusDays(1).toString(),
+            intervalStartDateText = initialDate.toString(),
+            intervalEndDateText = initialDate.plusYears(1).toString(),
         ),
     )
     val uiState: StateFlow<AlarmEditorUiState> = mutableUiState.asStateFlow()
@@ -77,8 +85,20 @@ class AlarmEditorViewModel(
                         repeatOption = loadedAlarm.repeatRule.toEditorOption(),
                         onceDateText = (loadedAlarm.repeatRule as? RepeatRule.Once)?.date?.toString()
                             ?: current.onceDateText,
-                        customWeekdays = (loadedAlarm.repeatRule as? RepeatRule.CustomWeekdays)?.days
-                            ?: emptySet(),
+                        intervalStartDateText = (loadedAlarm.repeatRule as? RepeatRule.WeeklyInterval)?.startDate
+                            ?.toString()
+                            ?: current.intervalStartDateText,
+                        intervalEndDateText = (loadedAlarm.repeatRule as? RepeatRule.WeeklyInterval)?.endDate
+                            ?.toString()
+                            ?: current.intervalEndDateText,
+                        intervalWeeksText = (loadedAlarm.repeatRule as? RepeatRule.WeeklyInterval)?.intervalWeeks
+                            ?.toString()
+                            ?: current.intervalWeeksText,
+                        customWeekdays = when (val repeatRule = loadedAlarm.repeatRule) {
+                            is RepeatRule.CustomWeekdays -> repeatRule.days
+                            is RepeatRule.WeeklyInterval -> repeatRule.days
+                            else -> emptySet()
+                        },
                         ringtoneUri = loadedAlarm.ringtoneUri,
                         enabled = loadedAlarm.enabled,
                         isExisting = true,
@@ -154,6 +174,39 @@ class AlarmEditorViewModel(
             }
             current.copy(
                 customWeekdays = nextDays,
+                validationErrors = emptyList(),
+                errorMessage = null,
+                exactAlarmPermissionRequired = false,
+            )
+        }
+    }
+
+    fun onIntervalStartDateChanged(intervalStartDateText: String) {
+        mutableUiState.update {
+            it.copy(
+                intervalStartDateText = intervalStartDateText,
+                validationErrors = emptyList(),
+                errorMessage = null,
+                exactAlarmPermissionRequired = false,
+            )
+        }
+    }
+
+    fun onIntervalEndDateChanged(intervalEndDateText: String) {
+        mutableUiState.update {
+            it.copy(
+                intervalEndDateText = intervalEndDateText,
+                validationErrors = emptyList(),
+                errorMessage = null,
+                exactAlarmPermissionRequired = false,
+            )
+        }
+    }
+
+    fun onIntervalWeeksChanged(intervalWeeksText: String) {
+        mutableUiState.update {
+            it.copy(
+                intervalWeeksText = intervalWeeksText,
                 validationErrors = emptyList(),
                 errorMessage = null,
                 exactAlarmPermissionRequired = false,
@@ -281,6 +334,47 @@ class AlarmEditorViewModel(
         EditorRepeatOption.DAILY -> RepeatRule.Daily
         EditorRepeatOption.WEEKDAYS -> RepeatRule.Weekdays
         EditorRepeatOption.CUSTOM -> RepeatRule.CustomWeekdays(state.customWeekdays)
+        EditorRepeatOption.INTERVAL -> buildIntervalRepeatRule(state)
+    }
+
+    private fun buildIntervalRepeatRule(state: AlarmEditorUiState): RepeatRule? {
+        val startDate = runCatching { LocalDate.parse(state.intervalStartDateText) }.getOrNull()
+        if (startDate == null) {
+            mutableUiState.update {
+                it.copy(errorMessage = "Enter a valid start date in YYYY-MM-DD format.")
+            }
+            return null
+        }
+
+        val endDate = runCatching { LocalDate.parse(state.intervalEndDateText) }.getOrNull()
+        if (endDate == null) {
+            mutableUiState.update {
+                it.copy(errorMessage = "Enter a valid end date in YYYY-MM-DD format.")
+            }
+            return null
+        }
+
+        val intervalWeeks = state.intervalWeeksText.toIntOrNull()
+        if (intervalWeeks == null || intervalWeeks <= 0) {
+            mutableUiState.update {
+                it.copy(errorMessage = "Enter a positive number of weeks.")
+            }
+            return null
+        }
+
+        if (endDate.isBefore(startDate)) {
+            mutableUiState.update {
+                it.copy(errorMessage = "End date must be on or after start date.")
+            }
+            return null
+        }
+
+        return RepeatRule.WeeklyInterval(
+            startDate = startDate,
+            endDate = endDate,
+            intervalWeeks = intervalWeeks,
+            days = state.customWeekdays,
+        )
     }
 
     private fun RepeatRule.toEditorOption(): EditorRepeatOption = when (this) {
@@ -288,6 +382,7 @@ class AlarmEditorViewModel(
         RepeatRule.Daily -> EditorRepeatOption.DAILY
         RepeatRule.Weekdays -> EditorRepeatOption.WEEKDAYS
         is RepeatRule.CustomWeekdays -> EditorRepeatOption.CUSTOM
+        is RepeatRule.WeeklyInterval -> EditorRepeatOption.INTERVAL
     }
 
     private fun ScheduleResult.toEditorMessage(): String? = when (this) {

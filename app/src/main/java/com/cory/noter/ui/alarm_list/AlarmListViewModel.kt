@@ -126,5 +126,10 @@ class AlarmListViewModel(
             .joinToString(", ") { day ->
                 day.getDisplayName(TextStyle.SHORT, Locale.getDefault())
             }
+        is RepeatRule.WeeklyInterval -> "Every $intervalWeeks weeks: " + days
+            .sortedBy { it.value }
+            .joinToString(", ") { day ->
+                day.getDisplayName(TextStyle.SHORT, Locale.getDefault())
+            }
     }
 }

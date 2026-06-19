@@ -72,7 +72,7 @@ class AiAlarmResponseParser {
 
         val repeatRuleObject = root.requiredObject("repeatRule")
         repeatRuleObject.requireOnlyKeys(
-            allowedKeys = setOf("type", "daysOfWeek"),
+            allowedKeys = setOf("type", "daysOfWeek", "startDate", "endDate", "intervalWeeks"),
             owner = "repeatRule",
         )
         val repeatRuleType = repeatRuleObject.requiredString("type")
@@ -95,13 +95,35 @@ class AiAlarmResponseParser {
                 }
                 RepeatRule.CustomWeekdays(daysOfWeek.map { DayOfWeek.of(it) }.toSet())
             }
-            else -> throw invalid("repeatRule.type must be one of once, daily, weekdays, custom_weekdays")
+            "weekly_interval" -> {
+                if (daysOfWeek.isEmpty()) {
+                    throw invalid("repeatRule.daysOfWeek must not be empty for weekly_interval")
+                }
+                val startDate = repeatRuleObject.requiredDate("startDate")
+                val intervalWeeks = repeatRuleObject.requiredInt("intervalWeeks")
+                if (intervalWeeks <= 0) {
+                    throw invalid("repeatRule.intervalWeeks must be greater than zero")
+                }
+                val endDate = repeatRuleObject.optionalDateOrNull("endDate")
+                    ?: startDate.plusYears(1)
+                if (endDate.isBefore(startDate)) {
+                    throw invalid("repeatRule.endDate must be on or after repeatRule.startDate")
+                }
+                RepeatRule.WeeklyInterval(
+                    startDate = startDate,
+                    endDate = endDate,
+                    intervalWeeks = intervalWeeks,
+                    days = daysOfWeek.map { DayOfWeek.of(it) }.toSet(),
+                )
+            }
+            else -> throw invalid("repeatRule.type must be one of once, daily, weekdays, custom_weekdays, weekly_interval")
         }
         val originalDate = when (repeatRule) {
             is RepeatRule.Once -> repeatRule.date
             RepeatRule.Daily,
             RepeatRule.Weekdays,
             is RepeatRule.CustomWeekdays,
+            is RepeatRule.WeeklyInterval,
             -> root.optionalValidDate("date")
         }
 
@@ -178,11 +200,28 @@ class AiAlarmResponseParser {
 
     private fun JsonObject.requiredDate(name: String): LocalDate {
         if (!containsKey(name)) {
-            throw invalid("$name is required for once repeatRule")
+            throw invalid("$name is required")
         }
         val dateText = requiredString(name)
         if (dateText.isBlank()) {
             throw invalid("$name must be an ISO local date")
+        }
+        return try {
+            LocalDate.parse(dateText)
+        } catch (exception: DateTimeParseException) {
+            throw invalid("$name must be an ISO local date", exception)
+        }
+    }
+
+    private fun JsonObject.optionalDateOrNull(name: String): LocalDate? {
+        val element = this[name] ?: return null
+        val primitive = element as? JsonPrimitive ?: throw invalid("$name must be a string")
+        if (!primitive.isString) {
+            return null
+        }
+        val dateText = primitive.content
+        if (dateText.isBlank()) {
+            return null
         }
         return try {
             LocalDate.parse(dateText)

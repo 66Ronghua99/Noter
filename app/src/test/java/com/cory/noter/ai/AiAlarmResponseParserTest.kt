@@ -427,4 +427,69 @@ class AiAlarmResponseParserTest {
         assertThat(result.isFailure).isTrue()
         assertThat(result.exceptionOrNull()).hasMessageThat().contains("daysOfWeek")
     }
+
+    @Test
+    fun `weekly interval response parses with explicit end date`() {
+        val json = """
+            {
+              "title": "Pay rent",
+              "hour": 9,
+              "minute": 0,
+              "repeatRule": {
+                "type": "weekly_interval",
+                "daysOfWeek": [1],
+                "startDate": "2026-05-01",
+                "endDate": "2026-08-01",
+                "intervalWeeks": 2
+              },
+              "confidence": 0.9,
+              "needsClarification": false,
+              "clarificationReason": ""
+            }
+        """.trimIndent()
+
+        val result = parser.parse(json)
+
+        val draft = result.getOrThrow()
+        assertThat(draft.repeatRule).isEqualTo(
+            RepeatRule.WeeklyInterval(
+                startDate = LocalDate.of(2026, 5, 1),
+                endDate = LocalDate.of(2026, 8, 1),
+                intervalWeeks = 2,
+                days = setOf(DayOfWeek.MONDAY),
+            ),
+        )
+    }
+
+    @Test
+    fun `weekly interval response defaults missing end date to one year after start date`() {
+        val json = """
+            {
+              "title": "Water plants",
+              "hour": 9,
+              "minute": 0,
+              "repeatRule": {
+                "type": "weekly_interval",
+                "daysOfWeek": [1],
+                "startDate": "2026-05-01",
+                "intervalWeeks": 2
+              },
+              "confidence": 0.9,
+              "needsClarification": false,
+              "clarificationReason": ""
+            }
+        """.trimIndent()
+
+        val result = parser.parse(json)
+
+        val draft = result.getOrThrow()
+        assertThat(draft.repeatRule).isEqualTo(
+            RepeatRule.WeeklyInterval(
+                startDate = LocalDate.of(2026, 5, 1),
+                endDate = LocalDate.of(2027, 5, 1),
+                intervalWeeks = 2,
+                days = setOf(DayOfWeek.MONDAY),
+            ),
+        )
+    }
 }

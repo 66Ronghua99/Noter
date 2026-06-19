@@ -39,6 +39,9 @@ fun AlarmEditorScreen(
     onMinuteChanged: (String) -> Unit,
     onRepeatRuleChanged: (EditorRepeatOption) -> Unit,
     onOnceDateChanged: (String) -> Unit,
+    onIntervalStartDateChanged: (String) -> Unit,
+    onIntervalEndDateChanged: (String) -> Unit,
+    onIntervalWeeksChanged: (String) -> Unit,
     onCustomWeekdayToggled: (DayOfWeek) -> Unit,
     onPickRingtone: () -> Unit,
     onEnabledChanged: (Boolean) -> Unit,
@@ -59,6 +62,7 @@ fun AlarmEditorScreen(
         EditorRepeatOption.DAILY to "Daily",
         EditorRepeatOption.WEEKDAYS to "Weekdays",
         EditorRepeatOption.CUSTOM to "Custom",
+        EditorRepeatOption.INTERVAL to "Interval",
     )
 
     Scaffold(
@@ -126,6 +130,45 @@ fun AlarmEditorScreen(
             }
 
             if (state.repeatOption == EditorRepeatOption.CUSTOM) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    DayOfWeek.entries.forEach { day ->
+                        FilterChip(
+                            selected = day in state.customWeekdays,
+                            onClick = { onCustomWeekdayToggled(day) },
+                            label = {
+                                Text(
+                                    text = day.getDisplayName(
+                                        TextStyle.SHORT,
+                                        locale,
+                                    ),
+                                )
+                            },
+                        )
+                    }
+                }
+            }
+
+            if (state.repeatOption == EditorRepeatOption.INTERVAL) {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedTextField(
+                        value = state.intervalStartDateText,
+                        onValueChange = onIntervalStartDateChanged,
+                        modifier = Modifier.weight(1f),
+                        label = { Text(text = "Start date") },
+                    )
+                    OutlinedTextField(
+                        value = state.intervalEndDateText,
+                        onValueChange = onIntervalEndDateChanged,
+                        modifier = Modifier.weight(1f),
+                        label = { Text(text = "End date") },
+                    )
+                }
+                OutlinedTextField(
+                    value = state.intervalWeeksText,
+                    onValueChange = onIntervalWeeksChanged,
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text(text = "Every N weeks") },
+                )
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     DayOfWeek.entries.forEach { day ->
                         FilterChip(

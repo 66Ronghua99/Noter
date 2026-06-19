@@ -44,6 +44,9 @@ class RoomAlarmRepository(
                 repeatType = encodedRepeatRule.repeatType,
                 daysOfWeekCsv = encodedRepeatRule.daysOfWeekCsv,
                 onceDate = encodedRepeatRule.onceDate,
+                startDate = encodedRepeatRule.startDate,
+                endDate = encodedRepeatRule.endDate,
+                intervalWeeks = encodedRepeatRule.intervalWeeks,
                 enabled = draft.enabled,
                 ringtoneUri = draft.ringtoneUri,
                 source = draft.source.toStorageValue(),
@@ -87,6 +90,9 @@ class RoomAlarmRepository(
                 repeatType = encodedRepeatRule.repeatType,
                 daysOfWeekCsv = encodedRepeatRule.daysOfWeekCsv,
                 onceDate = encodedRepeatRule.onceDate,
+                startDate = encodedRepeatRule.startDate,
+                endDate = encodedRepeatRule.endDate,
+                intervalWeeks = encodedRepeatRule.intervalWeeks,
                 enabled = alarm.enabled,
                 ringtoneUri = alarm.ringtoneUri,
                 source = alarm.source.toStorageValue(),
@@ -129,6 +135,9 @@ class RoomAlarmRepository(
             repeatType = entity.repeatType,
             daysOfWeekCsv = entity.daysOfWeekCsv,
             onceDate = entity.onceDate,
+            startDate = entity.startDate,
+            endDate = entity.endDate,
+            intervalWeeks = entity.intervalWeeks,
         ),
         enabled = entity.enabled,
         ringtoneUri = entity.ringtoneUri,
@@ -176,7 +185,10 @@ class RoomAlarmRepository(
             zoneId = zoneId,
             nextTriggerCalculator = nextTriggerCalculator,
         ).filterNot { error ->
-            !enabled && error == AlarmValidation.Error.EXPIRED_ONE_TIME_ALARM
+            !enabled && error in setOf(
+                AlarmValidation.Error.EXPIRED_ONE_TIME_ALARM,
+                AlarmValidation.Error.EXPIRED_INTERVAL_ALARM,
+            )
         }
 
         require(errors.isEmpty()) {

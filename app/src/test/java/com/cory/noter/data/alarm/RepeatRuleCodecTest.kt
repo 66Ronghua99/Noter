@@ -94,6 +94,42 @@ class RepeatRuleCodecTest {
     }
 
     @Test
+    fun `weekly interval repeat rule round trips through columns`() {
+        val encoded = codec.encode(
+            RepeatRule.WeeklyInterval(
+                startDate = LocalDate.of(2026, 5, 1),
+                endDate = LocalDate.of(2027, 5, 1),
+                intervalWeeks = 2,
+                days = setOf(DayOfWeek.FRIDAY, DayOfWeek.MONDAY),
+            ),
+        )
+
+        assertThat(encoded.repeatType).isEqualTo("weekly_interval")
+        assertThat(encoded.daysOfWeekCsv).isEqualTo("1,5")
+        assertThat(encoded.startDate).isEqualTo("2026-05-01")
+        assertThat(encoded.endDate).isEqualTo("2027-05-01")
+        assertThat(encoded.intervalWeeks).isEqualTo(2)
+
+        val decoded = codec.decode(
+            repeatType = encoded.repeatType,
+            daysOfWeekCsv = encoded.daysOfWeekCsv,
+            onceDate = encoded.onceDate,
+            startDate = encoded.startDate,
+            endDate = encoded.endDate,
+            intervalWeeks = encoded.intervalWeeks,
+        )
+
+        assertThat(decoded).isEqualTo(
+            RepeatRule.WeeklyInterval(
+                startDate = LocalDate.of(2026, 5, 1),
+                endDate = LocalDate.of(2027, 5, 1),
+                intervalWeeks = 2,
+                days = setOf(DayOfWeek.MONDAY, DayOfWeek.FRIDAY),
+            ),
+        )
+    }
+
+    @Test
     fun `decode rejects once repeat rule without date`() {
         val error = runCatching {
             codec.decode(

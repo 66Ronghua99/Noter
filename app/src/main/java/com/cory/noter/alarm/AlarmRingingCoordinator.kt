@@ -33,6 +33,7 @@ class AlarmRingingCoordinator(
             RepeatRule.Daily,
             RepeatRule.Weekdays,
             is RepeatRule.CustomWeekdays,
+            is RepeatRule.WeeklyInterval,
             -> {
                 val updated = repository.update(alarm)
                 when (val scheduleResult = schedulingUseCase.syncSchedule(updated)) {

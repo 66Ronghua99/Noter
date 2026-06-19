@@ -9,7 +9,11 @@ object AlarmValidation {
         INVALID_HOUR,
         INVALID_MINUTE,
         EMPTY_CUSTOM_WEEKDAYS,
+        EMPTY_INTERVAL_WEEKDAYS,
+        INVALID_INTERVAL_WEEKS,
+        INVALID_INTERVAL_RANGE,
         EXPIRED_ONE_TIME_ALARM,
+        EXPIRED_INTERVAL_ALARM,
     }
 
     fun validateDraft(
@@ -39,9 +43,24 @@ object AlarmValidation {
             errors += Error.EMPTY_CUSTOM_WEEKDAYS
         }
 
+        if (repeatRule is RepeatRule.WeeklyInterval) {
+            if (repeatRule.days.isEmpty()) {
+                errors += Error.EMPTY_INTERVAL_WEEKDAYS
+            }
+            if (repeatRule.intervalWeeks <= 0) {
+                errors += Error.INVALID_INTERVAL_WEEKS
+            }
+            if (repeatRule.endDate.isBefore(repeatRule.startDate)) {
+                errors += Error.INVALID_INTERVAL_RANGE
+            }
+        }
+
         val canCalculateTrigger = Error.INVALID_HOUR !in errors &&
             Error.INVALID_MINUTE !in errors &&
-            Error.EMPTY_CUSTOM_WEEKDAYS !in errors
+            Error.EMPTY_CUSTOM_WEEKDAYS !in errors &&
+            Error.EMPTY_INTERVAL_WEEKDAYS !in errors &&
+            Error.INVALID_INTERVAL_WEEKS !in errors &&
+            Error.INVALID_INTERVAL_RANGE !in errors
         if (repeatRule is RepeatRule.Once && canCalculateTrigger) {
             val nextTrigger = nextTriggerCalculator.nextTrigger(
                 hour = hour,
@@ -52,6 +71,18 @@ object AlarmValidation {
             )
             if (nextTrigger == null) {
                 errors += Error.EXPIRED_ONE_TIME_ALARM
+            }
+        }
+        if (repeatRule is RepeatRule.WeeklyInterval && canCalculateTrigger) {
+            val nextTrigger = nextTriggerCalculator.nextTrigger(
+                hour = hour,
+                minute = minute,
+                repeatRule = repeatRule,
+                now = now,
+                zoneId = zoneId,
+            )
+            if (nextTrigger == null) {
+                errors += Error.EXPIRED_INTERVAL_ALARM
             }
         }
 

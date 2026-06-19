@@ -41,7 +41,9 @@ class AppContainer(
             applicationContext,
             AlarmDatabase::class.java,
             DATABASE_NAME,
-        ).build()
+        )
+            .addMigrations(AlarmDatabase.MIGRATION_1_2)
+            .build()
     }
 
     val alarmRepository: AlarmRepository by lazy {
