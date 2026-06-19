@@ -186,13 +186,13 @@ private fun AlarmEditorRoute(
     AlarmEditorScreen(
         state = state,
         onTitleChanged = viewModel::onTitleChanged,
-        onHourChanged = viewModel::onHourChanged,
-        onMinuteChanged = viewModel::onMinuteChanged,
+        onHourSelected = viewModel::onHourSelected,
+        onMinuteSelected = viewModel::onMinuteSelected,
         onRepeatRuleChanged = viewModel::onRepeatRuleChanged,
         onOnceDateChanged = viewModel::onOnceDateChanged,
         onIntervalStartDateChanged = viewModel::onIntervalStartDateChanged,
         onIntervalEndDateChanged = viewModel::onIntervalEndDateChanged,
-        onIntervalWeeksChanged = viewModel::onIntervalWeeksChanged,
+        onIntervalWeeksSelected = viewModel::onIntervalWeeksSelected,
         onCustomWeekdayToggled = viewModel::onCustomWeekdayToggled,
         onPickRingtone = {
             ringtonePicker.launch(

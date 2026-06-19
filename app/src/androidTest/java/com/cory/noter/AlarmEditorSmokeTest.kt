@@ -4,10 +4,15 @@ import androidx.activity.ComponentActivity
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import com.cory.noter.alarm.AlarmSchedulingUseCase
@@ -52,13 +57,13 @@ class AlarmEditorSmokeTest {
                 AlarmEditorScreen(
                     state = state,
                     onTitleChanged = viewModel::onTitleChanged,
-                    onHourChanged = viewModel::onHourChanged,
-                    onMinuteChanged = viewModel::onMinuteChanged,
+                    onHourSelected = viewModel::onHourSelected,
+                    onMinuteSelected = viewModel::onMinuteSelected,
                     onRepeatRuleChanged = viewModel::onRepeatRuleChanged,
                     onOnceDateChanged = viewModel::onOnceDateChanged,
                     onIntervalStartDateChanged = viewModel::onIntervalStartDateChanged,
                     onIntervalEndDateChanged = viewModel::onIntervalEndDateChanged,
-                    onIntervalWeeksChanged = viewModel::onIntervalWeeksChanged,
+                    onIntervalWeeksSelected = viewModel::onIntervalWeeksSelected,
                     onCustomWeekdayToggled = viewModel::onCustomWeekdayToggled,
                     onPickRingtone = {},
                     onEnabledChanged = viewModel::onEnabledChanged,
@@ -70,15 +75,19 @@ class AlarmEditorSmokeTest {
         }
 
         composeRule.onNodeWithText("Title").performTextInput("Morning run")
-        composeRule.onNodeWithText("Hour").performTextClearance()
-        composeRule.onNodeWithText("Hour").performTextInput("6")
-        composeRule.onNodeWithText("Minute").performTextClearance()
-        composeRule.onNodeWithText("Minute").performTextInput("30")
+        composeRule.onAllNodesWithText("Hour").assertCountEquals(0)
+        composeRule.onAllNodesWithText("Minute").assertCountEquals(0)
+        composeRule.onNodeWithTag("HourWheel").performScrollToNode(hasTestTag("HourWheel-06"))
+        composeRule.onNodeWithTag("HourWheel-06").performClick()
+        composeRule.onNodeWithTag("MinuteWheel").performScrollToNode(hasTestTag("MinuteWheel-30"))
+        composeRule.onNodeWithTag("MinuteWheel-30").performClick()
         composeRule.onNodeWithText("Save").performClick()
         composeRule.waitForIdle()
 
         val alarms = runBlocking { repository.alarms.first() }
         assert(alarms.single().title == "Morning run")
+        assert(alarms.single().hour == 6)
+        assert(alarms.single().minute == 30)
         assert(scheduler.scheduledIds.contains(alarms.single().id))
     }
 
@@ -118,13 +127,13 @@ class AlarmEditorSmokeTest {
                 AlarmEditorScreen(
                     state = state,
                     onTitleChanged = viewModel::onTitleChanged,
-                    onHourChanged = viewModel::onHourChanged,
-                    onMinuteChanged = viewModel::onMinuteChanged,
+                    onHourSelected = viewModel::onHourSelected,
+                    onMinuteSelected = viewModel::onMinuteSelected,
                     onRepeatRuleChanged = viewModel::onRepeatRuleChanged,
                     onOnceDateChanged = viewModel::onOnceDateChanged,
                     onIntervalStartDateChanged = viewModel::onIntervalStartDateChanged,
                     onIntervalEndDateChanged = viewModel::onIntervalEndDateChanged,
-                    onIntervalWeeksChanged = viewModel::onIntervalWeeksChanged,
+                    onIntervalWeeksSelected = viewModel::onIntervalWeeksSelected,
                     onCustomWeekdayToggled = viewModel::onCustomWeekdayToggled,
                     onPickRingtone = {},
                     onEnabledChanged = viewModel::onEnabledChanged,
@@ -136,6 +145,8 @@ class AlarmEditorSmokeTest {
         }
 
         composeRule.onNodeWithText("Delete").assertIsDisplayed()
+        composeRule.onNodeWithTag("HourWheel-selected-07").assertIsDisplayed()
+        composeRule.onNodeWithTag("MinuteWheel-selected-00").assertIsDisplayed()
         composeRule.onNodeWithText("Title").performTextClearance()
         composeRule.onNodeWithText("Title").performTextInput("Updated title")
         composeRule.onNodeWithText("Save").performClick()

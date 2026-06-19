@@ -28,6 +28,17 @@
 
 ## Remaining Verification
 
-- Run picker UI instrumentation smoke coverage after Tasks 3-6.
+- Task 3 wheel compile/regression evidence: `artifacts/2026-06-19-manual-alarm-picker-ui/task3-viewmodel-regression.log`
+  - Command: `GRADLE_USER_HOME=$PWD/.gradle-user ./gradlew testDebugUnitTest --tests com.cory.noter.ui.editor.AlarmEditorViewModelTest -Dkotlin.compiler.execution.strategy=in-process`
+  - Result: passed after wiring wheel controls to the existing ViewModel state path.
+- Task 3 instrumentation compile evidence: `artifacts/2026-06-19-manual-alarm-picker-ui/task3-assemble-androidtest.log`
+  - Command: `GRADLE_USER_HOME=$PWD/.gradle-user ./gradlew assembleDebug assembleDebugAndroidTest -Dkotlin.compiler.execution.strategy=in-process`
+  - Result: passed after updating `AlarmEditorSmokeTest` to the picker interaction model.
+- Connected-device availability: `artifacts/2026-06-19-manual-alarm-picker-ui/task3-adb-devices.log`
+  - Result: `adb devices` listed no attached devices, so connected smoke execution remains pending.
+- Diff hygiene evidence: `artifacts/2026-06-19-manual-alarm-picker-ui/task3-diff-check.log`
+  - Command: `git diff --check`
+  - Result: passed with no output.
+- Run picker UI instrumentation smoke coverage on a connected device after Tasks 4-6.
 - Run full local gate after the UI implementation is complete: `./gradlew testDebugUnitTest lintDebug assembleDebug`.
 - Run `git diff --check` before each round handoff.

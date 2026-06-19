@@ -1,14 +1,22 @@
 package com.cory.noter.ui.editor
 
 import android.os.Build
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -25,7 +33,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import java.time.DayOfWeek
 import java.time.format.TextStyle
@@ -35,13 +48,13 @@ import java.time.format.TextStyle
 fun AlarmEditorScreen(
     state: AlarmEditorUiState,
     onTitleChanged: (String) -> Unit,
-    onHourChanged: (String) -> Unit,
-    onMinuteChanged: (String) -> Unit,
+    onHourSelected: (Int) -> Unit,
+    onMinuteSelected: (Int) -> Unit,
     onRepeatRuleChanged: (EditorRepeatOption) -> Unit,
     onOnceDateChanged: (String) -> Unit,
     onIntervalStartDateChanged: (String) -> Unit,
     onIntervalEndDateChanged: (String) -> Unit,
-    onIntervalWeeksChanged: (String) -> Unit,
+    onIntervalWeeksSelected: (Int) -> Unit,
     onCustomWeekdayToggled: (DayOfWeek) -> Unit,
     onPickRingtone: () -> Unit,
     onEnabledChanged: (Boolean) -> Unit,
@@ -90,18 +103,31 @@ fun AlarmEditorScreen(
                 label = { Text(text = "Title") },
             )
 
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(
-                    value = state.hourText,
-                    onValueChange = onHourChanged,
-                    modifier = Modifier.weight(1f),
-                    label = { Text(text = "Hour") },
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
+            ) {
+                NumberWheelPicker(
+                    label = "Hours",
+                    values = 0..23,
+                    selectedValue = state.hourText.toIntOrNull()?.coerceIn(0, 23) ?: 0,
+                    onValueSelected = onHourSelected,
+                    tagPrefix = "HourWheel",
+                    displayText = { it.toString().padStart(2, '0') },
                 )
-                OutlinedTextField(
-                    value = state.minuteText,
-                    onValueChange = onMinuteChanged,
-                    modifier = Modifier.weight(1f),
-                    label = { Text(text = "Minute") },
+                Text(
+                    text = ":",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.align(Alignment.CenterVertically),
+                )
+                NumberWheelPicker(
+                    label = "Minutes",
+                    values = 0..59,
+                    selectedValue = state.minuteText.toIntOrNull()?.coerceIn(0, 59) ?: 0,
+                    onValueSelected = onMinuteSelected,
+                    tagPrefix = "MinuteWheel",
+                    displayText = { it.toString().padStart(2, '0') },
                 )
             }
 
@@ -163,11 +189,13 @@ fun AlarmEditorScreen(
                         label = { Text(text = "End date") },
                     )
                 }
-                OutlinedTextField(
-                    value = state.intervalWeeksText,
-                    onValueChange = onIntervalWeeksChanged,
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text(text = "Every N weeks") },
+                NumberWheelPicker(
+                    label = "Weeks",
+                    values = 1..104,
+                    selectedValue = state.intervalWeeksText.toIntOrNull()?.coerceIn(1, 104) ?: 1,
+                    onValueSelected = onIntervalWeeksSelected,
+                    tagPrefix = "IntervalWeeksWheel",
+                    displayText = { it.toString() },
                 )
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     DayOfWeek.entries.forEach { day ->
@@ -238,6 +266,91 @@ fun AlarmEditorScreen(
                     TextButton(onClick = onDelete) {
                         Text(text = "Delete")
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun NumberWheelPicker(
+    label: String,
+    values: IntRange,
+    selectedValue: Int,
+    onValueSelected: (Int) -> Unit,
+    tagPrefix: String,
+    displayText: (Int) -> String,
+    modifier: Modifier = Modifier,
+) {
+    val valueList = values.toList()
+    val selectedIndex = valueList.indexOf(selectedValue).coerceAtLeast(0)
+    val listState = rememberLazyListState(
+        initialFirstVisibleItemIndex = (selectedIndex - 1).coerceAtLeast(0),
+    )
+
+    Column(
+        modifier = modifier.width(104.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+        )
+        LazyColumn(
+            modifier = Modifier
+                .height(144.dp)
+                .fillMaxWidth()
+                .testTag(tagPrefix)
+                .semantics {
+                    contentDescription = "$label picker selected ${displayText(selectedValue)}"
+                },
+            state = listState,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            items(valueList) { value ->
+                val selected = value == selectedValue
+                val itemTag = if (selected) {
+                    "$tagPrefix-selected-${displayText(value)}"
+                } else {
+                    "$tagPrefix-${displayText(value)}"
+                }
+                Box(
+                    modifier = Modifier
+                        .height(48.dp)
+                        .fillMaxWidth()
+                        .padding(horizontal = 4.dp, vertical = 3.dp)
+                        .clip(MaterialTheme.shapes.small)
+                        .background(
+                            if (selected) {
+                                MaterialTheme.colorScheme.primaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.surface
+                            },
+                        )
+                        .clickable { onValueSelected(value) }
+                        .testTag(itemTag)
+                        .semantics {
+                            contentDescription = "$label ${displayText(value)}"
+                        },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = displayText(value),
+                        style = if (selected) {
+                            MaterialTheme.typography.headlineSmall
+                        } else {
+                            MaterialTheme.typography.titleMedium
+                        },
+                        color = if (selected) {
+                            MaterialTheme.colorScheme.onPrimaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                        textAlign = TextAlign.Center,
+                    )
                 }
             }
         }
