@@ -1,13 +1,12 @@
 package com.cory.noter
 
-import androidx.activity.ComponentActivity
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasTestTag
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -32,7 +31,7 @@ import org.junit.Test
 
 class AlarmEditorSmokeTest {
     @get:Rule
-    val composeRule = createAndroidComposeRule<ComponentActivity>()
+    val composeRule = createComposeRule()
 
     private val zoneId = ZoneId.of("Asia/Shanghai")
     private val clock = Clock.fixed(Instant.parse("2026-04-23T01:00:00Z"), zoneId)
@@ -81,7 +80,7 @@ class AlarmEditorSmokeTest {
         composeRule.onNodeWithTag("OnceDateControl").assertIsDisplayed()
         composeRule.onNodeWithTag("OnceDateControl").performClick()
         composeRule.onNodeWithTag("DatePickerDialog-OnceDate").assertIsDisplayed()
-        composeRule.onNodeWithText("Cancel").performClick()
+        composeRule.onNodeWithTag("DatePickerDialog-OnceDate-Cancel").performClick()
         composeRule.onNodeWithTag("HourWheel").performScrollToNode(hasTestTag("HourWheel-06"))
         composeRule.onNodeWithTag("HourWheel-06").performClick()
         composeRule.onNodeWithTag("MinuteWheel").performScrollToNode(hasTestTag("MinuteWheel-30"))
@@ -203,6 +202,6 @@ class AlarmEditorSmokeTest {
         composeRule.onNodeWithTag("IntervalEndDateControl").assertIsDisplayed()
         composeRule.onNodeWithTag("IntervalStartDateControl").performClick()
         composeRule.onNodeWithTag("DatePickerDialog-IntervalStartDate").assertIsDisplayed()
-        composeRule.onNodeWithText("Cancel").performClick()
+        composeRule.onNodeWithTag("DatePickerDialog-IntervalStartDate-Cancel").performClick()
     }
 }

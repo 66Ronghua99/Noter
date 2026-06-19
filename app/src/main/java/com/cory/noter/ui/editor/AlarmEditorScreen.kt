@@ -364,12 +364,16 @@ private fun AlarmDatePickerDialog(
                         ?.toUtcLocalDate()
                         ?.let(onDateSelected)
                 },
+                modifier = Modifier.testTag("${target.dialogTag}-Confirm"),
             ) {
                 Text(text = "OK")
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier.testTag("${target.dialogTag}-Cancel"),
+            ) {
                 Text(text = "Cancel")
             }
         },

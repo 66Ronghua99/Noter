@@ -66,7 +66,32 @@
   - Command: `git diff --check`
   - Result: passed with no output.
 
+## Task 8 Connected Smoke Handoff Stabilization
+
+- Connected dependency retry context: `artifacts/2026-06-19-manual-alarm-picker-ui/task7-connected-editor-smoke.log`
+  - Result: the first connected attempt failed before tests because Gradle hit a TLS handshake issue resolving `com.google.testing.platform:core:0.0.9-alpha03`.
+- Dependency reachability check: `artifacts/2026-06-19-manual-alarm-picker-ui/task7-connected-dependency-curl.log`
+  - Result: direct curl to the same dependency POM succeeded.
+- Connected retry context: `artifacts/2026-06-19-manual-alarm-picker-ui/task7-connected-editor-smoke-retry.log`
+  - Result: the retry installed and started `AlarmEditorSmokeTest`, then stalled at `Tests 0/3 completed`.
+  - Device inspection showed the vivo phone focus had moved to the system notification shade / launcher while instrumentation remained active.
+- Red-tag attempt context: `artifacts/2026-06-19-manual-alarm-picker-ui/task7-red-dialog-cancel-tag.log`
+  - Result: the run did not reach the expected assertion because the vivo installer rejected the APK install prompt.
+- Local gate after connected deferral: `artifacts/2026-06-19-manual-alarm-picker-ui/task7-local-gate-after-connected-deferral-rerun.log`
+  - Command: `GRADLE_USER_HOME=$PWD/.gradle-user ./gradlew testDebugUnitTest :app:compileDebugAndroidTestKotlin lintDebug assembleDebug -Dkotlin.compiler.execution.strategy=in-process`
+  - Result: passed after adding date-dialog button test tags and switching `AlarmEditorSmokeTest` to a dedicated Compose test host.
+  - Note: `task7-local-gate-after-connected-deferral.log` records a command spelling error where `compileDebugAndroidTest` was ambiguous; the rerun above used the explicit Kotlin compile task and passed.
+- Fresh local gate evidence: `artifacts/2026-06-19-manual-alarm-picker-ui/task8-fresh-local-gate.log`
+  - Command: `GRADLE_USER_HOME=$PWD/.gradle-user ./gradlew testDebugUnitTest :app:compileDebugAndroidTestKotlin lintDebug assembleDebug -Dkotlin.compiler.execution.strategy=in-process`
+  - Result: passed.
+- Diff hygiene after connected deferral: `artifacts/2026-06-19-manual-alarm-picker-ui/task8-final-diff-check.log`
+  - Command: `git diff --check`
+  - Result: passed with no output.
+- Connected editor smoke evidence: `artifacts/2026-06-19-manual-alarm-picker-ui/task9-connected-editor-smoke-emulator.log`
+  - Command: `GRADLE_USER_HOME=$PWD/.gradle-user ./gradlew connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.cory.noter.AlarmEditorSmokeTest -Dkotlin.compiler.execution.strategy=in-process`
+  - Target: `Medium_Phone_API_36.0(AVD) - 16`
+  - Result: passed, 3 tests completed, 0 skipped, 0 failed.
+
 ## Remaining Verification
 
-- Run picker UI instrumentation smoke coverage on a connected device when a device or emulator is available.
-- Record final handoff after connected smoke evidence is available.
+- No remaining verification for this plan.
