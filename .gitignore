@@ -10,6 +10,7 @@ superpowers/artifacts/refactor-gate/
 # Android and Gradle build outputs
 .gradle/
 .gradle-user/
+.kotlin/
 build/
 */build/
 local.properties

@@ -66,6 +66,57 @@ class AlarmEditorViewModelTest {
     }
 
     @Test
+    fun `picker callbacks write formatted editor state values`() = runTest {
+        val repository = FakeAlarmRepository(clock = clock, zoneId = zoneId)
+        val viewModel = AlarmEditorViewModel(
+            alarmId = null,
+            repository = repository,
+            settingsRepository = FakeSettingsRepository(),
+            schedulingUseCase = AlarmSchedulingUseCase(FakeAlarmScheduler()),
+            clock = clock,
+            zoneId = zoneId,
+        )
+
+        advanceUntilIdle()
+        viewModel.onHourSelected(23)
+        viewModel.onMinuteSelected(5)
+        viewModel.onOnceDateSelected(LocalDate.of(2026, 6, 2))
+        viewModel.onIntervalStartDateSelected(LocalDate.of(2027, 5, 2))
+        viewModel.onIntervalEndDateSelected(LocalDate.of(2027, 6, 2))
+        viewModel.onIntervalWeeksSelected(104)
+
+        val state = viewModel.uiState.value
+        assertThat(state.hourText).isEqualTo("23")
+        assertThat(state.minuteText).isEqualTo("05")
+        assertThat(state.onceDateText).isEqualTo("2026-06-02")
+        assertThat(state.intervalStartDateText).isEqualTo("2027-05-02")
+        assertThat(state.intervalEndDateText).isEqualTo("2027-06-02")
+        assertThat(state.intervalWeeksText).isEqualTo("104")
+    }
+
+    @Test
+    fun `interval week picker clamps selection to supported range`() = runTest {
+        val repository = FakeAlarmRepository(clock = clock, zoneId = zoneId)
+        val viewModel = AlarmEditorViewModel(
+            alarmId = null,
+            repository = repository,
+            settingsRepository = FakeSettingsRepository(),
+            schedulingUseCase = AlarmSchedulingUseCase(FakeAlarmScheduler()),
+            clock = clock,
+            zoneId = zoneId,
+        )
+
+        advanceUntilIdle()
+        viewModel.onIntervalWeeksSelected(0)
+
+        assertThat(viewModel.uiState.value.intervalWeeksText).isEqualTo("1")
+
+        viewModel.onIntervalWeeksSelected(105)
+
+        assertThat(viewModel.uiState.value.intervalWeeksText).isEqualTo("104")
+    }
+
+    @Test
     fun `save with blank title exposes validation failure`() = runTest {
         val repository = FakeAlarmRepository(clock = clock, zoneId = zoneId)
         val viewModel = AlarmEditorViewModel(

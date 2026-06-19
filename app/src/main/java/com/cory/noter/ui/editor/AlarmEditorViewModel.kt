@@ -132,6 +132,11 @@ class AlarmEditorViewModel(
         }
     }
 
+    fun onHourSelected(hour: Int) {
+        require(hour in 0..23) { "Hour must be between 0 and 23." }
+        onHourChanged(hour.toString())
+    }
+
     fun onMinuteChanged(minuteText: String) {
         mutableUiState.update {
             it.copy(
@@ -141,6 +146,11 @@ class AlarmEditorViewModel(
                 exactAlarmPermissionRequired = false,
             )
         }
+    }
+
+    fun onMinuteSelected(minute: Int) {
+        require(minute in 0..59) { "Minute must be between 0 and 59." }
+        onMinuteChanged(minute.toString().padStart(2, '0'))
     }
 
     fun onRepeatRuleChanged(repeatOption: EditorRepeatOption) {
@@ -163,6 +173,10 @@ class AlarmEditorViewModel(
                 exactAlarmPermissionRequired = false,
             )
         }
+    }
+
+    fun onOnceDateSelected(date: LocalDate) {
+        onOnceDateChanged(date.toString())
     }
 
     fun onCustomWeekdayToggled(day: DayOfWeek) {
@@ -205,6 +219,10 @@ class AlarmEditorViewModel(
         }
     }
 
+    fun onIntervalStartDateSelected(date: LocalDate) {
+        onIntervalStartDateChanged(date.toString())
+    }
+
     fun onIntervalEndDateChanged(intervalEndDateText: String) {
         mutableUiState.update {
             it.copy(
@@ -216,6 +234,10 @@ class AlarmEditorViewModel(
         }
     }
 
+    fun onIntervalEndDateSelected(date: LocalDate) {
+        onIntervalEndDateChanged(date.toString())
+    }
+
     fun onIntervalWeeksChanged(intervalWeeksText: String) {
         mutableUiState.update {
             it.copy(
@@ -225,6 +247,10 @@ class AlarmEditorViewModel(
                 exactAlarmPermissionRequired = false,
             )
         }
+    }
+
+    fun onIntervalWeeksSelected(intervalWeeks: Int) {
+        onIntervalWeeksChanged(intervalWeeks.coerceIn(1, 104).toString())
     }
 
     fun onRingtoneSelected(ringtoneUri: String) {
