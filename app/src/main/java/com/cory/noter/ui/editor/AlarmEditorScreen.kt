@@ -1,6 +1,7 @@
 package com.cory.noter.ui.editor
 
 import android.os.Build
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -8,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -15,6 +17,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
@@ -34,25 +37,37 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.cory.noter.R
+import com.cory.noter.domain.alarm.AlarmValidation
+import com.cory.noter.ui.text.asString
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.format.TextStyle
+import kotlinx.coroutines.launch
+import kotlin.math.abs
 
 @Composable
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
@@ -82,11 +97,11 @@ fun AlarmEditorScreen(
         configuration.locale
     }
     val repeatOptions = listOf(
-        EditorRepeatOption.ONCE to "Once",
-        EditorRepeatOption.DAILY to "Daily",
-        EditorRepeatOption.WEEKDAYS to "Weekdays",
-        EditorRepeatOption.CUSTOM to "Custom",
-        EditorRepeatOption.INTERVAL to "Interval",
+        EditorRepeatOption.ONCE to stringResource(R.string.editor_repeat_once),
+        EditorRepeatOption.DAILY to stringResource(R.string.editor_repeat_daily),
+        EditorRepeatOption.WEEKDAYS to stringResource(R.string.editor_repeat_weekdays),
+        EditorRepeatOption.CUSTOM to stringResource(R.string.editor_repeat_custom),
+        EditorRepeatOption.INTERVAL to stringResource(R.string.editor_repeat_interval),
     )
     var activeDatePicker by remember { mutableStateOf<DatePickerTarget?>(null) }
 
@@ -95,7 +110,15 @@ fun AlarmEditorScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(text = if (state.isExisting) "Edit alarm" else "New alarm")
+                    Text(
+                        text = stringResource(
+                            if (state.isExisting) {
+                                R.string.editor_title_edit
+                            } else {
+                                R.string.editor_title_new
+                            },
+                        ),
+                    )
                 },
             )
         },
@@ -112,7 +135,7 @@ fun AlarmEditorScreen(
                 value = state.title,
                 onValueChange = onTitleChanged,
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text(text = "Title") },
+                label = { Text(text = stringResource(R.string.editor_title_label)) },
             )
 
             Row(
@@ -120,7 +143,7 @@ fun AlarmEditorScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
             ) {
                 NumberWheelPicker(
-                    label = "Hours",
+                    label = stringResource(R.string.editor_hours),
                     values = 0..23,
                     selectedValue = state.hourText.toIntOrNull()?.coerceIn(0, 23) ?: 0,
                     onValueSelected = onHourSelected,
@@ -134,7 +157,7 @@ fun AlarmEditorScreen(
                     modifier = Modifier.align(Alignment.CenterVertically),
                 )
                 NumberWheelPicker(
-                    label = "Minutes",
+                    label = stringResource(R.string.editor_minutes),
                     values = 0..59,
                     selectedValue = state.minuteText.toIntOrNull()?.coerceIn(0, 59) ?: 0,
                     onValueSelected = onMinuteSelected,
@@ -144,7 +167,7 @@ fun AlarmEditorScreen(
             }
 
             Text(
-                text = "Repeat",
+                text = stringResource(R.string.editor_repeat),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -160,7 +183,7 @@ fun AlarmEditorScreen(
 
             if (state.repeatOption == EditorRepeatOption.ONCE) {
                 DateControl(
-                    label = "Once",
+                    label = stringResource(R.string.editor_date_once),
                     valueText = state.onceDateText,
                     tag = "OnceDateControl",
                     onClick = { activeDatePicker = DatePickerTarget.Once },
@@ -189,28 +212,47 @@ fun AlarmEditorScreen(
             if (state.repeatOption == EditorRepeatOption.INTERVAL) {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     DateControl(
-                        label = "Start",
+                        label = stringResource(R.string.editor_date_start),
                         valueText = state.intervalStartDateText,
                         tag = "IntervalStartDateControl",
                         onClick = { activeDatePicker = DatePickerTarget.IntervalStart },
                         modifier = Modifier.weight(1f),
                     )
                     DateControl(
-                        label = "End",
+                        label = stringResource(R.string.editor_date_end),
                         valueText = state.intervalEndDateText,
                         tag = "IntervalEndDateControl",
                         onClick = { activeDatePicker = DatePickerTarget.IntervalEnd },
                         modifier = Modifier.weight(1f),
                     )
                 }
-                NumberWheelPicker(
-                    label = "Weeks",
-                    values = 1..104,
-                    selectedValue = state.intervalWeeksText.toIntOrNull()?.coerceIn(1, 104) ?: 1,
-                    onValueSelected = onIntervalWeeksSelected,
-                    tagPrefix = "IntervalWeeksWheel",
-                    displayText = { it.toString() },
-                )
+                val weeksLabel = stringResource(R.string.editor_weeks)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("IntervalWeeksRow"),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = weeksLabel,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.testTag("IntervalWeeksLabel"),
+                    )
+                    NumberWheelPicker(
+                        label = weeksLabel,
+                        values = 1..104,
+                        selectedValue = state.intervalWeeksText.toIntOrNull()?.coerceIn(1, 104) ?: 1,
+                        onValueSelected = onIntervalWeeksSelected,
+                        tagPrefix = "IntervalWeeksWheel",
+                        displayText = { it.toString() },
+                        width = 88.dp,
+                        itemHeight = 40.dp,
+                        visibleItemCount = 2,
+                        showLabel = false,
+                    )
+                }
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     DayOfWeek.entries.forEach { day ->
                         FilterChip(
@@ -230,7 +272,7 @@ fun AlarmEditorScreen(
             }
 
             Text(
-                text = "Ringtone",
+                text = stringResource(R.string.editor_ringtone),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -239,7 +281,7 @@ fun AlarmEditorScreen(
                 style = MaterialTheme.typography.bodySmall,
             )
             Button(onClick = onPickRingtone) {
-                Text(text = "Choose ringtone")
+                Text(text = stringResource(R.string.editor_choose_ringtone))
             }
 
             Row(
@@ -247,7 +289,7 @@ fun AlarmEditorScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(text = "Enabled")
+                Text(text = stringResource(R.string.common_enabled))
                 Switch(
                     checked = state.enabled,
                     onCheckedChange = onEnabledChanged,
@@ -256,29 +298,29 @@ fun AlarmEditorScreen(
 
             state.validationErrors.forEach { error ->
                 Text(
-                    text = error.name,
+                    text = stringResource(error.toMessageResId()),
                     color = MaterialTheme.colorScheme.error,
                 )
             }
             state.errorMessage?.let { errorMessage ->
                 Text(
-                    text = errorMessage,
+                    text = errorMessage.asString(),
                     color = MaterialTheme.colorScheme.error,
                 )
             }
             if (state.exactAlarmPermissionRequired) {
                 Button(onClick = onOpenExactAlarmSettings) {
-                    Text(text = "Open exact alarm settings")
+                    Text(text = stringResource(R.string.editor_open_exact_alarm_settings))
                 }
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Button(onClick = onSave) {
-                    Text(text = "Save")
+                    Text(text = stringResource(R.string.common_save))
                 }
                 if (state.isExisting) {
                     TextButton(onClick = onDelete) {
-                        Text(text = "Delete")
+                        Text(text = stringResource(R.string.common_delete))
                     }
                 }
             }
@@ -366,7 +408,7 @@ private fun AlarmDatePickerDialog(
                 },
                 modifier = Modifier.testTag("${target.dialogTag}-Confirm"),
             ) {
-                Text(text = "OK")
+                Text(text = stringResource(R.string.editor_date_picker_ok))
             }
         },
         dismissButton = {
@@ -374,7 +416,7 @@ private fun AlarmDatePickerDialog(
                 onClick = onDismiss,
                 modifier = Modifier.testTag("${target.dialogTag}-Cancel"),
             ) {
-                Text(text = "Cancel")
+                Text(text = stringResource(R.string.editor_date_picker_cancel))
             }
         },
         modifier = Modifier.testTag(target.dialogTag),
@@ -401,36 +443,77 @@ private fun NumberWheelPicker(
     tagPrefix: String,
     displayText: (Int) -> String,
     modifier: Modifier = Modifier,
+    width: Dp = 104.dp,
+    itemHeight: Dp = 48.dp,
+    visibleItemCount: Int = 3,
+    showLabel: Boolean = true,
 ) {
+    val viewportHeight = itemHeight * visibleItemCount
+    val edgePadding = itemHeight * ((visibleItemCount - 1) / 2f)
     val valueList = values.toList()
     val selectedIndex = valueList.indexOf(selectedValue).coerceAtLeast(0)
     val listState = rememberLazyListState(
-        initialFirstVisibleItemIndex = (selectedIndex - 1).coerceAtLeast(0),
+        initialFirstVisibleItemIndex = selectedIndex,
+    )
+    val coroutineScope = rememberCoroutineScope()
+    val currentSelectedValue by rememberUpdatedState(selectedValue)
+    val currentOnValueSelected by rememberUpdatedState(onValueSelected)
+    val pickerContentDescription = stringResource(
+        R.string.picker_selected_content_description,
+        label,
+        displayText(selectedValue),
     )
 
+    LaunchedEffect(selectedValue, selectedIndex) {
+        if (!listState.isScrollInProgress) {
+            listState.scrollToItem(selectedIndex)
+        }
+    }
+
+    LaunchedEffect(listState, valueList) {
+        snapshotFlow {
+            listState.isScrollInProgress to listState.centeredValue(valueList)
+        }.collect { (isScrolling, centeredValue) ->
+            if (!isScrolling) {
+                if (centeredValue != null && centeredValue != currentSelectedValue) {
+                    currentOnValueSelected(centeredValue)
+                }
+            }
+        }
+    }
+
     Column(
-        modifier = modifier.width(104.dp),
+        modifier = modifier.width(width),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.SemiBold,
-        )
+        if (showLabel) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
         LazyColumn(
             modifier = Modifier
-                .height(144.dp)
+                .height(viewportHeight)
                 .fillMaxWidth()
                 .testTag(tagPrefix)
                 .semantics {
-                    contentDescription = "$label picker selected ${displayText(selectedValue)}"
+                    contentDescription = pickerContentDescription
                 },
             state = listState,
+            contentPadding = PaddingValues(vertical = edgePadding),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             items(valueList) { value ->
                 val selected = value == selectedValue
+                val selectedDistance = abs(valueList.indexOf(value) - selectedIndex)
+                val valueContentDescription = stringResource(
+                    R.string.picker_value_content_description,
+                    label,
+                    displayText(value),
+                )
                 val itemTag = if (selected) {
                     "$tagPrefix-selected-${displayText(value)}"
                 } else {
@@ -438,7 +521,7 @@ private fun NumberWheelPicker(
                 }
                 Box(
                     modifier = Modifier
-                        .height(48.dp)
+                        .height(itemHeight)
                         .fillMaxWidth()
                         .padding(horizontal = 4.dp, vertical = 3.dp)
                         .clip(MaterialTheme.shapes.small)
@@ -449,10 +532,15 @@ private fun NumberWheelPicker(
                                 MaterialTheme.colorScheme.surface
                             },
                         )
-                        .clickable { onValueSelected(value) }
+                        .clickable {
+                            onValueSelected(value)
+                            coroutineScope.launch {
+                                listState.animateScrollToItem(valueList.indexOf(value))
+                            }
+                        }
                         .testTag(itemTag)
                         .semantics {
-                            contentDescription = "$label ${displayText(value)}"
+                            contentDescription = valueContentDescription
                         },
                     contentAlignment = Alignment.Center,
                 ) {
@@ -470,9 +558,40 @@ private fun NumberWheelPicker(
                         },
                         fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
                         textAlign = TextAlign.Center,
+                        modifier = Modifier.alpha(
+                            when {
+                                selected -> 1f
+                                selectedDistance == 1 -> 0.68f
+                                else -> 0.38f
+                            },
+                        ),
                     )
                 }
             }
         }
     }
+}
+
+private fun LazyListState.centeredValue(values: List<Int>): Int? {
+    val layoutInfo = layoutInfo
+    val viewportCenter = (layoutInfo.viewportStartOffset + layoutInfo.viewportEndOffset) / 2
+    return layoutInfo.visibleItemsInfo
+        .minByOrNull { item ->
+            abs((item.offset + item.size / 2) - viewportCenter)
+        }
+        ?.index
+        ?.let(values::getOrNull)
+}
+
+@StringRes
+private fun AlarmValidation.Error.toMessageResId(): Int = when (this) {
+    AlarmValidation.Error.BLANK_TITLE -> R.string.editor_validation_blank_title
+    AlarmValidation.Error.INVALID_HOUR -> R.string.editor_validation_invalid_hour
+    AlarmValidation.Error.INVALID_MINUTE -> R.string.editor_validation_invalid_minute
+    AlarmValidation.Error.EMPTY_CUSTOM_WEEKDAYS -> R.string.editor_validation_empty_custom_weekdays
+    AlarmValidation.Error.EMPTY_INTERVAL_WEEKDAYS -> R.string.editor_validation_empty_interval_weekdays
+    AlarmValidation.Error.INVALID_INTERVAL_WEEKS -> R.string.editor_validation_invalid_interval_weeks
+    AlarmValidation.Error.INVALID_INTERVAL_RANGE -> R.string.editor_validation_invalid_interval_range
+    AlarmValidation.Error.EXPIRED_ONE_TIME_ALARM -> R.string.editor_validation_expired_one_time_alarm
+    AlarmValidation.Error.EXPIRED_INTERVAL_ALARM -> R.string.editor_validation_expired_interval_alarm
 }

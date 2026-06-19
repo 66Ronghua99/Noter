@@ -21,6 +21,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -157,6 +158,7 @@ private fun AlarmEditorRoute(
     onOpenExactAlarmSettings: () -> Unit,
     onDone: () -> Unit,
 ) {
+    val context = LocalContext.current
     val viewModel: AlarmEditorViewModel = viewModel(
         key = "editor-$alarmId",
         factory = factoryOf {
@@ -169,6 +171,7 @@ private fun AlarmEditorRoute(
         },
     )
     val state by viewModel.uiState.collectAsState()
+    val ringtonePickerTitle = stringResource(R.string.ringtone_picker_alarm_title)
     val ringtonePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult(),
     ) { result ->
@@ -198,7 +201,7 @@ private fun AlarmEditorRoute(
             ringtonePicker.launch(
                 createRingtonePickerIntent(
                     currentRingtoneUri = state.ringtoneUri,
-                    title = "Choose alarm ringtone",
+                    title = ringtonePickerTitle,
                 ),
             )
         },
@@ -279,6 +282,7 @@ private fun SettingsRoute(
         (context.applicationContext as? NoterApplication)?.reconcileStartupState()
     }
     val state by viewModel.uiState.collectAsState()
+    val ringtonePickerTitle = stringResource(R.string.ringtone_picker_default_alarm_title)
     val ringtonePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult(),
     ) { result ->
@@ -296,7 +300,7 @@ private fun SettingsRoute(
             ringtonePicker.launch(
                 createRingtonePickerIntent(
                     currentRingtoneUri = state.defaultRingtoneUri,
-                    title = "Choose default alarm ringtone",
+                    title = ringtonePickerTitle,
                 ),
             )
         },

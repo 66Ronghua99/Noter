@@ -22,8 +22,11 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.cory.noter.R
+import com.cory.noter.ui.text.asString
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,10 +44,10 @@ fun SettingsScreen(
         modifier = modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text(text = "Settings") },
+                title = { Text(text = stringResource(R.string.settings_title)) },
                 navigationIcon = {
                     TextButton(onClick = onBack) {
-                        Text(text = "Back")
+                        Text(text = stringResource(R.string.common_back))
                     }
                 },
             )
@@ -60,7 +63,7 @@ fun SettingsScreen(
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
-                        text = "OpenRouter API key",
+                        text = stringResource(R.string.settings_openrouter_api_key),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
                     )
@@ -68,10 +71,10 @@ fun SettingsScreen(
                         value = state.openRouterApiKey,
                         onValueChange = onApiKeyChanged,
                         modifier = Modifier.fillMaxWidth(),
-                        label = { Text(text = "API key") },
+                        label = { Text(text = stringResource(R.string.settings_api_key_label)) },
                     )
                     Button(onClick = onSaveApiKey) {
-                        Text(text = "Save API key")
+                        Text(text = stringResource(R.string.settings_save_api_key))
                     }
                 }
             }
@@ -79,7 +82,7 @@ fun SettingsScreen(
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
-                        text = "Model",
+                        text = stringResource(R.string.settings_model),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
                     )
@@ -103,7 +106,7 @@ fun SettingsScreen(
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        text = "Default ringtone",
+                        text = stringResource(R.string.settings_default_ringtone),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
                     )
@@ -112,14 +115,14 @@ fun SettingsScreen(
                         style = MaterialTheme.typography.bodySmall,
                     )
                     Button(onClick = onPickDefaultRingtone) {
-                        Text(text = "Choose default ringtone")
+                        Text(text = stringResource(R.string.settings_choose_default_ringtone))
                     }
                 }
             }
 
             item {
                 Text(
-                    text = "Permissions",
+                    text = stringResource(R.string.settings_permissions),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -131,11 +134,17 @@ fun SettingsScreen(
                         verticalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
                         Text(
-                            text = row.title,
+                            text = stringResource(row.titleResId),
                             style = MaterialTheme.typography.titleMedium,
                         )
                         Text(
-                            text = if (row.granted) "Granted" else "Needs attention",
+                            text = stringResource(
+                                if (row.granted) {
+                                    R.string.common_granted
+                                } else {
+                                    R.string.common_needs_attention
+                                },
+                            ),
                             color = if (row.granted) {
                                 MaterialTheme.colorScheme.primary
                             } else {
@@ -143,12 +152,12 @@ fun SettingsScreen(
                             },
                         )
                         Text(
-                            text = row.summary,
+                            text = stringResource(row.summaryResId),
                             style = MaterialTheme.typography.bodySmall,
                         )
-                        if (!row.granted && row.actionLabel != null) {
+                        if (!row.granted && row.actionLabelResId != null) {
                             Button(onClick = { onPermissionAction(row.id) }) {
-                                Text(text = row.actionLabel)
+                                Text(text = stringResource(row.actionLabelResId))
                             }
                         }
                     }
@@ -158,7 +167,7 @@ fun SettingsScreen(
             item {
                 state.errorMessage?.let { errorMessage ->
                     Text(
-                        text = errorMessage,
+                        text = errorMessage.asString(),
                         color = MaterialTheme.colorScheme.error,
                     )
                 }

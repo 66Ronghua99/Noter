@@ -15,6 +15,7 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import com.cory.noter.R
 import com.cory.noter.ai.AiCreateResult
 import com.cory.noter.ai.AiCreateResultNotifier
 
@@ -26,8 +27,8 @@ class AndroidAiCreateResultNotifier(
         notify(
             id = IN_PROGRESS_NOTIFICATION_ID,
             notification = baseBuilder()
-                .setContentTitle("Creating alarm")
-                .setContentText("AI alarm creation is running in the background.")
+                .setContentTitle(context.getString(R.string.notification_ai_creating_title))
+                .setContentText(context.getString(R.string.notification_ai_creating_body))
                 .setOngoing(true)
                 .setAutoCancel(false)
                 .setProgress(0, 0, true)
@@ -47,7 +48,7 @@ class AndroidAiCreateResultNotifier(
             is AiCreateResult.Created -> notify(
                 id = RESULT_NOTIFICATION_ID,
                 notification = builder
-                    .setContentTitle("Alarm created")
+                    .setContentTitle(context.getString(R.string.notification_ai_created_title))
                     .setContentText(result.alarm.title)
                     .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                     .build(),
@@ -56,15 +57,22 @@ class AndroidAiCreateResultNotifier(
             is AiCreateResult.MissingSchedulingPermission -> notify(
                 id = RESULT_NOTIFICATION_ID,
                 notification = builder
-                    .setContentTitle("Alarm saved")
-                    .setContentText("Exact alarm permission is needed before it can ring reliably.")
+                    .setContentTitle(context.getString(R.string.notification_ai_saved_title))
+                    .setContentText(context.getString(R.string.notification_ai_permission_needed))
                     .setStyle(
                         NotificationCompat.BigTextStyle().bigText(
-                            "Alarm \"${result.alarm.title}\" was saved, but Android needs exact alarm permission before it can ring reliably.",
+                            context.getString(
+                                R.string.notification_ai_permission_big_text,
+                                result.alarm.title,
+                            ),
                         ),
                     )
                     .setPriority(NotificationCompat.PRIORITY_HIGH)
-                    .addAction(0, "Open settings", exactAlarmSettingsIntent())
+                    .addAction(
+                        0,
+                        context.getString(R.string.notification_ai_open_settings),
+                        exactAlarmSettingsIntent(),
+                    )
                     .build(),
             )
 
@@ -73,7 +81,7 @@ class AndroidAiCreateResultNotifier(
                 notify(
                     id = RESULT_NOTIFICATION_ID,
                     notification = builder
-                        .setContentTitle("AI alarm failed")
+                        .setContentTitle(context.getString(R.string.notification_ai_failed_title))
                         .setContentText(reason)
                         .setStyle(NotificationCompat.BigTextStyle().bigText(reason))
                         .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -121,10 +129,10 @@ class AndroidAiCreateResultNotifier(
         notificationManager.createNotificationChannel(
             NotificationChannel(
                 CHANNEL_ID,
-                "AI alarm creation",
+                context.getString(R.string.notification_ai_channel_name),
                 NotificationManager.IMPORTANCE_DEFAULT,
             ).apply {
-                description = "Status updates for background AI alarm creation."
+                description = context.getString(R.string.notification_ai_channel_description)
             },
         )
     }
@@ -139,18 +147,18 @@ class AndroidAiCreateResultNotifier(
     )
 
     private fun AiCreateResult.failureText(): String = when (this) {
-        AiCreateResult.MissingApiKey -> "Add an OpenRouter API key in Settings before using AI create."
-        AiCreateResult.MissingModel -> "Choose a supported model in Settings before using AI create."
-        is AiCreateResult.NetworkFailure -> "Network error: $reason"
-        is AiCreateResult.RateLimited -> "Model rate limit: $reason"
-        is AiCreateResult.RemoteFailure -> "OpenRouter error $code: $reason"
+        AiCreateResult.MissingApiKey -> context.getString(R.string.notification_ai_missing_api_key)
+        AiCreateResult.MissingModel -> context.getString(R.string.notification_ai_missing_model)
+        is AiCreateResult.NetworkFailure -> context.getString(R.string.notification_ai_network_failure, reason)
+        is AiCreateResult.RateLimited -> context.getString(R.string.notification_ai_rate_limited, reason)
+        is AiCreateResult.RemoteFailure -> context.getString(R.string.notification_ai_remote_failure, code, reason)
         is AiCreateResult.InvalidResponse -> reason
         is AiCreateResult.ClarificationRequired -> reason
         is AiCreateResult.CreateFailed -> reason
         is AiCreateResult.ScheduleFailed -> reason
         is AiCreateResult.MissingSchedulingPermission,
         is AiCreateResult.Created,
-        -> "AI alarm creation finished."
+        -> context.getString(R.string.notification_ai_finished)
     }
 
     private companion object {

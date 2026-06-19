@@ -1,5 +1,6 @@
 package com.cory.noter.ui.ai
 
+import com.cory.noter.R
 import com.cory.noter.ai.AiAlarmCreator
 import com.cory.noter.ai.AiAlarmPromptBuilder
 import com.cory.noter.ai.AiAlarmResponseParser
@@ -12,6 +13,7 @@ import com.cory.noter.domain.settings.AppSettings
 import com.cory.noter.ui.FakeAlarmRepository
 import com.cory.noter.ui.FakeOpenRouterGateway
 import com.cory.noter.ui.MainDispatcherRule
+import com.cory.noter.ui.text.UiText
 import com.google.common.truth.Truth.assertThat
 import java.time.Clock
 import java.time.Instant
@@ -50,7 +52,7 @@ class AiCreateViewModelTest {
         advanceUntilIdle()
 
         assertThat(viewModel.uiState.value.errorMessage)
-            .isEqualTo("Add an OpenRouter API key in Settings before using AI create.")
+            .isEqualTo(UiText.Resource(R.string.ai_create_missing_api_key_error))
         assertThat(viewModel.uiState.value.isLoading).isFalse()
     }
 
@@ -104,7 +106,12 @@ class AiCreateViewModelTest {
 
         assertThat(viewModel.uiState.value.exactAlarmPermissionRequired).isTrue()
         assertThat(viewModel.uiState.value.errorMessage)
-            .contains(android.Manifest.permission.SCHEDULE_EXACT_ALARM)
+            .isEqualTo(
+                UiText.Resource(
+                    R.string.ai_create_missing_permission_error,
+                    listOf(android.Manifest.permission.SCHEDULE_EXACT_ALARM),
+                ),
+            )
     }
 
     @Test
@@ -132,7 +139,7 @@ class AiCreateViewModelTest {
             .containsExactly("tomorrow at 8 am remind me to take medicine")
         assertThat(viewModel.uiState.value.isLoading).isFalse()
         assertThat(viewModel.uiState.value.statusMessage)
-            .contains("background")
+            .isEqualTo(UiText.Resource(R.string.ai_create_background_status))
     }
 
     private class RecordingBackgroundScheduler : com.cory.noter.ai.AiCreateBackgroundScheduler {

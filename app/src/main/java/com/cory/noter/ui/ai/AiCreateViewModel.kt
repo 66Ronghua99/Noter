@@ -5,7 +5,9 @@ import androidx.lifecycle.viewModelScope
 import com.cory.noter.ai.AiAlarmCreator
 import com.cory.noter.ai.AiCreateBackgroundScheduler
 import com.cory.noter.ai.AiCreateResult
+import com.cory.noter.R
 import com.cory.noter.data.settings.SettingsRepository
+import com.cory.noter.ui.text.UiText
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,8 +19,8 @@ data class AiCreateUiState(
     val prompt: String = "",
     val selectedModelId: String = "",
     val isLoading: Boolean = false,
-    val errorMessage: String? = null,
-    val statusMessage: String? = null,
+    val errorMessage: UiText? = null,
+    val statusMessage: UiText? = null,
     val exactAlarmPermissionRequired: Boolean = false,
     val createdAlarmId: Long? = null,
 )
@@ -56,7 +58,7 @@ class AiCreateViewModel(
         val prompt = uiState.value.prompt.trim()
         if (prompt.isEmpty()) {
             mutableUiState.update {
-                it.copy(errorMessage = "Describe the alarm you want to create.")
+                it.copy(errorMessage = UiText.Resource(R.string.ai_create_empty_prompt_error))
             }
             return
         }
@@ -69,7 +71,7 @@ class AiCreateViewModel(
                     prompt = "",
                     isLoading = false,
                     errorMessage = null,
-                    statusMessage = "Creating alarm in the background. You will get a notification when it finishes.",
+                    statusMessage = UiText.Resource(R.string.ai_create_background_status),
                     exactAlarmPermissionRequired = false,
                 )
             }
@@ -98,23 +100,23 @@ class AiCreateViewModel(
         }
     }
 
-    private fun AiCreateResult.toErrorMessage(): String? = when (this) {
+    private fun AiCreateResult.toErrorMessage(): UiText? = when (this) {
         AiCreateResult.MissingApiKey ->
-            "Add an OpenRouter API key in Settings before using AI create."
+            UiText.Resource(R.string.ai_create_missing_api_key_error)
 
         AiCreateResult.MissingModel ->
-            "Choose a supported model in Settings before using AI create."
+            UiText.Resource(R.string.ai_create_missing_model_error)
 
-        is AiCreateResult.NetworkFailure -> "Network error: $reason"
-        is AiCreateResult.RateLimited -> "Model rate limit: $reason"
-        is AiCreateResult.RemoteFailure -> "OpenRouter error $code: $reason"
-        is AiCreateResult.InvalidResponse -> reason
-        is AiCreateResult.ClarificationRequired -> reason
-        is AiCreateResult.CreateFailed -> reason
+        is AiCreateResult.NetworkFailure -> UiText.Resource(R.string.ai_create_network_failure_error, listOf(reason))
+        is AiCreateResult.RateLimited -> UiText.Resource(R.string.ai_create_rate_limited_error, listOf(reason))
+        is AiCreateResult.RemoteFailure -> UiText.Resource(R.string.ai_create_remote_failure_error, listOf(code, reason))
+        is AiCreateResult.InvalidResponse -> UiText.Raw(reason)
+        is AiCreateResult.ClarificationRequired -> UiText.Raw(reason)
+        is AiCreateResult.CreateFailed -> UiText.Raw(reason)
         is AiCreateResult.MissingSchedulingPermission ->
-            "Alarm saved but scheduling needs permission: $permission"
+            UiText.Resource(R.string.ai_create_missing_permission_error, listOf(permission))
 
-        is AiCreateResult.ScheduleFailed -> reason
+        is AiCreateResult.ScheduleFailed -> UiText.Raw(reason)
         is AiCreateResult.Created -> null
     }
 }

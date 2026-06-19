@@ -16,8 +16,11 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.cory.noter.R
+import com.cory.noter.ui.text.asString
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,10 +37,10 @@ fun AiCreateScreen(
         modifier = modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text(text = "AI create") },
+                title = { Text(text = stringResource(R.string.ai_create_title)) },
                 navigationIcon = {
                     TextButton(onClick = onBack) {
-                        Text(text = "Back")
+                        Text(text = stringResource(R.string.common_back))
                     }
                 },
             )
@@ -51,12 +54,14 @@ fun AiCreateScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Text(
-                text = "Selected model",
+                text = stringResource(R.string.ai_create_selected_model),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
             )
             Text(
-                text = state.selectedModelId.ifBlank { "No model selected" },
+                text = state.selectedModelId.ifBlank {
+                    stringResource(R.string.ai_create_no_model_selected)
+                },
                 style = MaterialTheme.typography.bodyMedium,
             )
 
@@ -66,18 +71,18 @@ fun AiCreateScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
-                label = { Text(text = "Describe the alarm") },
+                label = { Text(text = stringResource(R.string.ai_create_prompt_label)) },
             )
 
             state.errorMessage?.let { errorMessage ->
                 Text(
-                    text = errorMessage,
+                    text = errorMessage.asString(),
                     color = MaterialTheme.colorScheme.error,
                 )
             }
             state.statusMessage?.let { statusMessage ->
                 Text(
-                    text = statusMessage,
+                    text = statusMessage.asString(),
                     color = MaterialTheme.colorScheme.primary,
                 )
             }
@@ -86,7 +91,7 @@ fun AiCreateScreen(
                     modifier = Modifier.fillMaxWidth(),
                     onClick = onOpenExactAlarmSettings,
                 ) {
-                    Text(text = "Open exact alarm settings")
+                    Text(text = stringResource(R.string.ai_create_exact_alarm_settings))
                 }
             }
 
@@ -99,13 +104,13 @@ fun AiCreateScreen(
                 onClick = onSubmit,
                 enabled = !state.isLoading,
             ) {
-                Text(text = "Create with AI")
+                Text(text = stringResource(R.string.ai_create_submit))
             }
             TextButton(
                 modifier = Modifier.fillMaxWidth(),
                 onClick = onOpenManualCreate,
             ) {
-                Text(text = "Create manually instead")
+                Text(text = stringResource(R.string.ai_create_manual_instead))
             }
         }
     }

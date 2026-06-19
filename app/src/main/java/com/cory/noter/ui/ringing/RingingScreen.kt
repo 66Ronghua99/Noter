@@ -10,7 +10,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.cory.noter.R
 
 @Composable
 fun RingingScreen(
@@ -29,12 +31,12 @@ fun RingingScreen(
             style = MaterialTheme.typography.headlineLarge,
         )
         Text(
-            text = "Alarm is ringing",
+            text = stringResource(R.string.notification_ringing_body),
             style = MaterialTheme.typography.bodyLarge,
             modifier = Modifier.padding(top = 12.dp, bottom = 24.dp),
         )
         Button(onClick = onStop) {
-            Text(text = "Stop")
+            Text(text = stringResource(R.string.notification_ringing_stop))
         }
     }
 }

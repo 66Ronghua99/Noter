@@ -1,0 +1,2211 @@
+diff --git a/NEXT_STEP.md b/NEXT_STEP.md
+index e69de29..75f7a92 100644
+--- a/NEXT_STEP.md
++++ b/NEXT_STEP.md
+@@ -0,0 +1 @@
++P0: Execute `docs/superpowers/plans/2026-06-19-manual-picker-centered-i18n.md`, starting with Task 1 center-selected wheel behavior and Task 2 compact interval weeks layout.
+diff --git a/app/src/androidTest/java/com/cory/noter/AlarmEditorSmokeTest.kt b/app/src/androidTest/java/com/cory/noter/AlarmEditorSmokeTest.kt
+index 4dec664..b13c9d0 100644
+--- a/app/src/androidTest/java/com/cory/noter/AlarmEditorSmokeTest.kt
++++ b/app/src/androidTest/java/com/cory/noter/AlarmEditorSmokeTest.kt
+@@ -82,9 +82,9 @@ class AlarmEditorSmokeTest {
+         composeRule.onNodeWithTag("DatePickerDialog-OnceDate").assertIsDisplayed()
+         composeRule.onNodeWithTag("DatePickerDialog-OnceDate-Cancel").performClick()
+         composeRule.onNodeWithTag("HourWheel").performScrollToNode(hasTestTag("HourWheel-06"))
+-        composeRule.onNodeWithTag("HourWheel-06").performClick()
++        composeRule.onNodeWithTag("HourWheel-selected-06").assertIsDisplayed()
+         composeRule.onNodeWithTag("MinuteWheel").performScrollToNode(hasTestTag("MinuteWheel-30"))
+-        composeRule.onNodeWithTag("MinuteWheel-30").performClick()
++        composeRule.onNodeWithTag("MinuteWheel-selected-30").assertIsDisplayed()
+         composeRule.onNodeWithText("Save").performClick()
+         composeRule.waitForIdle()
+
+@@ -200,6 +200,10 @@ class AlarmEditorSmokeTest {
+         composeRule.onAllNodesWithText("End date").assertCountEquals(0)
+         composeRule.onNodeWithTag("IntervalStartDateControl").assertIsDisplayed()
+         composeRule.onNodeWithTag("IntervalEndDateControl").assertIsDisplayed()
++        composeRule.onNodeWithTag("IntervalWeeksRow").assertIsDisplayed()
++        composeRule.onNodeWithTag("IntervalWeeksLabel").assertIsDisplayed()
++        composeRule.onNodeWithTag("IntervalWeeksWheel").performScrollToNode(hasTestTag("IntervalWeeksWheel-3"))
++        composeRule.onNodeWithTag("IntervalWeeksWheel-selected-3").assertIsDisplayed()
+         composeRule.onNodeWithTag("IntervalStartDateControl").performClick()
+         composeRule.onNodeWithTag("DatePickerDialog-IntervalStartDate").assertIsDisplayed()
+         composeRule.onNodeWithTag("DatePickerDialog-IntervalStartDate-Cancel").performClick()
+diff --git a/app/src/main/java/com/cory/noter/MainActivity.kt b/app/src/main/java/com/cory/noter/MainActivity.kt
+index 22d3e94..ab05ee0 100644
+--- a/app/src/main/java/com/cory/noter/MainActivity.kt
++++ b/app/src/main/java/com/cory/noter/MainActivity.kt
+@@ -21,6 +21,7 @@ import androidx.compose.runtime.collectAsState
+ import androidx.compose.runtime.getValue
+ import androidx.compose.ui.platform.LocalContext
+ import androidx.compose.ui.Modifier
++import androidx.compose.ui.res.stringResource
+ import androidx.core.content.ContextCompat
+ import androidx.lifecycle.ViewModel
+ import androidx.lifecycle.ViewModelProvider
+@@ -157,6 +158,7 @@ private fun AlarmEditorRoute(
+     onOpenExactAlarmSettings: () -> Unit,
+     onDone: () -> Unit,
+ ) {
++    val context = LocalContext.current
+     val viewModel: AlarmEditorViewModel = viewModel(
+         key = "editor-$alarmId",
+         factory = factoryOf {
+@@ -169,6 +171,7 @@ private fun AlarmEditorRoute(
+         },
+     )
+     val state by viewModel.uiState.collectAsState()
++    val ringtonePickerTitle = stringResource(R.string.ringtone_picker_alarm_title)
+     val ringtonePicker = rememberLauncherForActivityResult(
+         contract = ActivityResultContracts.StartActivityForResult(),
+     ) { result ->
+@@ -198,7 +201,7 @@ private fun AlarmEditorRoute(
+             ringtonePicker.launch(
+                 createRingtonePickerIntent(
+                     currentRingtoneUri = state.ringtoneUri,
+-                    title = "Choose alarm ringtone",
++                    title = ringtonePickerTitle,
+                 ),
+             )
+         },
+@@ -279,6 +282,7 @@ private fun SettingsRoute(
+         (context.applicationContext as? NoterApplication)?.reconcileStartupState()
+     }
+     val state by viewModel.uiState.collectAsState()
++    val ringtonePickerTitle = stringResource(R.string.ringtone_picker_default_alarm_title)
+     val ringtonePicker = rememberLauncherForActivityResult(
+         contract = ActivityResultContracts.StartActivityForResult(),
+     ) { result ->
+@@ -296,7 +300,7 @@ private fun SettingsRoute(
+             ringtonePicker.launch(
+                 createRingtonePickerIntent(
+                     currentRingtoneUri = state.defaultRingtoneUri,
+-                    title = "Choose default alarm ringtone",
++                    title = ringtonePickerTitle,
+                 ),
+             )
+         },
+diff --git a/app/src/main/java/com/cory/noter/alarm/RingingService.kt b/app/src/main/java/com/cory/noter/alarm/RingingService.kt
+index ec7bf60..e80e28f 100644
+--- a/app/src/main/java/com/cory/noter/alarm/RingingService.kt
++++ b/app/src/main/java/com/cory/noter/alarm/RingingService.kt
+@@ -13,6 +13,7 @@ import android.net.Uri
+ import android.os.Build
+ import android.os.IBinder
+ import androidx.core.app.NotificationCompat
++import com.cory.noter.R
+ import com.cory.noter.di.appContainer
+ import com.cory.noter.ui.ringing.RingingActivity
+ import kotlinx.coroutines.CoroutineScope
+@@ -42,7 +43,9 @@ class RingingService : Service() {
+         return when (intent?.action) {
+             ACTION_START_RINGING -> {
+                 val alarmId = intent.getLongExtra(EXTRA_ALARM_ID, INVALID_ALARM_ID)
+-                val alarmTitle = intent.getStringExtra(EXTRA_ALARM_TITLE).orEmpty().ifBlank { "Alarm" }
++                val alarmTitle = intent.getStringExtra(EXTRA_ALARM_TITLE)
++                    .orEmpty()
++                    .ifBlank { getString(R.string.notification_ringing_default_title) }
+                 val ringtoneUri = intent.getStringExtra(EXTRA_RINGTONE_URI).orEmpty()
+                 if (alarmId == INVALID_ALARM_ID || ringtoneUri.isBlank()) {
+                     stopSelf(startId)
+@@ -113,7 +116,7 @@ class RingingService : Service() {
+         return NotificationCompat.Builder(this, CHANNEL_ID)
+             .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
+             .setContentTitle(alarmTitle)
+-            .setContentText("Alarm is ringing")
++            .setContentText(getString(R.string.notification_ringing_body))
+             .setPriority(NotificationCompat.PRIORITY_MAX)
+             .setCategory(NotificationCompat.CATEGORY_ALARM)
+             .setOngoing(true)
+@@ -130,7 +133,7 @@ class RingingService : Service() {
+             }
+             .addAction(
+                 0,
+-                "Stop",
++                getString(R.string.notification_ringing_stop),
+                 PendingIntent.getService(
+                     this,
+                     requestCodeFor(alarmId),
+@@ -148,7 +151,7 @@ class RingingService : Service() {
+     private fun buildCleanupFailureNotification(reason: String): android.app.Notification =
+         NotificationCompat.Builder(this, CHANNEL_ID)
+             .setSmallIcon(android.R.drawable.stat_notify_error)
+-            .setContentTitle("Alarm cleanup failed")
++            .setContentTitle(getString(R.string.notification_ringing_cleanup_failed))
+             .setContentText(reason)
+             .setStyle(NotificationCompat.BigTextStyle().bigText(reason))
+             .setPriority(NotificationCompat.PRIORITY_HIGH)
+@@ -178,10 +181,10 @@ class RingingService : Service() {
+         notificationManager.createNotificationChannel(
+             NotificationChannel(
+                 CHANNEL_ID,
+-                "Ringing alarms",
++                getString(R.string.notification_ringing_channel_name),
+                 NotificationManager.IMPORTANCE_HIGH,
+             ).apply {
+-                description = "Alarm notifications for active ringing flows."
++                description = getString(R.string.notification_ringing_channel_description)
+                 setBypassDnd(true)
+                 lockscreenVisibility = NotificationCompat.VISIBILITY_PUBLIC
+             },
+diff --git a/app/src/main/java/com/cory/noter/notifications/AndroidAiCreateResultNotifier.kt b/app/src/main/java/com/cory/noter/notifications/AndroidAiCreateResultNotifier.kt
+index 3d40075..10a1ff4 100644
+--- a/app/src/main/java/com/cory/noter/notifications/AndroidAiCreateResultNotifier.kt
++++ b/app/src/main/java/com/cory/noter/notifications/AndroidAiCreateResultNotifier.kt
+@@ -15,6 +15,7 @@ import android.util.Log
+ import androidx.core.app.NotificationCompat
+ import androidx.core.app.NotificationManagerCompat
+ import androidx.core.content.ContextCompat
++import com.cory.noter.R
+ import com.cory.noter.ai.AiCreateResult
+ import com.cory.noter.ai.AiCreateResultNotifier
+
+@@ -26,8 +27,8 @@ class AndroidAiCreateResultNotifier(
+         notify(
+             id = IN_PROGRESS_NOTIFICATION_ID,
+             notification = baseBuilder()
+-                .setContentTitle("Creating alarm")
+-                .setContentText("AI alarm creation is running in the background.")
++                .setContentTitle(context.getString(R.string.notification_ai_creating_title))
++                .setContentText(context.getString(R.string.notification_ai_creating_body))
+                 .setOngoing(true)
+                 .setAutoCancel(false)
+                 .setProgress(0, 0, true)
+@@ -47,7 +48,7 @@ class AndroidAiCreateResultNotifier(
+             is AiCreateResult.Created -> notify(
+                 id = RESULT_NOTIFICATION_ID,
+                 notification = builder
+-                    .setContentTitle("Alarm created")
++                    .setContentTitle(context.getString(R.string.notification_ai_created_title))
+                     .setContentText(result.alarm.title)
+                     .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                     .build(),
+@@ -56,15 +57,22 @@ class AndroidAiCreateResultNotifier(
+             is AiCreateResult.MissingSchedulingPermission -> notify(
+                 id = RESULT_NOTIFICATION_ID,
+                 notification = builder
+-                    .setContentTitle("Alarm saved")
+-                    .setContentText("Exact alarm permission is needed before it can ring reliably.")
++                    .setContentTitle(context.getString(R.string.notification_ai_saved_title))
++                    .setContentText(context.getString(R.string.notification_ai_permission_needed))
+                     .setStyle(
+                         NotificationCompat.BigTextStyle().bigText(
+-                            "Alarm \"${result.alarm.title}\" was saved, but Android needs exact alarm permission before it can ring reliably.",
++                            context.getString(
++                                R.string.notification_ai_permission_big_text,
++                                result.alarm.title,
++                            ),
+                         ),
+                     )
+                     .setPriority(NotificationCompat.PRIORITY_HIGH)
+-                    .addAction(0, "Open settings", exactAlarmSettingsIntent())
++                    .addAction(
++                        0,
++                        context.getString(R.string.notification_ai_open_settings),
++                        exactAlarmSettingsIntent(),
++                    )
+                     .build(),
+             )
+
+@@ -73,7 +81,7 @@ class AndroidAiCreateResultNotifier(
+                 notify(
+                     id = RESULT_NOTIFICATION_ID,
+                     notification = builder
+-                        .setContentTitle("AI alarm failed")
++                        .setContentTitle(context.getString(R.string.notification_ai_failed_title))
+                         .setContentText(reason)
+                         .setStyle(NotificationCompat.BigTextStyle().bigText(reason))
+                         .setPriority(NotificationCompat.PRIORITY_HIGH)
+@@ -121,10 +129,10 @@ class AndroidAiCreateResultNotifier(
+         notificationManager.createNotificationChannel(
+             NotificationChannel(
+                 CHANNEL_ID,
+-                "AI alarm creation",
++                context.getString(R.string.notification_ai_channel_name),
+                 NotificationManager.IMPORTANCE_DEFAULT,
+             ).apply {
+-                description = "Status updates for background AI alarm creation."
++                description = context.getString(R.string.notification_ai_channel_description)
+             },
+         )
+     }
+@@ -139,18 +147,18 @@ class AndroidAiCreateResultNotifier(
+     )
+
+     private fun AiCreateResult.failureText(): String = when (this) {
+-        AiCreateResult.MissingApiKey -> "Add an OpenRouter API key in Settings before using AI create."
+-        AiCreateResult.MissingModel -> "Choose a supported model in Settings before using AI create."
+-        is AiCreateResult.NetworkFailure -> "Network error: $reason"
+-        is AiCreateResult.RateLimited -> "Model rate limit: $reason"
+-        is AiCreateResult.RemoteFailure -> "OpenRouter error $code: $reason"
++        AiCreateResult.MissingApiKey -> context.getString(R.string.notification_ai_missing_api_key)
++        AiCreateResult.MissingModel -> context.getString(R.string.notification_ai_missing_model)
++        is AiCreateResult.NetworkFailure -> context.getString(R.string.notification_ai_network_failure, reason)
++        is AiCreateResult.RateLimited -> context.getString(R.string.notification_ai_rate_limited, reason)
++        is AiCreateResult.RemoteFailure -> context.getString(R.string.notification_ai_remote_failure, code, reason)
+         is AiCreateResult.InvalidResponse -> reason
+         is AiCreateResult.ClarificationRequired -> reason
+         is AiCreateResult.CreateFailed -> reason
+         is AiCreateResult.ScheduleFailed -> reason
+         is AiCreateResult.MissingSchedulingPermission,
+         is AiCreateResult.Created,
+-        -> "AI alarm creation finished."
++        -> context.getString(R.string.notification_ai_finished)
+     }
+
+     private companion object {
+diff --git a/app/src/main/java/com/cory/noter/ui/ai/AiCreateScreen.kt b/app/src/main/java/com/cory/noter/ui/ai/AiCreateScreen.kt
+index 97f7c87..6462806 100644
+--- a/app/src/main/java/com/cory/noter/ui/ai/AiCreateScreen.kt
++++ b/app/src/main/java/com/cory/noter/ui/ai/AiCreateScreen.kt
+@@ -16,8 +16,11 @@ import androidx.compose.material3.TextButton
+ import androidx.compose.material3.TopAppBar
+ import androidx.compose.runtime.Composable
+ import androidx.compose.ui.Modifier
++import androidx.compose.ui.res.stringResource
+ import androidx.compose.ui.text.font.FontWeight
+ import androidx.compose.ui.unit.dp
++import com.cory.noter.R
++import com.cory.noter.ui.text.asString
+
+ @OptIn(ExperimentalMaterial3Api::class)
+ @Composable
+@@ -34,10 +37,10 @@ fun AiCreateScreen(
+         modifier = modifier.fillMaxSize(),
+         topBar = {
+             TopAppBar(
+-                title = { Text(text = "AI create") },
++                title = { Text(text = stringResource(R.string.ai_create_title)) },
+                 navigationIcon = {
+                     TextButton(onClick = onBack) {
+-                        Text(text = "Back")
++                        Text(text = stringResource(R.string.common_back))
+                     }
+                 },
+             )
+@@ -51,12 +54,14 @@ fun AiCreateScreen(
+             verticalArrangement = Arrangement.spacedBy(16.dp),
+         ) {
+             Text(
+-                text = "Selected model",
++                text = stringResource(R.string.ai_create_selected_model),
+                 style = MaterialTheme.typography.titleSmall,
+                 fontWeight = FontWeight.SemiBold,
+             )
+             Text(
+-                text = state.selectedModelId.ifBlank { "No model selected" },
++                text = state.selectedModelId.ifBlank {
++                    stringResource(R.string.ai_create_no_model_selected)
++                },
+                 style = MaterialTheme.typography.bodyMedium,
+             )
+
+@@ -66,18 +71,18 @@ fun AiCreateScreen(
+                 modifier = Modifier
+                     .fillMaxWidth()
+                     .weight(1f),
+-                label = { Text(text = "Describe the alarm") },
++                label = { Text(text = stringResource(R.string.ai_create_prompt_label)) },
+             )
+
+             state.errorMessage?.let { errorMessage ->
+                 Text(
+-                    text = errorMessage,
++                    text = errorMessage.asString(),
+                     color = MaterialTheme.colorScheme.error,
+                 )
+             }
+             state.statusMessage?.let { statusMessage ->
+                 Text(
+-                    text = statusMessage,
++                    text = statusMessage.asString(),
+                     color = MaterialTheme.colorScheme.primary,
+                 )
+             }
+@@ -86,7 +91,7 @@ fun AiCreateScreen(
+                     modifier = Modifier.fillMaxWidth(),
+                     onClick = onOpenExactAlarmSettings,
+                 ) {
+-                    Text(text = "Open exact alarm settings")
++                    Text(text = stringResource(R.string.ai_create_exact_alarm_settings))
+                 }
+             }
+
+@@ -99,13 +104,13 @@ fun AiCreateScreen(
+                 onClick = onSubmit,
+                 enabled = !state.isLoading,
+             ) {
+-                Text(text = "Create with AI")
++                Text(text = stringResource(R.string.ai_create_submit))
+             }
+             TextButton(
+                 modifier = Modifier.fillMaxWidth(),
+                 onClick = onOpenManualCreate,
+             ) {
+-                Text(text = "Create manually instead")
++                Text(text = stringResource(R.string.ai_create_manual_instead))
+             }
+         }
+     }
+diff --git a/app/src/main/java/com/cory/noter/ui/ai/AiCreateViewModel.kt b/app/src/main/java/com/cory/noter/ui/ai/AiCreateViewModel.kt
+index 69c728c..ca4e33b 100644
+--- a/app/src/main/java/com/cory/noter/ui/ai/AiCreateViewModel.kt
++++ b/app/src/main/java/com/cory/noter/ui/ai/AiCreateViewModel.kt
+@@ -5,7 +5,9 @@ import androidx.lifecycle.viewModelScope
+ import com.cory.noter.ai.AiAlarmCreator
+ import com.cory.noter.ai.AiCreateBackgroundScheduler
+ import com.cory.noter.ai.AiCreateResult
++import com.cory.noter.R
+ import com.cory.noter.data.settings.SettingsRepository
++import com.cory.noter.ui.text.UiText
+ import kotlinx.coroutines.flow.MutableStateFlow
+ import kotlinx.coroutines.flow.StateFlow
+ import kotlinx.coroutines.flow.asStateFlow
+@@ -17,8 +19,8 @@ data class AiCreateUiState(
+     val prompt: String = "",
+     val selectedModelId: String = "",
+     val isLoading: Boolean = false,
+-    val errorMessage: String? = null,
+-    val statusMessage: String? = null,
++    val errorMessage: UiText? = null,
++    val statusMessage: UiText? = null,
+     val exactAlarmPermissionRequired: Boolean = false,
+     val createdAlarmId: Long? = null,
+ )
+@@ -56,7 +58,7 @@ class AiCreateViewModel(
+         val prompt = uiState.value.prompt.trim()
+         if (prompt.isEmpty()) {
+             mutableUiState.update {
+-                it.copy(errorMessage = "Describe the alarm you want to create.")
++                it.copy(errorMessage = UiText.Resource(R.string.ai_create_empty_prompt_error))
+             }
+             return
+         }
+@@ -69,7 +71,7 @@ class AiCreateViewModel(
+                     prompt = "",
+                     isLoading = false,
+                     errorMessage = null,
+-                    statusMessage = "Creating alarm in the background. You will get a notification when it finishes.",
++                    statusMessage = UiText.Resource(R.string.ai_create_background_status),
+                     exactAlarmPermissionRequired = false,
+                 )
+             }
+@@ -98,23 +100,23 @@ class AiCreateViewModel(
+         }
+     }
+
+-    private fun AiCreateResult.toErrorMessage(): String? = when (this) {
++    private fun AiCreateResult.toErrorMessage(): UiText? = when (this) {
+         AiCreateResult.MissingApiKey ->
+-            "Add an OpenRouter API key in Settings before using AI create."
++            UiText.Resource(R.string.ai_create_missing_api_key_error)
+
+         AiCreateResult.MissingModel ->
+-            "Choose a supported model in Settings before using AI create."
++            UiText.Resource(R.string.ai_create_missing_model_error)
+
+-        is AiCreateResult.NetworkFailure -> "Network error: $reason"
+-        is AiCreateResult.RateLimited -> "Model rate limit: $reason"
+-        is AiCreateResult.RemoteFailure -> "OpenRouter error $code: $reason"
+-        is AiCreateResult.InvalidResponse -> reason
+-        is AiCreateResult.ClarificationRequired -> reason
+-        is AiCreateResult.CreateFailed -> reason
++        is AiCreateResult.NetworkFailure -> UiText.Resource(R.string.ai_create_network_failure_error, listOf(reason))
++        is AiCreateResult.RateLimited -> UiText.Resource(R.string.ai_create_rate_limited_error, listOf(reason))
++        is AiCreateResult.RemoteFailure -> UiText.Resource(R.string.ai_create_remote_failure_error, listOf(code, reason))
++        is AiCreateResult.InvalidResponse -> UiText.Raw(reason)
++        is AiCreateResult.ClarificationRequired -> UiText.Raw(reason)
++        is AiCreateResult.CreateFailed -> UiText.Raw(reason)
+         is AiCreateResult.MissingSchedulingPermission ->
+-            "Alarm saved but scheduling needs permission: $permission"
++            UiText.Resource(R.string.ai_create_missing_permission_error, listOf(permission))
+
+-        is AiCreateResult.ScheduleFailed -> reason
++        is AiCreateResult.ScheduleFailed -> UiText.Raw(reason)
+         is AiCreateResult.Created -> null
+     }
+ }
+diff --git a/app/src/main/java/com/cory/noter/ui/alarm_list/AlarmListScreen.kt b/app/src/main/java/com/cory/noter/ui/alarm_list/AlarmListScreen.kt
+index 993183e..b032da9 100644
+--- a/app/src/main/java/com/cory/noter/ui/alarm_list/AlarmListScreen.kt
++++ b/app/src/main/java/com/cory/noter/ui/alarm_list/AlarmListScreen.kt
+@@ -1,5 +1,6 @@
+ package com.cory.noter.ui.alarm_list
+
++import android.os.Build
+ import androidx.compose.foundation.layout.Arrangement
+ import androidx.compose.foundation.layout.Column
+ import androidx.compose.foundation.layout.Row
+@@ -26,8 +27,18 @@ import androidx.compose.runtime.remember
+ import androidx.compose.runtime.setValue
+ import androidx.compose.ui.Alignment
+ import androidx.compose.ui.Modifier
++import androidx.compose.ui.platform.LocalConfiguration
++import androidx.compose.ui.res.stringResource
+ import androidx.compose.ui.text.font.FontWeight
+ import androidx.compose.ui.unit.dp
++import com.cory.noter.R
++import com.cory.noter.domain.alarm.RepeatRule
++import com.cory.noter.ui.text.asString
++import java.time.Instant
++import java.time.ZoneId
++import java.time.format.DateTimeFormatter
++import java.time.format.TextStyle
++import java.util.Locale
+
+ @OptIn(ExperimentalMaterial3Api::class)
+ @Composable
+@@ -50,7 +61,7 @@ fun AlarmListScreen(
+                 verticalArrangement = Arrangement.spacedBy(12.dp),
+             ) {
+                 Text(
+-                    text = "Create alarm",
++                    text = stringResource(R.string.alarm_list_create_alarm),
+                     style = MaterialTheme.typography.titleMedium,
+                     fontWeight = FontWeight.SemiBold,
+                 )
+@@ -61,7 +72,7 @@ fun AlarmListScreen(
+                         onOpenManualCreate()
+                     },
+                 ) {
+-                    Text(text = "Manual")
++                    Text(text = stringResource(R.string.alarm_list_create_manual))
+                 }
+                 Button(
+                     modifier = Modifier.fillMaxWidth(),
+@@ -70,7 +81,7 @@ fun AlarmListScreen(
+                         onOpenAiCreate()
+                     },
+                 ) {
+-                    Text(text = "AI create")
++                    Text(text = stringResource(R.string.alarm_list_create_ai))
+                 }
+             }
+         }
+@@ -80,10 +91,10 @@ fun AlarmListScreen(
+         modifier = modifier.fillMaxSize(),
+         topBar = {
+             TopAppBar(
+-                title = { Text(text = "Alarms") },
++                title = { Text(text = stringResource(R.string.alarm_list_title)) },
+                 actions = {
+                     TextButton(onClick = onOpenSettings) {
+-                        Text(text = "Settings")
++                        Text(text = stringResource(R.string.settings_title))
+                     }
+                 },
+             )
+@@ -104,11 +115,11 @@ fun AlarmListScreen(
+                 horizontalAlignment = Alignment.CenterHorizontally,
+             ) {
+                 Text(
+-                    text = "No alarms yet",
++                    text = stringResource(R.string.alarm_list_empty_title),
+                     style = MaterialTheme.typography.headlineSmall,
+                 )
+                 Text(
+-                    text = "Create one manually or ask AI to draft it for you.",
++                    text = stringResource(R.string.alarm_list_empty_body),
+                     modifier = Modifier.padding(top = 8.dp),
+                     style = MaterialTheme.typography.bodyMedium,
+                 )
+@@ -134,7 +145,7 @@ fun AlarmListScreen(
+                 item {
+                     state.errorMessage?.let { errorMessage ->
+                         Text(
+-                            text = errorMessage,
++                            text = errorMessage.asString(),
+                             color = MaterialTheme.colorScheme.error,
+                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                         )
+@@ -152,6 +163,10 @@ private fun AlarmRow(
+     onEditAlarm: (Long) -> Unit,
+     onDeleteAlarm: (Long) -> Unit,
+ ) {
++    val locale = currentConfigurationLocale()
++    val nextTriggerText = formatNextTrigger(alarm.nextTriggerAtMillis, locale)
++    val repeatLabel = alarm.repeatRule.toLabel(locale)
++
+     Card(
+         modifier = Modifier
+             .fillMaxWidth()
+@@ -173,11 +188,11 @@ private fun AlarmRow(
+                         fontWeight = FontWeight.SemiBold,
+                     )
+                     Text(
+-                        text = "Next: ${alarm.nextTriggerText}",
++                        text = stringResource(R.string.alarm_list_next_format, nextTriggerText),
+                         style = MaterialTheme.typography.bodyMedium,
+                     )
+                     Text(
+-                        text = "Repeat: ${alarm.repeatLabel}",
++                        text = stringResource(R.string.alarm_list_repeat_format, repeatLabel),
+                         style = MaterialTheme.typography.bodySmall,
+                     )
+                 }
+@@ -190,12 +205,57 @@ private fun AlarmRow(
+             }
+             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                 TextButton(onClick = { onEditAlarm(alarm.id) }) {
+-                    Text(text = "Edit")
++                    Text(text = stringResource(R.string.alarm_list_edit))
+                 }
+                 TextButton(onClick = { onDeleteAlarm(alarm.id) }) {
+-                    Text(text = "Delete")
++                    Text(text = stringResource(R.string.common_delete))
+                 }
+             }
+         }
+     }
+ }
++
++@Composable
++private fun currentConfigurationLocale(): Locale {
++    val configuration = LocalConfiguration.current
++    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
++        configuration.locales[0]
++    } else {
++        @Suppress("DEPRECATION")
++        configuration.locale
++    }
++}
++
++@Composable
++private fun formatNextTrigger(
++    nextTriggerAtMillis: Long?,
++    locale: Locale,
++): String {
++    if (nextTriggerAtMillis == null) {
++        return stringResource(R.string.alarm_list_not_scheduled)
++    }
++
++    val formatter = DateTimeFormatter.ofPattern("MMM d, HH:mm", locale)
++    return formatter.format(
++        Instant.ofEpochMilli(nextTriggerAtMillis).atZone(ZoneId.systemDefault()),
++    )
++}
++
++@Composable
++private fun RepeatRule.toLabel(locale: Locale): String = when (this) {
++    is RepeatRule.Once -> stringResource(R.string.alarm_list_repeat_once)
++    RepeatRule.Daily -> stringResource(R.string.alarm_list_repeat_daily)
++    RepeatRule.Weekdays -> stringResource(R.string.alarm_list_repeat_weekdays)
++    is RepeatRule.CustomWeekdays -> days.toWeekdayLabel(locale)
++    is RepeatRule.WeeklyInterval -> stringResource(
++        R.string.alarm_list_repeat_weekly_interval_format,
++        intervalWeeks,
++        days.toWeekdayLabel(locale),
++    )
++}
++
++private fun Set<java.time.DayOfWeek>.toWeekdayLabel(locale: Locale): String =
++    sortedBy { it.value }
++        .joinToString(", ") { day ->
++            day.getDisplayName(TextStyle.SHORT, locale)
++        }
+diff --git a/app/src/main/java/com/cory/noter/ui/alarm_list/AlarmListViewModel.kt b/app/src/main/java/com/cory/noter/ui/alarm_list/AlarmListViewModel.kt
+index b5cf5ba..e9bd1c3 100644
+--- a/app/src/main/java/com/cory/noter/ui/alarm_list/AlarmListViewModel.kt
++++ b/app/src/main/java/com/cory/noter/ui/alarm_list/AlarmListViewModel.kt
+@@ -2,16 +2,13 @@ package com.cory.noter.ui.alarm_list
+
+ import androidx.lifecycle.ViewModel
+ import androidx.lifecycle.viewModelScope
++import com.cory.noter.R
+ import com.cory.noter.alarm.AlarmSchedulingUseCase
+ import com.cory.noter.alarm.ScheduleResult
+ import com.cory.noter.data.alarm.AlarmRepository
+ import com.cory.noter.domain.alarm.Alarm
+ import com.cory.noter.domain.alarm.RepeatRule
+-import java.time.Instant
+-import java.time.ZoneId
+-import java.time.format.DateTimeFormatter
+-import java.time.format.TextStyle
+-import java.util.Locale
++import com.cory.noter.ui.text.UiText
+ import kotlinx.coroutines.flow.MutableStateFlow
+ import kotlinx.coroutines.flow.StateFlow
+ import kotlinx.coroutines.flow.asStateFlow
+@@ -21,14 +18,14 @@ import kotlinx.coroutines.launch
+
+ data class AlarmListUiState(
+     val alarms: List<AlarmListItemUiModel> = emptyList(),
+-    val errorMessage: String? = null,
++    val errorMessage: UiText? = null,
+ )
+
+ data class AlarmListItemUiModel(
+     val id: Long,
+     val title: String,
+-    val nextTriggerText: String,
+-    val repeatLabel: String,
++    val nextTriggerAtMillis: Long?,
++    val repeatRule: RepeatRule,
+     val enabled: Boolean,
+ )
+
+@@ -64,7 +61,7 @@ class AlarmListViewModel(
+
+             handleScheduleResult(
+                 result = schedulingUseCase.syncSchedule(updatedAlarm),
+-                missingPermissionPrefix = "Alarm saved but scheduling needs permission",
++                missingPermissionResId = R.string.alarm_list_schedule_permission_saved_error,
+             )
+         }
+     }
+@@ -74,14 +71,14 @@ class AlarmListViewModel(
+             repository.delete(alarmId)
+             handleScheduleResult(
+                 result = schedulingUseCase.cancel(alarmId),
+-                missingPermissionPrefix = "Alarm deleted but scheduler reported a permission issue",
++                missingPermissionResId = R.string.alarm_list_schedule_permission_deleted_error,
+             )
+         }
+     }
+
+     private fun handleScheduleResult(
+         result: ScheduleResult,
+-        missingPermissionPrefix: String,
++        missingPermissionResId: Int,
+     ) {
+         val errorMessage = when (result) {
+             ScheduleResult.Scheduled,
+@@ -89,10 +86,10 @@ class AlarmListViewModel(
+             -> null
+
+             is ScheduleResult.MissingPermission -> {
+-                "$missingPermissionPrefix: ${result.permission}"
++                UiText.Resource(missingPermissionResId, listOf(result.permission))
+             }
+
+-            is ScheduleResult.Failed -> result.reason
++            is ScheduleResult.Failed -> UiText.Raw(result.reason)
+         }
+
+         mutableUiState.update { it.copy(errorMessage = errorMessage) }
+@@ -101,35 +98,8 @@ class AlarmListViewModel(
+     private fun toUiModel(alarm: Alarm): AlarmListItemUiModel = AlarmListItemUiModel(
+         id = alarm.id,
+         title = alarm.title,
+-        nextTriggerText = formatNextTrigger(alarm.nextTriggerAtMillis),
+-        repeatLabel = alarm.repeatRule.toLabel(),
++        nextTriggerAtMillis = alarm.nextTriggerAtMillis,
++        repeatRule = alarm.repeatRule,
+         enabled = alarm.enabled,
+     )
+-
+-    private fun formatNextTrigger(nextTriggerAtMillis: Long?): String {
+-        if (nextTriggerAtMillis == null) {
+-            return "Not scheduled"
+-        }
+-
+-        val formatter = DateTimeFormatter.ofPattern("MMM d, HH:mm", Locale.getDefault())
+-        return formatter.format(
+-            Instant.ofEpochMilli(nextTriggerAtMillis).atZone(ZoneId.systemDefault()),
+-        )
+-    }
+-
+-    private fun RepeatRule.toLabel(): String = when (this) {
+-        is RepeatRule.Once -> "Once"
+-        RepeatRule.Daily -> "Daily"
+-        RepeatRule.Weekdays -> "Weekdays"
+-        is RepeatRule.CustomWeekdays -> days
+-            .sortedBy { it.value }
+-            .joinToString(", ") { day ->
+-                day.getDisplayName(TextStyle.SHORT, Locale.getDefault())
+-            }
+-        is RepeatRule.WeeklyInterval -> "Every $intervalWeeks weeks: " + days
+-            .sortedBy { it.value }
+-            .joinToString(", ") { day ->
+-                day.getDisplayName(TextStyle.SHORT, Locale.getDefault())
+-            }
+-    }
+ }
+diff --git a/app/src/main/java/com/cory/noter/ui/editor/AlarmEditorScreen.kt b/app/src/main/java/com/cory/noter/ui/editor/AlarmEditorScreen.kt
+index d916269..17f6619 100644
+--- a/app/src/main/java/com/cory/noter/ui/editor/AlarmEditorScreen.kt
++++ b/app/src/main/java/com/cory/noter/ui/editor/AlarmEditorScreen.kt
+@@ -1,6 +1,7 @@
+ package com.cory.noter.ui.editor
+
+ import android.os.Build
++import androidx.annotation.StringRes
+ import androidx.compose.foundation.background
+ import androidx.compose.foundation.clickable
+ import androidx.compose.foundation.layout.Arrangement
+@@ -8,6 +9,7 @@ import androidx.compose.foundation.layout.Box
+ import androidx.compose.foundation.layout.Column
+ import androidx.compose.foundation.layout.ExperimentalLayoutApi
+ import androidx.compose.foundation.layout.FlowRow
++import androidx.compose.foundation.layout.PaddingValues
+ import androidx.compose.foundation.layout.Row
+ import androidx.compose.foundation.layout.fillMaxSize
+ import androidx.compose.foundation.layout.fillMaxWidth
+@@ -15,6 +17,7 @@ import androidx.compose.foundation.layout.height
+ import androidx.compose.foundation.layout.padding
+ import androidx.compose.foundation.layout.width
+ import androidx.compose.foundation.lazy.LazyColumn
++import androidx.compose.foundation.lazy.LazyListState
+ import androidx.compose.foundation.lazy.items
+ import androidx.compose.foundation.lazy.rememberLazyListState
+ import androidx.compose.foundation.rememberScrollState
+@@ -34,25 +37,37 @@ import androidx.compose.material3.TextButton
+ import androidx.compose.material3.TopAppBar
+ import androidx.compose.material3.rememberDatePickerState
+ import androidx.compose.runtime.Composable
++import androidx.compose.runtime.LaunchedEffect
+ import androidx.compose.runtime.getValue
+ import androidx.compose.runtime.mutableStateOf
+ import androidx.compose.runtime.remember
++import androidx.compose.runtime.rememberCoroutineScope
++import androidx.compose.runtime.rememberUpdatedState
+ import androidx.compose.runtime.setValue
++import androidx.compose.runtime.snapshotFlow
+ import androidx.compose.ui.platform.LocalConfiguration
+ import androidx.compose.ui.Alignment
+ import androidx.compose.ui.Modifier
++import androidx.compose.ui.draw.alpha
+ import androidx.compose.ui.draw.clip
++import androidx.compose.ui.res.stringResource
+ import androidx.compose.ui.platform.testTag
+ import androidx.compose.ui.semantics.contentDescription
+ import androidx.compose.ui.semantics.semantics
+ import androidx.compose.ui.text.font.FontWeight
+ import androidx.compose.ui.text.style.TextAlign
++import androidx.compose.ui.unit.Dp
+ import androidx.compose.ui.unit.dp
++import com.cory.noter.R
++import com.cory.noter.domain.alarm.AlarmValidation
++import com.cory.noter.ui.text.asString
+ import java.time.DayOfWeek
+ import java.time.Instant
+ import java.time.LocalDate
+ import java.time.ZoneOffset
+ import java.time.format.TextStyle
++import kotlinx.coroutines.launch
++import kotlin.math.abs
+
+ @Composable
+ @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
+@@ -82,11 +97,11 @@ fun AlarmEditorScreen(
+         configuration.locale
+     }
+     val repeatOptions = listOf(
+-        EditorRepeatOption.ONCE to "Once",
+-        EditorRepeatOption.DAILY to "Daily",
+-        EditorRepeatOption.WEEKDAYS to "Weekdays",
+-        EditorRepeatOption.CUSTOM to "Custom",
+-        EditorRepeatOption.INTERVAL to "Interval",
++        EditorRepeatOption.ONCE to stringResource(R.string.editor_repeat_once),
++        EditorRepeatOption.DAILY to stringResource(R.string.editor_repeat_daily),
++        EditorRepeatOption.WEEKDAYS to stringResource(R.string.editor_repeat_weekdays),
++        EditorRepeatOption.CUSTOM to stringResource(R.string.editor_repeat_custom),
++        EditorRepeatOption.INTERVAL to stringResource(R.string.editor_repeat_interval),
+     )
+     var activeDatePicker by remember { mutableStateOf<DatePickerTarget?>(null) }
+
+@@ -95,7 +110,15 @@ fun AlarmEditorScreen(
+         topBar = {
+             TopAppBar(
+                 title = {
+-                    Text(text = if (state.isExisting) "Edit alarm" else "New alarm")
++                    Text(
++                        text = stringResource(
++                            if (state.isExisting) {
++                                R.string.editor_title_edit
++                            } else {
++                                R.string.editor_title_new
++                            },
++                        ),
++                    )
+                 },
+             )
+         },
+@@ -112,7 +135,7 @@ fun AlarmEditorScreen(
+                 value = state.title,
+                 onValueChange = onTitleChanged,
+                 modifier = Modifier.fillMaxWidth(),
+-                label = { Text(text = "Title") },
++                label = { Text(text = stringResource(R.string.editor_title_label)) },
+             )
+
+             Row(
+@@ -120,7 +143,7 @@ fun AlarmEditorScreen(
+                 horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
+             ) {
+                 NumberWheelPicker(
+-                    label = "Hours",
++                    label = stringResource(R.string.editor_hours),
+                     values = 0..23,
+                     selectedValue = state.hourText.toIntOrNull()?.coerceIn(0, 23) ?: 0,
+                     onValueSelected = onHourSelected,
+@@ -134,7 +157,7 @@ fun AlarmEditorScreen(
+                     modifier = Modifier.align(Alignment.CenterVertically),
+                 )
+                 NumberWheelPicker(
+-                    label = "Minutes",
++                    label = stringResource(R.string.editor_minutes),
+                     values = 0..59,
+                     selectedValue = state.minuteText.toIntOrNull()?.coerceIn(0, 59) ?: 0,
+                     onValueSelected = onMinuteSelected,
+@@ -144,7 +167,7 @@ fun AlarmEditorScreen(
+             }
+
+             Text(
+-                text = "Repeat",
++                text = stringResource(R.string.editor_repeat),
+                 style = MaterialTheme.typography.titleSmall,
+                 fontWeight = FontWeight.SemiBold,
+             )
+@@ -160,7 +183,7 @@ fun AlarmEditorScreen(
+
+             if (state.repeatOption == EditorRepeatOption.ONCE) {
+                 DateControl(
+-                    label = "Once",
++                    label = stringResource(R.string.editor_date_once),
+                     valueText = state.onceDateText,
+                     tag = "OnceDateControl",
+                     onClick = { activeDatePicker = DatePickerTarget.Once },
+@@ -189,28 +212,47 @@ fun AlarmEditorScreen(
+             if (state.repeatOption == EditorRepeatOption.INTERVAL) {
+                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                     DateControl(
+-                        label = "Start",
++                        label = stringResource(R.string.editor_date_start),
+                         valueText = state.intervalStartDateText,
+                         tag = "IntervalStartDateControl",
+                         onClick = { activeDatePicker = DatePickerTarget.IntervalStart },
+                         modifier = Modifier.weight(1f),
+                     )
+                     DateControl(
+-                        label = "End",
++                        label = stringResource(R.string.editor_date_end),
+                         valueText = state.intervalEndDateText,
+                         tag = "IntervalEndDateControl",
+                         onClick = { activeDatePicker = DatePickerTarget.IntervalEnd },
+                         modifier = Modifier.weight(1f),
+                     )
+                 }
+-                NumberWheelPicker(
+-                    label = "Weeks",
+-                    values = 1..104,
+-                    selectedValue = state.intervalWeeksText.toIntOrNull()?.coerceIn(1, 104) ?: 1,
+-                    onValueSelected = onIntervalWeeksSelected,
+-                    tagPrefix = "IntervalWeeksWheel",
+-                    displayText = { it.toString() },
+-                )
++                val weeksLabel = stringResource(R.string.editor_weeks)
++                Row(
++                    modifier = Modifier
++                        .fillMaxWidth()
++                        .testTag("IntervalWeeksRow"),
++                    horizontalArrangement = Arrangement.spacedBy(12.dp),
++                    verticalAlignment = Alignment.CenterVertically,
++                ) {
++                    Text(
++                        text = weeksLabel,
++                        style = MaterialTheme.typography.titleSmall,
++                        fontWeight = FontWeight.SemiBold,
++                        modifier = Modifier.testTag("IntervalWeeksLabel"),
++                    )
++                    NumberWheelPicker(
++                        label = weeksLabel,
++                        values = 1..104,
++                        selectedValue = state.intervalWeeksText.toIntOrNull()?.coerceIn(1, 104) ?: 1,
++                        onValueSelected = onIntervalWeeksSelected,
++                        tagPrefix = "IntervalWeeksWheel",
++                        displayText = { it.toString() },
++                        width = 88.dp,
++                        itemHeight = 40.dp,
++                        visibleItemCount = 2,
++                        showLabel = false,
++                    )
++                }
+                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                     DayOfWeek.entries.forEach { day ->
+                         FilterChip(
+@@ -230,7 +272,7 @@ fun AlarmEditorScreen(
+             }
+
+             Text(
+-                text = "Ringtone",
++                text = stringResource(R.string.editor_ringtone),
+                 style = MaterialTheme.typography.titleSmall,
+                 fontWeight = FontWeight.SemiBold,
+             )
+@@ -239,7 +281,7 @@ fun AlarmEditorScreen(
+                 style = MaterialTheme.typography.bodySmall,
+             )
+             Button(onClick = onPickRingtone) {
+-                Text(text = "Choose ringtone")
++                Text(text = stringResource(R.string.editor_choose_ringtone))
+             }
+
+             Row(
+@@ -247,7 +289,7 @@ fun AlarmEditorScreen(
+                 horizontalArrangement = Arrangement.SpaceBetween,
+                 verticalAlignment = Alignment.CenterVertically,
+             ) {
+-                Text(text = "Enabled")
++                Text(text = stringResource(R.string.common_enabled))
+                 Switch(
+                     checked = state.enabled,
+                     onCheckedChange = onEnabledChanged,
+@@ -256,29 +298,29 @@ fun AlarmEditorScreen(
+
+             state.validationErrors.forEach { error ->
+                 Text(
+-                    text = error.name,
++                    text = stringResource(error.toMessageResId()),
+                     color = MaterialTheme.colorScheme.error,
+                 )
+             }
+             state.errorMessage?.let { errorMessage ->
+                 Text(
+-                    text = errorMessage,
++                    text = errorMessage.asString(),
+                     color = MaterialTheme.colorScheme.error,
+                 )
+             }
+             if (state.exactAlarmPermissionRequired) {
+                 Button(onClick = onOpenExactAlarmSettings) {
+-                    Text(text = "Open exact alarm settings")
++                    Text(text = stringResource(R.string.editor_open_exact_alarm_settings))
+                 }
+             }
+
+             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                 Button(onClick = onSave) {
+-                    Text(text = "Save")
++                    Text(text = stringResource(R.string.common_save))
+                 }
+                 if (state.isExisting) {
+                     TextButton(onClick = onDelete) {
+-                        Text(text = "Delete")
++                        Text(text = stringResource(R.string.common_delete))
+                     }
+                 }
+             }
+@@ -366,7 +408,7 @@ private fun AlarmDatePickerDialog(
+                 },
+                 modifier = Modifier.testTag("${target.dialogTag}-Confirm"),
+             ) {
+-                Text(text = "OK")
++                Text(text = stringResource(R.string.editor_date_picker_ok))
+             }
+         },
+         dismissButton = {
+@@ -374,7 +416,7 @@ private fun AlarmDatePickerDialog(
+                 onClick = onDismiss,
+                 modifier = Modifier.testTag("${target.dialogTag}-Cancel"),
+             ) {
+-                Text(text = "Cancel")
++                Text(text = stringResource(R.string.editor_date_picker_cancel))
+             }
+         },
+         modifier = Modifier.testTag(target.dialogTag),
+@@ -401,36 +443,77 @@ private fun NumberWheelPicker(
+     tagPrefix: String,
+     displayText: (Int) -> String,
+     modifier: Modifier = Modifier,
++    width: Dp = 104.dp,
++    itemHeight: Dp = 48.dp,
++    visibleItemCount: Int = 3,
++    showLabel: Boolean = true,
+ ) {
++    val viewportHeight = itemHeight * visibleItemCount
++    val edgePadding = itemHeight * ((visibleItemCount - 1) / 2f)
+     val valueList = values.toList()
+     val selectedIndex = valueList.indexOf(selectedValue).coerceAtLeast(0)
+     val listState = rememberLazyListState(
+-        initialFirstVisibleItemIndex = (selectedIndex - 1).coerceAtLeast(0),
++        initialFirstVisibleItemIndex = selectedIndex,
++    )
++    val coroutineScope = rememberCoroutineScope()
++    val currentSelectedValue by rememberUpdatedState(selectedValue)
++    val currentOnValueSelected by rememberUpdatedState(onValueSelected)
++    val pickerContentDescription = stringResource(
++        R.string.picker_selected_content_description,
++        label,
++        displayText(selectedValue),
+     )
+
++    LaunchedEffect(selectedValue, selectedIndex) {
++        if (!listState.isScrollInProgress) {
++            listState.scrollToItem(selectedIndex)
++        }
++    }
++
++    LaunchedEffect(listState, valueList) {
++        snapshotFlow {
++            listState.isScrollInProgress to listState.centeredValue(valueList)
++        }.collect { (isScrolling, centeredValue) ->
++            if (!isScrolling) {
++                if (centeredValue != null && centeredValue != currentSelectedValue) {
++                    currentOnValueSelected(centeredValue)
++                }
++            }
++        }
++    }
++
+     Column(
+-        modifier = modifier.width(104.dp),
++        modifier = modifier.width(width),
+         horizontalAlignment = Alignment.CenterHorizontally,
+         verticalArrangement = Arrangement.spacedBy(6.dp),
+     ) {
+-        Text(
+-            text = label,
+-            style = MaterialTheme.typography.titleSmall,
+-            fontWeight = FontWeight.SemiBold,
+-        )
++        if (showLabel) {
++            Text(
++                text = label,
++                style = MaterialTheme.typography.titleSmall,
++                fontWeight = FontWeight.SemiBold,
++            )
++        }
+         LazyColumn(
+             modifier = Modifier
+-                .height(144.dp)
++                .height(viewportHeight)
+                 .fillMaxWidth()
+                 .testTag(tagPrefix)
+                 .semantics {
+-                    contentDescription = "$label picker selected ${displayText(selectedValue)}"
++                    contentDescription = pickerContentDescription
+                 },
+             state = listState,
++            contentPadding = PaddingValues(vertical = edgePadding),
+             horizontalAlignment = Alignment.CenterHorizontally,
+         ) {
+             items(valueList) { value ->
+                 val selected = value == selectedValue
++                val selectedDistance = abs(valueList.indexOf(value) - selectedIndex)
++                val valueContentDescription = stringResource(
++                    R.string.picker_value_content_description,
++                    label,
++                    displayText(value),
++                )
+                 val itemTag = if (selected) {
+                     "$tagPrefix-selected-${displayText(value)}"
+                 } else {
+@@ -438,7 +521,7 @@ private fun NumberWheelPicker(
+                 }
+                 Box(
+                     modifier = Modifier
+-                        .height(48.dp)
++                        .height(itemHeight)
+                         .fillMaxWidth()
+                         .padding(horizontal = 4.dp, vertical = 3.dp)
+                         .clip(MaterialTheme.shapes.small)
+@@ -449,10 +532,15 @@ private fun NumberWheelPicker(
+                                 MaterialTheme.colorScheme.surface
+                             },
+                         )
+-                        .clickable { onValueSelected(value) }
++                        .clickable {
++                            onValueSelected(value)
++                            coroutineScope.launch {
++                                listState.animateScrollToItem(valueList.indexOf(value))
++                            }
++                        }
+                         .testTag(itemTag)
+                         .semantics {
+-                            contentDescription = "$label ${displayText(value)}"
++                            contentDescription = valueContentDescription
+                         },
+                     contentAlignment = Alignment.Center,
+                 ) {
+@@ -470,9 +558,40 @@ private fun NumberWheelPicker(
+                         },
+                         fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                         textAlign = TextAlign.Center,
++                        modifier = Modifier.alpha(
++                            when {
++                                selected -> 1f
++                                selectedDistance == 1 -> 0.68f
++                                else -> 0.38f
++                            },
++                        ),
+                     )
+                 }
+             }
+         }
+     }
+ }
++
++private fun LazyListState.centeredValue(values: List<Int>): Int? {
++    val layoutInfo = layoutInfo
++    val viewportCenter = (layoutInfo.viewportStartOffset + layoutInfo.viewportEndOffset) / 2
++    return layoutInfo.visibleItemsInfo
++        .minByOrNull { item ->
++            abs((item.offset + item.size / 2) - viewportCenter)
++        }
++        ?.index
++        ?.let(values::getOrNull)
++}
++
++@StringRes
++private fun AlarmValidation.Error.toMessageResId(): Int = when (this) {
++    AlarmValidation.Error.BLANK_TITLE -> R.string.editor_validation_blank_title
++    AlarmValidation.Error.INVALID_HOUR -> R.string.editor_validation_invalid_hour
++    AlarmValidation.Error.INVALID_MINUTE -> R.string.editor_validation_invalid_minute
++    AlarmValidation.Error.EMPTY_CUSTOM_WEEKDAYS -> R.string.editor_validation_empty_custom_weekdays
++    AlarmValidation.Error.EMPTY_INTERVAL_WEEKDAYS -> R.string.editor_validation_empty_interval_weekdays
++    AlarmValidation.Error.INVALID_INTERVAL_WEEKS -> R.string.editor_validation_invalid_interval_weeks
++    AlarmValidation.Error.INVALID_INTERVAL_RANGE -> R.string.editor_validation_invalid_interval_range
++    AlarmValidation.Error.EXPIRED_ONE_TIME_ALARM -> R.string.editor_validation_expired_one_time_alarm
++    AlarmValidation.Error.EXPIRED_INTERVAL_ALARM -> R.string.editor_validation_expired_interval_alarm
++}
+diff --git a/app/src/main/java/com/cory/noter/ui/editor/AlarmEditorViewModel.kt b/app/src/main/java/com/cory/noter/ui/editor/AlarmEditorViewModel.kt
+index 2d500f8..8c2da42 100644
+--- a/app/src/main/java/com/cory/noter/ui/editor/AlarmEditorViewModel.kt
++++ b/app/src/main/java/com/cory/noter/ui/editor/AlarmEditorViewModel.kt
+@@ -2,6 +2,7 @@ package com.cory.noter.ui.editor
+
+ import androidx.lifecycle.ViewModel
+ import androidx.lifecycle.viewModelScope
++import com.cory.noter.R
+ import com.cory.noter.alarm.AlarmSchedulingUseCase
+ import com.cory.noter.alarm.ScheduleResult
+ import com.cory.noter.data.alarm.AlarmDraft
+@@ -11,6 +12,7 @@ import com.cory.noter.domain.alarm.Alarm
+ import com.cory.noter.domain.alarm.AlarmSource
+ import com.cory.noter.domain.alarm.AlarmValidation
+ import com.cory.noter.domain.alarm.RepeatRule
++import com.cory.noter.ui.text.UiText
+ import java.time.Clock
+ import java.time.DayOfWeek
+ import java.time.LocalDate
+@@ -44,7 +46,7 @@ data class AlarmEditorUiState(
+     val enabled: Boolean = true,
+     val isExisting: Boolean = false,
+     val validationErrors: List<AlarmValidation.Error> = emptyList(),
+-    val errorMessage: String? = null,
++    val errorMessage: UiText? = null,
+     val exactAlarmPermissionRequired: Boolean = false,
+     val savedAlarmId: Long? = null,
+     val deleted: Boolean = false,
+@@ -323,7 +325,11 @@ class AlarmEditorViewModel(
+                 }
+             }.getOrElse { error ->
+                 mutableUiState.update {
+-                    it.copy(errorMessage = error.message ?: "Unable to save alarm.")
++                    it.copy(
++                        errorMessage = error.message
++                            ?.let(UiText::Raw)
++                            ?: UiText.Resource(R.string.editor_save_failed_default),
++                    )
+                 }
+                 return@launch
+             }
+@@ -362,7 +368,7 @@ class AlarmEditorViewModel(
+             val onceDate = runCatching { LocalDate.parse(state.onceDateText) }.getOrNull()
+             if (onceDate == null) {
+                 mutableUiState.update {
+-                    it.copy(errorMessage = "Enter a valid date in YYYY-MM-DD format.")
++                    it.copy(errorMessage = UiText.Resource(R.string.editor_invalid_once_date))
+                 }
+                 null
+             } else {
+@@ -380,7 +386,7 @@ class AlarmEditorViewModel(
+         val startDate = runCatching { LocalDate.parse(state.intervalStartDateText) }.getOrNull()
+         if (startDate == null) {
+             mutableUiState.update {
+-                it.copy(errorMessage = "Enter a valid start date in YYYY-MM-DD format.")
++                it.copy(errorMessage = UiText.Resource(R.string.editor_invalid_interval_start_date))
+             }
+             return null
+         }
+@@ -388,7 +394,7 @@ class AlarmEditorViewModel(
+         val endDate = runCatching { LocalDate.parse(state.intervalEndDateText) }.getOrNull()
+         if (endDate == null) {
+             mutableUiState.update {
+-                it.copy(errorMessage = "Enter a valid end date in YYYY-MM-DD format.")
++                it.copy(errorMessage = UiText.Resource(R.string.editor_invalid_interval_end_date))
+             }
+             return null
+         }
+@@ -396,14 +402,14 @@ class AlarmEditorViewModel(
+         val intervalWeeks = state.intervalWeeksText.toIntOrNull()
+         if (intervalWeeks == null || intervalWeeks <= 0) {
+             mutableUiState.update {
+-                it.copy(errorMessage = "Enter a positive number of weeks.")
++                it.copy(errorMessage = UiText.Resource(R.string.editor_invalid_interval_weeks_input))
+             }
+             return null
+         }
+
+         if (endDate.isBefore(startDate)) {
+             mutableUiState.update {
+-                it.copy(errorMessage = "End date must be on or after start date.")
++                it.copy(errorMessage = UiText.Resource(R.string.editor_validation_invalid_interval_range))
+             }
+             return null
+         }
+@@ -424,12 +430,15 @@ class AlarmEditorViewModel(
+         is RepeatRule.WeeklyInterval -> EditorRepeatOption.INTERVAL
+     }
+
+-    private fun ScheduleResult.toEditorMessage(): String? = when (this) {
++    private fun ScheduleResult.toEditorMessage(): UiText? = when (this) {
+         ScheduleResult.Scheduled,
+         ScheduleResult.Cancelled,
+         -> null
+
+-        is ScheduleResult.MissingPermission -> "Alarm saved but scheduling needs permission: $permission"
+-        is ScheduleResult.Failed -> reason
++        is ScheduleResult.MissingPermission -> UiText.Resource(
++            R.string.editor_schedule_missing_permission,
++            listOf(permission),
++        )
++        is ScheduleResult.Failed -> UiText.Raw(reason)
+     }
+ }
+diff --git a/app/src/main/java/com/cory/noter/ui/ringing/RingingActivity.kt b/app/src/main/java/com/cory/noter/ui/ringing/RingingActivity.kt
+index df109e8..46d03fd 100644
+--- a/app/src/main/java/com/cory/noter/ui/ringing/RingingActivity.kt
++++ b/app/src/main/java/com/cory/noter/ui/ringing/RingingActivity.kt
+@@ -11,6 +11,7 @@ import androidx.compose.runtime.getValue
+ import androidx.compose.runtime.mutableStateOf
+ import androidx.compose.runtime.setValue
+ import androidx.compose.ui.Modifier
++import com.cory.noter.R
+ import com.cory.noter.alarm.RingingService
+
+ class RingingActivity : ComponentActivity() {
+@@ -49,7 +50,10 @@ class RingingActivity : ComponentActivity() {
+     )
+
+     private fun updateFromIntent(intent: Intent?) {
+-        currentAlarm = RingingAlarmState.fromIntent(intent)
++        currentAlarm = RingingAlarmState.fromIntent(
++            intent = intent,
++            defaultTitle = getString(R.string.notification_ringing_default_title),
++        )
+     }
+
+     companion object {
+@@ -70,16 +74,19 @@ class RingingActivity : ComponentActivity() {
+
+ data class RingingAlarmState(
+     val alarmId: Long = -1L,
+-    val title: String = "Alarm",
++    val title: String = "",
+ ) {
+     companion object {
+         private const val EXTRA_ALARM_ID = "alarm_id"
+         private const val EXTRA_ALARM_TITLE = "alarm_title"
+         private const val INVALID_ALARM_ID = -1L
+
+-        fun fromIntent(intent: Intent?): RingingAlarmState = RingingAlarmState(
++        fun fromIntent(
++            intent: Intent?,
++            defaultTitle: String,
++        ): RingingAlarmState = RingingAlarmState(
+             alarmId = intent?.getLongExtra(EXTRA_ALARM_ID, INVALID_ALARM_ID) ?: INVALID_ALARM_ID,
+-            title = intent?.getStringExtra(EXTRA_ALARM_TITLE).orEmpty().ifBlank { "Alarm" },
++            title = intent?.getStringExtra(EXTRA_ALARM_TITLE).orEmpty().ifBlank { defaultTitle },
+         )
+     }
+ }
+diff --git a/app/src/main/java/com/cory/noter/ui/ringing/RingingScreen.kt b/app/src/main/java/com/cory/noter/ui/ringing/RingingScreen.kt
+index b386c6c..b9e0f97 100644
+--- a/app/src/main/java/com/cory/noter/ui/ringing/RingingScreen.kt
++++ b/app/src/main/java/com/cory/noter/ui/ringing/RingingScreen.kt
+@@ -10,7 +10,9 @@ import androidx.compose.material3.Text
+ import androidx.compose.runtime.Composable
+ import androidx.compose.ui.Alignment
+ import androidx.compose.ui.Modifier
++import androidx.compose.ui.res.stringResource
+ import androidx.compose.ui.unit.dp
++import com.cory.noter.R
+
+ @Composable
+ fun RingingScreen(
+@@ -29,12 +31,12 @@ fun RingingScreen(
+             style = MaterialTheme.typography.headlineLarge,
+         )
+         Text(
+-            text = "Alarm is ringing",
++            text = stringResource(R.string.notification_ringing_body),
+             style = MaterialTheme.typography.bodyLarge,
+             modifier = Modifier.padding(top = 12.dp, bottom = 24.dp),
+         )
+         Button(onClick = onStop) {
+-            Text(text = "Stop")
++            Text(text = stringResource(R.string.notification_ringing_stop))
+         }
+     }
+ }
+diff --git a/app/src/main/java/com/cory/noter/ui/settings/SettingsScreen.kt b/app/src/main/java/com/cory/noter/ui/settings/SettingsScreen.kt
+index 0062d1c..a2af1c7 100644
+--- a/app/src/main/java/com/cory/noter/ui/settings/SettingsScreen.kt
++++ b/app/src/main/java/com/cory/noter/ui/settings/SettingsScreen.kt
+@@ -22,8 +22,11 @@ import androidx.compose.material3.TopAppBar
+ import androidx.compose.runtime.Composable
+ import androidx.compose.ui.Alignment
+ import androidx.compose.ui.Modifier
++import androidx.compose.ui.res.stringResource
+ import androidx.compose.ui.text.font.FontWeight
+ import androidx.compose.ui.unit.dp
++import com.cory.noter.R
++import com.cory.noter.ui.text.asString
+
+ @OptIn(ExperimentalMaterial3Api::class)
+ @Composable
+@@ -41,10 +44,10 @@ fun SettingsScreen(
+         modifier = modifier.fillMaxSize(),
+         topBar = {
+             TopAppBar(
+-                title = { Text(text = "Settings") },
++                title = { Text(text = stringResource(R.string.settings_title)) },
+                 navigationIcon = {
+                     TextButton(onClick = onBack) {
+-                        Text(text = "Back")
++                        Text(text = stringResource(R.string.common_back))
+                     }
+                 },
+             )
+@@ -60,7 +63,7 @@ fun SettingsScreen(
+             item {
+                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                     Text(
+-                        text = "OpenRouter API key",
++                        text = stringResource(R.string.settings_openrouter_api_key),
+                         style = MaterialTheme.typography.titleSmall,
+                         fontWeight = FontWeight.SemiBold,
+                     )
+@@ -68,10 +71,10 @@ fun SettingsScreen(
+                         value = state.openRouterApiKey,
+                         onValueChange = onApiKeyChanged,
+                         modifier = Modifier.fillMaxWidth(),
+-                        label = { Text(text = "API key") },
++                        label = { Text(text = stringResource(R.string.settings_api_key_label)) },
+                     )
+                     Button(onClick = onSaveApiKey) {
+-                        Text(text = "Save API key")
++                        Text(text = stringResource(R.string.settings_save_api_key))
+                     }
+                 }
+             }
+@@ -79,7 +82,7 @@ fun SettingsScreen(
+             item {
+                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                     Text(
+-                        text = "Model",
++                        text = stringResource(R.string.settings_model),
+                         style = MaterialTheme.typography.titleSmall,
+                         fontWeight = FontWeight.SemiBold,
+                     )
+@@ -103,7 +106,7 @@ fun SettingsScreen(
+             item {
+                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                     Text(
+-                        text = "Default ringtone",
++                        text = stringResource(R.string.settings_default_ringtone),
+                         style = MaterialTheme.typography.titleSmall,
+                         fontWeight = FontWeight.SemiBold,
+                     )
+@@ -112,14 +115,14 @@ fun SettingsScreen(
+                         style = MaterialTheme.typography.bodySmall,
+                     )
+                     Button(onClick = onPickDefaultRingtone) {
+-                        Text(text = "Choose default ringtone")
++                        Text(text = stringResource(R.string.settings_choose_default_ringtone))
+                     }
+                 }
+             }
+
+             item {
+                 Text(
+-                    text = "Permissions",
++                    text = stringResource(R.string.settings_permissions),
+                     style = MaterialTheme.typography.titleSmall,
+                     fontWeight = FontWeight.SemiBold,
+                 )
+@@ -131,11 +134,17 @@ fun SettingsScreen(
+                         verticalArrangement = Arrangement.spacedBy(6.dp),
+                     ) {
+                         Text(
+-                            text = row.title,
++                            text = stringResource(row.titleResId),
+                             style = MaterialTheme.typography.titleMedium,
+                         )
+                         Text(
+-                            text = if (row.granted) "Granted" else "Needs attention",
++                            text = stringResource(
++                                if (row.granted) {
++                                    R.string.common_granted
++                                } else {
++                                    R.string.common_needs_attention
++                                },
++                            ),
+                             color = if (row.granted) {
+                                 MaterialTheme.colorScheme.primary
+                             } else {
+@@ -143,12 +152,12 @@ fun SettingsScreen(
+                             },
+                         )
+                         Text(
+-                            text = row.summary,
++                            text = stringResource(row.summaryResId),
+                             style = MaterialTheme.typography.bodySmall,
+                         )
+-                        if (!row.granted && row.actionLabel != null) {
++                        if (!row.granted && row.actionLabelResId != null) {
+                             Button(onClick = { onPermissionAction(row.id) }) {
+-                                Text(text = row.actionLabel)
++                                Text(text = stringResource(row.actionLabelResId))
+                             }
+                         }
+                     }
+@@ -158,7 +167,7 @@ fun SettingsScreen(
+             item {
+                 state.errorMessage?.let { errorMessage ->
+                     Text(
+-                        text = errorMessage,
++                        text = errorMessage.asString(),
+                         color = MaterialTheme.colorScheme.error,
+                     )
+                 }
+diff --git a/app/src/main/java/com/cory/noter/ui/settings/SettingsViewModel.kt b/app/src/main/java/com/cory/noter/ui/settings/SettingsViewModel.kt
+index 2332e7e..ba294d3 100644
+--- a/app/src/main/java/com/cory/noter/ui/settings/SettingsViewModel.kt
++++ b/app/src/main/java/com/cory/noter/ui/settings/SettingsViewModel.kt
+@@ -2,9 +2,12 @@ package com.cory.noter.ui.settings
+
+ import androidx.lifecycle.ViewModel
+ import androidx.lifecycle.viewModelScope
++import androidx.annotation.StringRes
++import com.cory.noter.R
+ import com.cory.noter.ai.OpenRouterModel
+ import com.cory.noter.data.settings.SettingsRepository
+ import com.cory.noter.permissions.PermissionStatusReader
++import com.cory.noter.ui.text.UiText
+ import kotlinx.coroutines.flow.MutableStateFlow
+ import kotlinx.coroutines.flow.StateFlow
+ import kotlinx.coroutines.flow.asStateFlow
+@@ -14,10 +17,10 @@ import kotlinx.coroutines.launch
+
+ data class PermissionGuidanceUiModel(
+     val id: String,
+-    val title: String,
++    @param:StringRes val titleResId: Int,
+     val granted: Boolean,
+-    val summary: String,
+-    val actionLabel: String?,
++    @param:StringRes val summaryResId: Int,
++    @param:StringRes val actionLabelResId: Int?,
+ )
+
+ data class SettingsUiState(
+@@ -26,7 +29,7 @@ data class SettingsUiState(
+     val defaultRingtoneUri: String = "",
+     val modelOptions: List<String> = OpenRouterModel.builtInIds,
+     val permissionRows: List<PermissionGuidanceUiModel> = emptyList(),
+-    val errorMessage: String? = null,
++    val errorMessage: UiText? = null,
+ )
+
+ class SettingsViewModel(
+@@ -76,7 +79,7 @@ class SettingsViewModel(
+         viewModelScope.launch {
+             val result = settingsRepository.setOpenRouterApiKey(uiState.value.openRouterApiKey)
+             mutableUiState.update {
+-                it.copy(errorMessage = result.exceptionOrNull()?.message)
++                it.copy(errorMessage = result.exceptionOrNull()?.message?.let(UiText::Raw))
+             }
+         }
+     }
+@@ -85,7 +88,7 @@ class SettingsViewModel(
+         viewModelScope.launch {
+             val result = settingsRepository.setSelectedModel(modelId)
+             mutableUiState.update {
+-                it.copy(errorMessage = result.exceptionOrNull()?.message)
++                it.copy(errorMessage = result.exceptionOrNull()?.message?.let(UiText::Raw))
+             }
+         }
+     }
+@@ -94,7 +97,7 @@ class SettingsViewModel(
+         viewModelScope.launch {
+             val result = settingsRepository.setDefaultRingtoneUri(ringtoneUri)
+             mutableUiState.update {
+-                it.copy(errorMessage = result.exceptionOrNull()?.message)
++                it.copy(errorMessage = result.exceptionOrNull()?.message?.let(UiText::Raw))
+             }
+         }
+     }
+@@ -102,24 +105,24 @@ class SettingsViewModel(
+     private fun buildPermissionRows(): List<PermissionGuidanceUiModel> = listOf(
+         PermissionGuidanceUiModel(
+             id = "notifications",
+-            title = "Notifications",
++            titleResId = R.string.settings_permission_notifications_title,
+             granted = notificationPermissionProvider(),
+-            summary = "Needed for alarm alerts on Android 13 and later.",
+-            actionLabel = "Allow notifications",
++            summaryResId = R.string.settings_permission_notifications_summary,
++            actionLabelResId = R.string.settings_permission_notifications_action,
+         ),
+         PermissionGuidanceUiModel(
+             id = "exact_alarms",
+-            title = "Exact alarms",
++            titleResId = R.string.settings_permission_exact_alarms_title,
+             granted = exactAlarmPermissionReader.canScheduleExactAlarms(),
+-            summary = "Needed for reliable alarm delivery at the exact minute.",
+-            actionLabel = "Open exact alarm settings",
++            summaryResId = R.string.settings_permission_exact_alarms_summary,
++            actionLabelResId = R.string.settings_permission_exact_alarms_action,
+         ),
+         PermissionGuidanceUiModel(
+             id = "battery_optimization",
+-            title = "Battery optimization",
++            titleResId = R.string.settings_permission_battery_title,
+             granted = batteryOptimizationIgnoredProvider(),
+-            summary = "Helps the app keep alarms reliable in the background.",
+-            actionLabel = "Open battery settings",
++            summaryResId = R.string.settings_permission_battery_summary,
++            actionLabelResId = R.string.settings_permission_battery_action,
+         ),
+     )
+ }
+diff --git a/app/src/main/res/values/strings.xml b/app/src/main/res/values/strings.xml
+index 8bb318d..aa02984 100644
+--- a/app/src/main/res/values/strings.xml
++++ b/app/src/main/res/values/strings.xml
+@@ -1,3 +1,125 @@
+ <resources>
+     <string name="app_name">Noter</string>
++    <string name="common_back">Back</string>
++    <string name="common_delete">Delete</string>
++    <string name="common_enabled">Enabled</string>
++    <string name="common_granted">Granted</string>
++    <string name="common_needs_attention">Needs attention</string>
++    <string name="common_save">Save</string>
++
++    <string name="alarm_list_title">Alarms</string>
++    <string name="alarm_list_create_alarm">Create alarm</string>
++    <string name="alarm_list_create_manual">Manual</string>
++    <string name="alarm_list_create_ai">AI create</string>
++    <string name="alarm_list_empty_title">No alarms yet</string>
++    <string name="alarm_list_empty_body">Create one manually or ask AI to draft it for you.</string>
++    <string name="alarm_list_next_format">Next: %1$s</string>
++    <string name="alarm_list_repeat_format">Repeat: %1$s</string>
++    <string name="alarm_list_edit">Edit</string>
++    <string name="alarm_list_not_scheduled">Not scheduled</string>
++    <string name="alarm_list_repeat_once">Once</string>
++    <string name="alarm_list_repeat_daily">Daily</string>
++    <string name="alarm_list_repeat_weekdays">Weekdays</string>
++    <string name="alarm_list_repeat_weekly_interval_format">Every %1$d weeks: %2$s</string>
++    <string name="alarm_list_schedule_permission_saved_error">Alarm saved but scheduling needs permission: %1$s</string>
++    <string name="alarm_list_schedule_permission_deleted_error">Alarm deleted but scheduler reported a permission issue: %1$s</string>
++
++    <string name="ai_create_title">AI create</string>
++    <string name="ai_create_selected_model">Selected model</string>
++    <string name="ai_create_no_model_selected">No model selected</string>
++    <string name="ai_create_prompt_label">Describe the alarm</string>
++    <string name="ai_create_submit">Create with AI</string>
++    <string name="ai_create_manual_instead">Create manually instead</string>
++    <string name="ai_create_exact_alarm_settings">Open exact alarm settings</string>
++    <string name="ai_create_empty_prompt_error">Describe the alarm you want to create.</string>
++    <string name="ai_create_background_status">Creating alarm in the background. You will get a notification when it finishes.</string>
++    <string name="ai_create_missing_api_key_error">Add an OpenRouter API key in Settings before using AI create.</string>
++    <string name="ai_create_missing_model_error">Choose a supported model in Settings before using AI create.</string>
++    <string name="ai_create_network_failure_error">Network error: %1$s</string>
++    <string name="ai_create_rate_limited_error">Model rate limit: %1$s</string>
++    <string name="ai_create_remote_failure_error">OpenRouter error %1$d: %2$s</string>
++    <string name="ai_create_missing_permission_error">Alarm saved but scheduling needs permission: %1$s</string>
++
++    <string name="settings_title">Settings</string>
++    <string name="settings_openrouter_api_key">OpenRouter API key</string>
++    <string name="settings_api_key_label">API key</string>
++    <string name="settings_save_api_key">Save API key</string>
++    <string name="settings_model">Model</string>
++    <string name="settings_default_ringtone">Default ringtone</string>
++    <string name="settings_choose_default_ringtone">Choose default ringtone</string>
++    <string name="settings_permissions">Permissions</string>
++    <string name="settings_permission_notifications_title">Notifications</string>
++    <string name="settings_permission_notifications_summary">Needed for alarm alerts on Android 13 and later.</string>
++    <string name="settings_permission_notifications_action">Allow notifications</string>
++    <string name="settings_permission_exact_alarms_title">Exact alarms</string>
++    <string name="settings_permission_exact_alarms_summary">Needed for reliable alarm delivery at the exact minute.</string>
++    <string name="settings_permission_exact_alarms_action">Open exact alarm settings</string>
++    <string name="settings_permission_battery_title">Battery optimization</string>
++    <string name="settings_permission_battery_summary">Helps the app keep alarms reliable in the background.</string>
++    <string name="settings_permission_battery_action">Open battery settings</string>
++
++    <string name="editor_title_new">New alarm</string>
++    <string name="editor_title_edit">Edit alarm</string>
++    <string name="editor_title_label">Title</string>
++    <string name="editor_hours">Hours</string>
++    <string name="editor_minutes">Minutes</string>
++    <string name="editor_repeat">Repeat</string>
++    <string name="editor_repeat_once">Once</string>
++    <string name="editor_repeat_daily">Daily</string>
++    <string name="editor_repeat_weekdays">Weekdays</string>
++    <string name="editor_repeat_custom">Custom</string>
++    <string name="editor_repeat_interval">Interval</string>
++    <string name="editor_date_once">Once</string>
++    <string name="editor_date_start">Start</string>
++    <string name="editor_date_end">End</string>
++    <string name="editor_weeks">Weeks</string>
++    <string name="editor_ringtone">Ringtone</string>
++    <string name="editor_choose_ringtone">Choose ringtone</string>
++    <string name="editor_open_exact_alarm_settings">Open exact alarm settings</string>
++    <string name="editor_date_picker_ok">OK</string>
++    <string name="editor_date_picker_cancel">Cancel</string>
++    <string name="editor_validation_blank_title">Title is required.</string>
++    <string name="editor_validation_invalid_hour">Hour must be between 0 and 23.</string>
++    <string name="editor_validation_invalid_minute">Minute must be between 0 and 59.</string>
++    <string name="editor_validation_empty_custom_weekdays">Choose at least one custom weekday.</string>
++    <string name="editor_validation_empty_interval_weekdays">Choose at least one interval weekday.</string>
++    <string name="editor_validation_invalid_interval_weeks">Interval weeks must be greater than zero.</string>
++    <string name="editor_validation_invalid_interval_range">End date must be on or after start date.</string>
++    <string name="editor_validation_expired_one_time_alarm">This one-time alarm is in the past.</string>
++    <string name="editor_validation_expired_interval_alarm">This interval alarm has no future trigger.</string>
++    <string name="editor_save_failed_default">Unable to save alarm.</string>
++    <string name="editor_invalid_once_date">Enter a valid date in YYYY-MM-DD format.</string>
++    <string name="editor_invalid_interval_start_date">Enter a valid start date in YYYY-MM-DD format.</string>
++    <string name="editor_invalid_interval_end_date">Enter a valid end date in YYYY-MM-DD format.</string>
++    <string name="editor_invalid_interval_weeks_input">Enter a positive number of weeks.</string>
++    <string name="editor_schedule_missing_permission">Alarm saved but scheduling needs permission: %1$s</string>
++    <string name="picker_selected_content_description">%1$s picker selected %2$s</string>
++    <string name="picker_value_content_description">%1$s %2$s</string>
++
++    <string name="ringtone_picker_alarm_title">Choose alarm ringtone</string>
++    <string name="ringtone_picker_default_alarm_title">Choose default alarm ringtone</string>
++
++    <string name="notification_ai_channel_name">AI alarm creation</string>
++    <string name="notification_ai_channel_description">Status updates for background AI alarm creation.</string>
++    <string name="notification_ai_creating_title">Creating alarm</string>
++    <string name="notification_ai_creating_body">AI alarm creation is running in the background.</string>
++    <string name="notification_ai_created_title">Alarm created</string>
++    <string name="notification_ai_saved_title">Alarm saved</string>
++    <string name="notification_ai_permission_needed">Exact alarm permission is needed before it can ring reliably.</string>
++    <string name="notification_ai_permission_big_text">Alarm \"%1$s\" was saved, but Android needs exact alarm permission before it can ring reliably.</string>
++    <string name="notification_ai_open_settings">Open settings</string>
++    <string name="notification_ai_failed_title">AI alarm failed</string>
++    <string name="notification_ai_missing_api_key">Add an OpenRouter API key in Settings before using AI create.</string>
++    <string name="notification_ai_missing_model">Choose a supported model in Settings before using AI create.</string>
++    <string name="notification_ai_network_failure">Network error: %1$s</string>
++    <string name="notification_ai_rate_limited">Model rate limit: %1$s</string>
++    <string name="notification_ai_remote_failure">OpenRouter error %1$d: %2$s</string>
++    <string name="notification_ai_finished">AI alarm creation finished.</string>
++
++    <string name="notification_ringing_channel_name">Ringing alarms</string>
++    <string name="notification_ringing_channel_description">Alarm notifications for active ringing flows.</string>
++    <string name="notification_ringing_default_title">Alarm</string>
++    <string name="notification_ringing_body">Alarm is ringing</string>
++    <string name="notification_ringing_stop">Stop</string>
++    <string name="notification_ringing_cleanup_failed">Alarm cleanup failed</string>
+ </resources>
+diff --git a/app/src/test/java/com/cory/noter/ui/ai/AiCreateViewModelTest.kt b/app/src/test/java/com/cory/noter/ui/ai/AiCreateViewModelTest.kt
+index 6b88e4b..e75ad96 100644
+--- a/app/src/test/java/com/cory/noter/ui/ai/AiCreateViewModelTest.kt
++++ b/app/src/test/java/com/cory/noter/ui/ai/AiCreateViewModelTest.kt
+@@ -1,5 +1,6 @@
+ package com.cory.noter.ui.ai
+
++import com.cory.noter.R
+ import com.cory.noter.ai.AiAlarmCreator
+ import com.cory.noter.ai.AiAlarmPromptBuilder
+ import com.cory.noter.ai.AiAlarmResponseParser
+@@ -12,6 +13,7 @@ import com.cory.noter.domain.settings.AppSettings
+ import com.cory.noter.ui.FakeAlarmRepository
+ import com.cory.noter.ui.FakeOpenRouterGateway
+ import com.cory.noter.ui.MainDispatcherRule
++import com.cory.noter.ui.text.UiText
+ import com.google.common.truth.Truth.assertThat
+ import java.time.Clock
+ import java.time.Instant
+@@ -50,7 +52,7 @@ class AiCreateViewModelTest {
+         advanceUntilIdle()
+
+         assertThat(viewModel.uiState.value.errorMessage)
+-            .isEqualTo("Add an OpenRouter API key in Settings before using AI create.")
++            .isEqualTo(UiText.Resource(R.string.ai_create_missing_api_key_error))
+         assertThat(viewModel.uiState.value.isLoading).isFalse()
+     }
+
+@@ -104,7 +106,12 @@ class AiCreateViewModelTest {
+
+         assertThat(viewModel.uiState.value.exactAlarmPermissionRequired).isTrue()
+         assertThat(viewModel.uiState.value.errorMessage)
+-            .contains(android.Manifest.permission.SCHEDULE_EXACT_ALARM)
++            .isEqualTo(
++                UiText.Resource(
++                    R.string.ai_create_missing_permission_error,
++                    listOf(android.Manifest.permission.SCHEDULE_EXACT_ALARM),
++                ),
++            )
+     }
+
+     @Test
+@@ -132,7 +139,7 @@ class AiCreateViewModelTest {
+             .containsExactly("tomorrow at 8 am remind me to take medicine")
+         assertThat(viewModel.uiState.value.isLoading).isFalse()
+         assertThat(viewModel.uiState.value.statusMessage)
+-            .contains("background")
++            .isEqualTo(UiText.Resource(R.string.ai_create_background_status))
+     }
+
+     private class RecordingBackgroundScheduler : com.cory.noter.ai.AiCreateBackgroundScheduler {
+diff --git a/app/src/test/java/com/cory/noter/ui/editor/AlarmEditorViewModelTest.kt b/app/src/test/java/com/cory/noter/ui/editor/AlarmEditorViewModelTest.kt
+index ab0f7c5..d765aa4 100644
+--- a/app/src/test/java/com/cory/noter/ui/editor/AlarmEditorViewModelTest.kt
++++ b/app/src/test/java/com/cory/noter/ui/editor/AlarmEditorViewModelTest.kt
+@@ -1,5 +1,6 @@
+ package com.cory.noter.ui.editor
+
++import com.cory.noter.R
+ import com.cory.noter.ai.OpenRouterModel
+ import com.cory.noter.alarm.AlarmSchedulingUseCase
+ import com.cory.noter.alarm.FakeAlarmScheduler
+@@ -9,6 +10,7 @@ import com.cory.noter.domain.alarm.AlarmValidation
+ import com.cory.noter.domain.alarm.RepeatRule
+ import com.cory.noter.ui.FakeAlarmRepository
+ import com.cory.noter.ui.MainDispatcherRule
++import com.cory.noter.ui.text.UiText
+ import com.google.common.truth.Truth.assertThat
+ import java.time.Clock
+ import java.time.DayOfWeek
+@@ -237,6 +239,11 @@ class AlarmEditorViewModelTest {
+         assertThat(viewModel.uiState.value.savedAlarmId).isNull()
+         assertThat(viewModel.uiState.value.exactAlarmPermissionRequired).isTrue()
+         assertThat(viewModel.uiState.value.errorMessage)
+-            .contains(android.Manifest.permission.SCHEDULE_EXACT_ALARM)
++            .isEqualTo(
++                UiText.Resource(
++                    R.string.editor_schedule_missing_permission,
++                    listOf(android.Manifest.permission.SCHEDULE_EXACT_ALARM),
++                ),
++            )
+     }
+ }
+diff --git a/app/src/main/res/values-zh/strings.xml b/app/src/main/res/values-zh/strings.xml
+new file mode 100644
+index 0000000..e0f4a1d
+--- /dev/null
++++ b/app/src/main/res/values-zh/strings.xml
+@@ -0,0 +1,125 @@
++<resources>
++    <string name="app_name">Noter</string>
++    <string name="common_back">返回</string>
++    <string name="common_delete">删除</string>
++    <string name="common_enabled">启用</string>
++    <string name="common_granted">已授权</string>
++    <string name="common_needs_attention">需要处理</string>
++    <string name="common_save">保存</string>
++
++    <string name="alarm_list_title">闹钟</string>
++    <string name="alarm_list_create_alarm">创建闹钟</string>
++    <string name="alarm_list_create_manual">手动创建</string>
++    <string name="alarm_list_create_ai">AI 创建</string>
++    <string name="alarm_list_empty_title">还没有闹钟</string>
++    <string name="alarm_list_empty_body">可以手动创建，也可以让 AI 帮你生成。</string>
++    <string name="alarm_list_next_format">下次：%1$s</string>
++    <string name="alarm_list_repeat_format">重复：%1$s</string>
++    <string name="alarm_list_edit">编辑</string>
++    <string name="alarm_list_not_scheduled">未安排</string>
++    <string name="alarm_list_repeat_once">一次</string>
++    <string name="alarm_list_repeat_daily">每天</string>
++    <string name="alarm_list_repeat_weekdays">工作日</string>
++    <string name="alarm_list_repeat_weekly_interval_format">每 %1$d 周：%2$s</string>
++    <string name="alarm_list_schedule_permission_saved_error">闹钟已保存，但调度需要权限：%1$s</string>
++    <string name="alarm_list_schedule_permission_deleted_error">闹钟已删除，但调度器报告权限问题：%1$s</string>
++
++    <string name="ai_create_title">AI 创建</string>
++    <string name="ai_create_selected_model">当前模型</string>
++    <string name="ai_create_no_model_selected">未选择模型</string>
++    <string name="ai_create_prompt_label">描述你想创建的闹钟</string>
++    <string name="ai_create_submit">用 AI 创建</string>
++    <string name="ai_create_manual_instead">改为手动创建</string>
++    <string name="ai_create_exact_alarm_settings">打开精准闹钟设置</string>
++    <string name="ai_create_empty_prompt_error">请描述你想创建的闹钟。</string>
++    <string name="ai_create_background_status">AI 正在后台创建闹钟，完成后你会收到通知。</string>
++    <string name="ai_create_missing_api_key_error">请先在设置中添加 OpenRouter API 密钥。</string>
++    <string name="ai_create_missing_model_error">请先在设置中选择支持的模型。</string>
++    <string name="ai_create_network_failure_error">网络错误：%1$s</string>
++    <string name="ai_create_rate_limited_error">模型速率限制：%1$s</string>
++    <string name="ai_create_remote_failure_error">OpenRouter 错误 %1$d：%2$s</string>
++    <string name="ai_create_missing_permission_error">闹钟已保存，但调度需要权限：%1$s</string>
++
++    <string name="settings_title">设置</string>
++    <string name="settings_openrouter_api_key">OpenRouter API 密钥</string>
++    <string name="settings_api_key_label">API 密钥</string>
++    <string name="settings_save_api_key">保存 API 密钥</string>
++    <string name="settings_model">模型</string>
++    <string name="settings_default_ringtone">默认铃声</string>
++    <string name="settings_choose_default_ringtone">选择默认铃声</string>
++    <string name="settings_permissions">权限</string>
++    <string name="settings_permission_notifications_title">通知</string>
++    <string name="settings_permission_notifications_summary">Android 13 及以上需要该权限才能显示闹钟提醒。</string>
++    <string name="settings_permission_notifications_action">允许通知</string>
++    <string name="settings_permission_exact_alarms_title">精准闹钟</string>
++    <string name="settings_permission_exact_alarms_summary">用于在准确分钟可靠触发闹钟。</string>
++    <string name="settings_permission_exact_alarms_action">打开精准闹钟设置</string>
++    <string name="settings_permission_battery_title">电池优化</string>
++    <string name="settings_permission_battery_summary">帮助应用在后台保持闹钟可靠。</string>
++    <string name="settings_permission_battery_action">打开电池设置</string>
++
++    <string name="editor_title_new">新建闹钟</string>
++    <string name="editor_title_edit">编辑闹钟</string>
++    <string name="editor_title_label">标题</string>
++    <string name="editor_hours">小时</string>
++    <string name="editor_minutes">分钟</string>
++    <string name="editor_repeat">重复</string>
++    <string name="editor_repeat_once">一次</string>
++    <string name="editor_repeat_daily">每天</string>
++    <string name="editor_repeat_weekdays">工作日</string>
++    <string name="editor_repeat_custom">自定义</string>
++    <string name="editor_repeat_interval">间隔</string>
++    <string name="editor_date_once">日期</string>
++    <string name="editor_date_start">开始</string>
++    <string name="editor_date_end">结束</string>
++    <string name="editor_weeks">周</string>
++    <string name="editor_ringtone">铃声</string>
++    <string name="editor_choose_ringtone">选择铃声</string>
++    <string name="editor_open_exact_alarm_settings">打开精准闹钟设置</string>
++    <string name="editor_date_picker_ok">确定</string>
++    <string name="editor_date_picker_cancel">取消</string>
++    <string name="editor_validation_blank_title">标题不能为空。</string>
++    <string name="editor_validation_invalid_hour">小时必须在 0 到 23 之间。</string>
++    <string name="editor_validation_invalid_minute">分钟必须在 0 到 59 之间。</string>
++    <string name="editor_validation_empty_custom_weekdays">请至少选择一个自定义星期。</string>
++    <string name="editor_validation_empty_interval_weekdays">请至少选择一个间隔星期。</string>
++    <string name="editor_validation_invalid_interval_weeks">间隔周数必须大于 0。</string>
++    <string name="editor_validation_invalid_interval_range">结束日期必须不早于开始日期。</string>
++    <string name="editor_validation_expired_one_time_alarm">这个一次性闹钟已经过期。</string>
++    <string name="editor_validation_expired_interval_alarm">这个间隔闹钟没有未来触发时间。</string>
++    <string name="editor_save_failed_default">无法保存闹钟。</string>
++    <string name="editor_invalid_once_date">请输入有效的日期，格式为 YYYY-MM-DD。</string>
++    <string name="editor_invalid_interval_start_date">请输入有效的开始日期，格式为 YYYY-MM-DD。</string>
++    <string name="editor_invalid_interval_end_date">请输入有效的结束日期，格式为 YYYY-MM-DD。</string>
++    <string name="editor_invalid_interval_weeks_input">请输入正数周数。</string>
++    <string name="editor_schedule_missing_permission">闹钟已保存，但调度需要权限：%1$s</string>
++    <string name="picker_selected_content_description">%1$s 选择器已选中 %2$s</string>
++    <string name="picker_value_content_description">%1$s %2$s</string>
++
++    <string name="ringtone_picker_alarm_title">选择闹钟铃声</string>
++    <string name="ringtone_picker_default_alarm_title">选择默认闹钟铃声</string>
++
++    <string name="notification_ai_channel_name">AI 闹钟创建</string>
++    <string name="notification_ai_channel_description">后台 AI 闹钟创建的状态更新。</string>
++    <string name="notification_ai_creating_title">正在创建闹钟</string>
++    <string name="notification_ai_creating_body">AI 正在后台创建闹钟。</string>
++    <string name="notification_ai_created_title">闹钟已创建</string>
++    <string name="notification_ai_saved_title">闹钟已保存</string>
++    <string name="notification_ai_permission_needed">需要精准闹钟权限，闹钟才能可靠响铃。</string>
++    <string name="notification_ai_permission_big_text">闹钟“%1$s”已保存，但 Android 需要精准闹钟权限后才能可靠响铃。</string>
++    <string name="notification_ai_open_settings">打开设置</string>
++    <string name="notification_ai_failed_title">AI 闹钟失败</string>
++    <string name="notification_ai_missing_api_key">请先在设置中添加 OpenRouter API 密钥。</string>
++    <string name="notification_ai_missing_model">请先在设置中选择支持的模型。</string>
++    <string name="notification_ai_network_failure">网络错误：%1$s</string>
++    <string name="notification_ai_rate_limited">模型速率限制：%1$s</string>
++    <string name="notification_ai_remote_failure">OpenRouter 错误 %1$d：%2$s</string>
++    <string name="notification_ai_finished">AI 闹钟创建已结束。</string>
++
++    <string name="notification_ringing_channel_name">响铃闹钟</string>
++    <string name="notification_ringing_channel_description">正在响铃流程的闹钟通知。</string>
++    <string name="notification_ringing_default_title">闹钟</string>
++    <string name="notification_ringing_body">闹钟正在响铃</string>
++    <string name="notification_ringing_stop">停止</string>
++    <string name="notification_ringing_cleanup_failed">闹钟清理失败</string>
++</resources>
+diff --git a/app/src/main/java/com/cory/noter/ui/text/UiText.kt b/app/src/main/java/com/cory/noter/ui/text/UiText.kt
+new file mode 100644
+index 0000000..a6aa372
+--- /dev/null
++++ b/app/src/main/java/com/cory/noter/ui/text/UiText.kt
+@@ -0,0 +1,20 @@
++package com.cory.noter.ui.text
++
++import androidx.annotation.StringRes
++import androidx.compose.runtime.Composable
++import androidx.compose.ui.res.stringResource
++
++sealed interface UiText {
++    data class Resource(
++        @param:StringRes val resId: Int,
++        val args: List<Any> = emptyList(),
++    ) : UiText
++
++    data class Raw(val value: String) : UiText
++}
++
++@Composable
++fun UiText.asString(): String = when (this) {
++    is UiText.Resource -> stringResource(resId, *args.toTypedArray())
++    is UiText.Raw -> value
++}
+diff --git a/docs/superpowers/plans/2026-06-19-manual-picker-centered-i18n.md b/docs/superpowers/plans/2026-06-19-manual-picker-centered-i18n.md
+new file mode 100644
+index 0000000..9e209ea
+--- /dev/null
++++ b/docs/superpowers/plans/2026-06-19-manual-picker-centered-i18n.md
+@@ -0,0 +1,171 @@
++---
++doc_type: plan
++status: active
++implements:
++  - docs/superpowers/specs/2026-06-19-manual-picker-centered-i18n-design.md
++verified_by: []
++supersedes: []
++related:
++  - docs/superpowers/plans/2026-06-19-manual-alarm-picker-ui.md
++---
++
++# Manual Picker Centering And I18n Implementation Plan
++
++> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
++
++**Spec Path:** `docs/superpowers/specs/2026-06-19-manual-picker-centered-i18n-design.md`
++
++**Goal:** Make manual alarm wheels center-selected with faded neighbors, compact the interval `Weeks` picker layout, and move user-visible app copy into English and Chinese Android string resources.
++
++**Architecture:** Keep wheel mechanics in `AlarmEditorScreen.kt`, keep domain/ViewModel alarm behavior unchanged, and use Android resources at UI/Android adapter boundaries for static copy. Use test tags for stable tests so localized visible text does not become the only automation hook.
++
++**Tech Stack:** Kotlin, Jetpack Compose Material3, Android string resources, existing Gradle/JUnit/Compose test stack.
++
++## Global Constraints
++
++- Hour wheel values remain `0..23`; minute values remain `0..59`; interval week values remain `1..104`.
++- A wheel selection is the value aligned with the wheel center, not the last explicitly tapped item.
++- Wheel controls may still support tapping as a convenience, but tapping is not required to select a scrolled value.
++- Interval week layout is compact: the `Weeks` label and wheel share one horizontal row, and the wheel height is about two rows instead of the main time wheel height.
++- String resources must live in `app/src/main/res/values/strings.xml` for English and `app/src/main/res/values-zh/strings.xml` for Chinese.
++- Compose UI code must use `stringResource` or resource IDs for user-visible copy instead of hardcoded display strings.
++- Android notifications, notification channels, and ringtone picker titles must use `Context.getString(...)`.
++- Locale-sensitive weekday/date display inside composables must remain driven by `LocalConfiguration`, not `Locale.getDefault()`.
++- Do not change alarm scheduling, Room schema, AI prompt/parser/tool schema, model catalog, ringtone behavior, or repeat-rule domain contracts.
++
++---
++
++## File Map
++
++- Modify: `app/src/main/java/com/cory/noter/ui/editor/AlarmEditorScreen.kt`
++- Modify: `app/src/androidTest/java/com/cory/noter/AlarmEditorSmokeTest.kt`
++- Modify: `app/src/main/res/values/strings.xml`
++- Create: `app/src/main/res/values-zh/strings.xml`
++- Modify: `app/src/main/java/com/cory/noter/ui/ai/AiCreateScreen.kt`
++- Modify: `app/src/main/java/com/cory/noter/ui/alarm_list/AlarmListScreen.kt`
++- Modify: `app/src/main/java/com/cory/noter/ui/settings/SettingsScreen.kt`
++- Modify: `app/src/main/java/com/cory/noter/MainActivity.kt`
++- Modify: `app/src/main/java/com/cory/noter/notifications/AndroidAiCreateResultNotifier.kt`
++- Test: `app/src/test/java/com/cory/noter/ui/editor/AlarmEditorViewModelTest.kt`
++- Test: `app/src/androidTest/java/com/cory/noter/AlarmListSmokeTest.kt`
++- Test: `app/src/androidTest/java/com/cory/noter/SettingsSmokeTest.kt`
++- Create: `artifacts/2026-06-19-manual-picker-centered-i18n/verification.md`
++
++## Tasks
++
++### Task 1: Center-Selected Wheel Interaction
++
++**Files:**
++- Modify: `app/src/main/java/com/cory/noter/ui/editor/AlarmEditorScreen.kt`
++- Modify: `app/src/androidTest/java/com/cory/noter/AlarmEditorSmokeTest.kt`
++
++**Interfaces:**
++- Consumes: `NumberWheelPicker(label, values, selectedValue, onValueSelected, tagPrefix, displayText, modifier)`
++- Produces: a wheel that calls `onValueSelected(centerValue)` when scrolling settles; selected row test tags stay as `$tagPrefix-selected-$displayText`.
++
++- [ ] Write a failing Compose smoke assertion that scrolls `HourWheel` and saves without clicking `HourWheel-06`; expected saved alarm hour is the centered scrolled value.
++- [ ] Run `./gradlew connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.cory.noter.AlarmEditorSmokeTest` when a device/emulator is available and record the expected failure; if no device is available, run `./gradlew assembleDebugAndroidTest` and record that runtime red evidence is deferred.
++- [ ] Update `NumberWheelPicker` to use a stable item height, fixed viewport height, center padding/spacers as needed, and a `LaunchedEffect`/snapshot observation that maps the viewport center to a value and invokes `onValueSelected`.
++- [ ] Style rows by distance from `selectedValue`: center uses the strongest typography/color, immediate neighbors use muted color/alpha, farther rows are more faded.
++- [ ] Keep click selection as an optional convenience.
++- [ ] Run focused editor tests or androidTest compilation and record evidence.
++
++### Task 2: Compact Interval Weeks Layout
++
++**Files:**
++- Modify: `app/src/main/java/com/cory/noter/ui/editor/AlarmEditorScreen.kt`
++- Modify: `app/src/androidTest/java/com/cory/noter/AlarmEditorSmokeTest.kt`
++
++**Interfaces:**
++- Consumes: the Task 1 wheel behavior.
++- Produces: `IntervalWeeksWheel` rendered in a row next to the `Weeks` label with compact height around two numeric rows.
++
++- [ ] Write a failing smoke assertion that interval mode shows `IntervalWeeksRow`, `IntervalWeeksLabel`, and `IntervalWeeksWheel` together, then scrolls the compact wheel to a value without clicking and saves it.
++- [ ] Run focused smoke compilation or connected smoke red evidence.
++- [ ] Add wheel parameters for `itemHeight`, `visibleItemCount`, and `showLabel`, keeping the default time wheel taller and interval wheel compact.
++- [ ] Replace the current standalone interval `NumberWheelPicker(label = "Weeks", ...)` block with a horizontal row: text label on the left, compact wheel on the right.
++- [ ] Add stable test tags for `IntervalWeeksRow` and `IntervalWeeksLabel`.
++- [ ] Run focused verification and record evidence.
++
++### Task 3: Resource-Back Compose Screens
++
++**Files:**
++- Modify: `app/src/main/res/values/strings.xml`
++- Create: `app/src/main/res/values-zh/strings.xml`
++- Modify: `app/src/main/java/com/cory/noter/ui/editor/AlarmEditorScreen.kt`
++- Modify: `app/src/main/java/com/cory/noter/ui/ai/AiCreateScreen.kt`
++- Modify: `app/src/main/java/com/cory/noter/ui/alarm_list/AlarmListScreen.kt`
++- Modify: `app/src/main/java/com/cory/noter/ui/settings/SettingsScreen.kt`
++- Modify: `app/src/androidTest/java/com/cory/noter/AlarmListSmokeTest.kt`
++- Modify: `app/src/androidTest/java/com/cory/noter/SettingsSmokeTest.kt`
++
++**Interfaces:**
++- Produces: English and Chinese string resource keys for all static user-visible screen text in the four Compose screens.
++
++- [ ] Write a failing resource parity proof using `python3` or shell to compare `name="..."` keys in `values/strings.xml` and `values-zh/strings.xml`; initially it should fail because `values-zh/strings.xml` is absent.
++- [ ] Add English resource keys for editor, AI create, alarm list, settings, permission row status text, date dialog buttons, and validation labels shown directly by screens.
++- [ ] Add matching Chinese translations in `values-zh/strings.xml`.
++- [ ] Replace hardcoded static display strings in the four Compose screens with `stringResource(R.string...)`.
++- [ ] Keep dynamic data such as alarm titles, model IDs, ringtone URIs, and remote/provider reasons as data.
++- [ ] Update tests that find visible English text to either use resource-backed English defaults or stable test tags where locale-specific text would make tests brittle.
++- [ ] Run resource parity proof and focused androidTest compilation.
++
++### Task 4: Resource-Back Android Adapter Text
++
++**Files:**
++- Modify: `app/src/main/res/values/strings.xml`
++- Modify: `app/src/main/res/values-zh/strings.xml`
++- Modify: `app/src/main/java/com/cory/noter/MainActivity.kt`
++- Modify: `app/src/main/java/com/cory/noter/notifications/AndroidAiCreateResultNotifier.kt`
++- Optionally Modify: `app/src/main/java/com/cory/noter/alarm/RingingService.kt`
++
++**Interfaces:**
++- Produces: ringtone picker titles, notification titles, notification body text, action labels, and notification channel labels pulled from resources.
++
++- [ ] Add missing English/Chinese resources for ringtone picker titles and notification copy.
++- [ ] Replace hardcoded ringtone picker titles in `MainActivity.kt` with `context.getString(...)` inside the composable route where `LocalContext.current` is available.
++- [ ] Replace hardcoded notification copy in `AndroidAiCreateResultNotifier.kt` with `context.getString(...)`, using formatted string resources for dynamic title/permission/reason values.
++- [ ] Replace hardcoded ringing notification/channel copy in `RingingService.kt` if it is user-visible and can be localized without changing service behavior.
++- [ ] Run `./gradlew testDebugUnitTest lintDebug assembleDebug` and record evidence.
++
++### Task 5: Final Review, Verification, And Docs Sync
++
++**Files:**
++- Modify: `docs/superpowers/plans/2026-06-19-manual-picker-centered-i18n.md`
++- Modify: `PROGRESS.md`
++- Modify: `NEXT_STEP.md`
++- Optionally Modify: `MEMORY.md`
++- Create/Modify: `artifacts/2026-06-19-manual-picker-centered-i18n/verification.md`
++
++**Interfaces:**
++- Produces: current evidence paths and handoff truth.
++
++- [ ] Run `./gradlew testDebugUnitTest --tests com.cory.noter.ui.editor.AlarmEditorViewModelTest`.
++- [ ] Run `./gradlew testDebugUnitTest lintDebug assembleDebug`.
++- [ ] Run `./gradlew assembleDebugAndroidTest`.
++- [ ] Run connected `AlarmEditorSmokeTest` if a device or emulator is available.
++- [ ] Run `git diff --check`.
++- [ ] Run a final hardcoded UI string scan for Compose/static notification copy and record any intentional exclusions.
++- [ ] Update this checklist and `verified_by` with evidence paths.
++- [ ] Update `PROGRESS.md`, `NEXT_STEP.md`, and `MEMORY.md` if a stable reusable lesson was learned.
++
++## Execution Truth
++
++```yaml
++schema: harness-execution-truth.v1
++claims:
++  - claim_id: manual-picker-centered-i18n.frozen-contracts
++    source_spec: docs/superpowers/specs/2026-06-19-manual-picker-centered-i18n-design.md
++    source_anchor: frozen_contracts
++    source_hash: pending-until-final-sync
++```
++
++## Completion Checklist
++
++- [ ] Spec requirements are covered.
++- [ ] Center-selected wheel behavior has fresh evidence.
++- [ ] Compact interval `Weeks` layout has fresh evidence.
++- [ ] English and Chinese resources have matching keys.
++- [ ] Verification commands were run fresh.
++- [ ] Evidence location is populated or explicitly noted.
++- [ ] Repository state docs are updated.
+diff --git a/docs/superpowers/specs/2026-06-19-manual-picker-centered-i18n-design.md b/docs/superpowers/specs/2026-06-19-manual-picker-centered-i18n-design.md
+new file mode 100644
+index 0000000..81df558
+--- /dev/null
++++ b/docs/superpowers/specs/2026-06-19-manual-picker-centered-i18n-design.md
+@@ -0,0 +1,84 @@
++---
++doc_type: spec
++status: approved
++created: 2026-06-19
++supersedes:
++  - artifacts/2026-06-19-manual-alarm-picker-ui/draft.md
++related:
++  - docs/superpowers/plans/2026-06-19-manual-alarm-picker-ui.md
++  - app/src/main/java/com/cory/noter/ui/editor/AlarmEditorScreen.kt
++  - app/src/main/res/values/strings.xml
++---
++
++# Manual Picker Centering And I18n Spec
++
++## Problem
++
++The manual alarm editor now uses wheel controls, but the interaction still behaves like a scrollable list whose visible item must be tapped manually. A phone alarm editor should keep the center item selected automatically, with nearby values fading away from the center. In interval repeat mode, the `Weeks` wheel also consumes too much vertical space because it sits below the interval date controls.
++
++The app also has user-visible English strings hardcoded in Compose screens, notifications, and guidance rows. Future text changes need to be replaceable by locale, and the first supported locales are English and Chinese.
++
++## Success
++
++- Manual hour, minute, and interval week wheels auto-select the centered value after scrolling without requiring a tap on the number.
++- Wheel center values are visually strongest, with neighboring values progressively muted above and below the center.
++- Interval mode places the compact `Weeks` wheel to the right of the `Weeks` label, not as a large block under the dates.
++- The interval week wheel shows roughly two numeric rows of height, with the centered number selected and surrounding numbers softened.
++- User-visible app text is backed by Android string resources for English and Chinese.
++- Existing alarm domain, scheduling, persistence, AI parser, and model behavior are unchanged.
++
++## Out Of Scope
++
++- Adding a new language beyond English and Chinese.
++- Adding an in-app language picker. Android resource locale selection is sufficient.
++- Changing alarm recurrence semantics, Room schema, OpenRouter prompts/tool schemas, or ringtone behavior.
++- Rewriting non-user-facing diagnostic, log, serialization, database, or network protocol strings.
++- Localizing model-generated or remote error reason text itself. The local prefix around such text should be resource-backed where it is shown to users.
++
++## Critical Paths
++
++1. Create and edit a manual alarm, scroll hour/minute wheels, and save the centered selected values.
++2. Switch to interval repeat mode, scroll the compact `Weeks` wheel beside its label, choose weekdays/dates, and save `intervalWeeks`.
++3. Render app screens and notifications in English by default and Chinese when the device locale resolves to `zh`.
++
++## Frozen Contracts
++<!-- drift_anchor: frozen_contracts -->
++
++- Hour wheel values remain `0..23`; minute values remain `0..59`; interval week values remain `1..104`.
++- A wheel selection is the value aligned with the wheel center, not the last explicitly tapped item.
++- Wheel controls may still support tapping as a convenience, but tapping is not required to select a scrolled value.
++- Interval week layout is compact: the `Weeks` label and wheel share one horizontal row, and the wheel height is about two rows instead of the main time wheel height.
++- String resources must live in `app/src/main/res/values/strings.xml` for English and `app/src/main/res/values-zh/strings.xml` for Chinese.
++- Compose UI code must use `stringResource` or resource IDs for user-visible copy instead of hardcoded display strings.
++- Android notifications, notification channels, and ringtone picker titles must use `Context.getString(...)`.
++- Locale-sensitive weekday/date display inside composables must remain driven by `LocalConfiguration`, not `Locale.getDefault()`.
++
++## Architecture Invariants
++
++- Wheel UI remains editor-local. It should not leak picker-specific state into the domain layer.
++- ViewModels should not depend on Android `Context` merely to format static UI labels; static labels belong in resources at the composable or Android adapter boundary.
++- Dynamic domain data such as alarm titles, ringtone URIs, model IDs, and remote/provider reasons can remain plain data passed through the UI.
++- Existing test tags can remain stable even when visible text moves to resources.
++
++## Failure Policy
++
++- Invalid picker values should fail fast at the existing ViewModel picker boundary.
++- Missing resource keys should fail at build time.
++- Do not add broad fallback text paths that silently hide missing localization.
++- If a user-facing error includes a remote or exception reason, keep the local surrounding message resource-backed and append the raw reason explicitly.
++
++## Acceptance
++<!-- drift_anchor: acceptance -->
++
++- A Compose/instrumentation test proves scrolling a wheel updates the selected hour/minute without clicking the numeric row.
++- A Compose/instrumentation test proves interval mode shows a compact `Weeks` row and can select an interval week count through the wheel.
++- A resource test proves required English and Chinese string resource files exist and contain matching keys for app UI labels introduced by this scope.
++- Focused editor ViewModel tests still pass.
++- `./gradlew testDebugUnitTest lintDebug assembleDebug` passes.
++- `git diff --check` passes.
++- `PROGRESS.md`, `NEXT_STEP.md`, this spec's plan, and artifact evidence are synchronized before handoff.
++
++## Deferred Decisions
++
++- Add an explicit in-app language picker only after the system locale resource approach is verified.
++- Add locale-aware 12-hour time display only after the 24-hour centered wheel remains stable.

@@ -1,5 +1,6 @@
 package com.cory.noter.ui.alarm_list
 
+import android.os.Build
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -26,8 +27,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.cory.noter.R
+import com.cory.noter.domain.alarm.RepeatRule
+import com.cory.noter.ui.text.asString
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.TextStyle
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,7 +61,7 @@ fun AlarmListScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Text(
-                    text = "Create alarm",
+                    text = stringResource(R.string.alarm_list_create_alarm),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -61,7 +72,7 @@ fun AlarmListScreen(
                         onOpenManualCreate()
                     },
                 ) {
-                    Text(text = "Manual")
+                    Text(text = stringResource(R.string.alarm_list_create_manual))
                 }
                 Button(
                     modifier = Modifier.fillMaxWidth(),
@@ -70,7 +81,7 @@ fun AlarmListScreen(
                         onOpenAiCreate()
                     },
                 ) {
-                    Text(text = "AI create")
+                    Text(text = stringResource(R.string.alarm_list_create_ai))
                 }
             }
         }
@@ -80,10 +91,10 @@ fun AlarmListScreen(
         modifier = modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text(text = "Alarms") },
+                title = { Text(text = stringResource(R.string.alarm_list_title)) },
                 actions = {
                     TextButton(onClick = onOpenSettings) {
-                        Text(text = "Settings")
+                        Text(text = stringResource(R.string.settings_title))
                     }
                 },
             )
@@ -104,11 +115,11 @@ fun AlarmListScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
-                    text = "No alarms yet",
+                    text = stringResource(R.string.alarm_list_empty_title),
                     style = MaterialTheme.typography.headlineSmall,
                 )
                 Text(
-                    text = "Create one manually or ask AI to draft it for you.",
+                    text = stringResource(R.string.alarm_list_empty_body),
                     modifier = Modifier.padding(top = 8.dp),
                     style = MaterialTheme.typography.bodyMedium,
                 )
@@ -134,7 +145,7 @@ fun AlarmListScreen(
                 item {
                     state.errorMessage?.let { errorMessage ->
                         Text(
-                            text = errorMessage,
+                            text = errorMessage.asString(),
                             color = MaterialTheme.colorScheme.error,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                         )
@@ -152,6 +163,10 @@ private fun AlarmRow(
     onEditAlarm: (Long) -> Unit,
     onDeleteAlarm: (Long) -> Unit,
 ) {
+    val locale = currentConfigurationLocale()
+    val nextTriggerText = formatNextTrigger(alarm.nextTriggerAtMillis, locale)
+    val repeatLabel = alarm.repeatRule.toLabel(locale)
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -173,11 +188,11 @@ private fun AlarmRow(
                         fontWeight = FontWeight.SemiBold,
                     )
                     Text(
-                        text = "Next: ${alarm.nextTriggerText}",
+                        text = stringResource(R.string.alarm_list_next_format, nextTriggerText),
                         style = MaterialTheme.typography.bodyMedium,
                     )
                     Text(
-                        text = "Repeat: ${alarm.repeatLabel}",
+                        text = stringResource(R.string.alarm_list_repeat_format, repeatLabel),
                         style = MaterialTheme.typography.bodySmall,
                     )
                 }
@@ -190,12 +205,57 @@ private fun AlarmRow(
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TextButton(onClick = { onEditAlarm(alarm.id) }) {
-                    Text(text = "Edit")
+                    Text(text = stringResource(R.string.alarm_list_edit))
                 }
                 TextButton(onClick = { onDeleteAlarm(alarm.id) }) {
-                    Text(text = "Delete")
+                    Text(text = stringResource(R.string.common_delete))
                 }
             }
         }
     }
 }
+
+@Composable
+private fun currentConfigurationLocale(): Locale {
+    val configuration = LocalConfiguration.current
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+        configuration.locales[0]
+    } else {
+        @Suppress("DEPRECATION")
+        configuration.locale
+    }
+}
+
+@Composable
+private fun formatNextTrigger(
+    nextTriggerAtMillis: Long?,
+    locale: Locale,
+): String {
+    if (nextTriggerAtMillis == null) {
+        return stringResource(R.string.alarm_list_not_scheduled)
+    }
+
+    val formatter = DateTimeFormatter.ofPattern("MMM d, HH:mm", locale)
+    return formatter.format(
+        Instant.ofEpochMilli(nextTriggerAtMillis).atZone(ZoneId.systemDefault()),
+    )
+}
+
+@Composable
+private fun RepeatRule.toLabel(locale: Locale): String = when (this) {
+    is RepeatRule.Once -> stringResource(R.string.alarm_list_repeat_once)
+    RepeatRule.Daily -> stringResource(R.string.alarm_list_repeat_daily)
+    RepeatRule.Weekdays -> stringResource(R.string.alarm_list_repeat_weekdays)
+    is RepeatRule.CustomWeekdays -> days.toWeekdayLabel(locale)
+    is RepeatRule.WeeklyInterval -> stringResource(
+        R.string.alarm_list_repeat_weekly_interval_format,
+        intervalWeeks,
+        days.toWeekdayLabel(locale),
+    )
+}
+
+private fun Set<java.time.DayOfWeek>.toWeekdayLabel(locale: Locale): String =
+    sortedBy { it.value }
+        .joinToString(", ") { day ->
+            day.getDisplayName(TextStyle.SHORT, locale)
+        }

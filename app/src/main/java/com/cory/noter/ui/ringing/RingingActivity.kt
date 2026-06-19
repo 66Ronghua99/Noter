@@ -11,6 +11,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import com.cory.noter.R
 import com.cory.noter.alarm.RingingService
 
 class RingingActivity : ComponentActivity() {
@@ -49,7 +50,10 @@ class RingingActivity : ComponentActivity() {
     )
 
     private fun updateFromIntent(intent: Intent?) {
-        currentAlarm = RingingAlarmState.fromIntent(intent)
+        currentAlarm = RingingAlarmState.fromIntent(
+            intent = intent,
+            defaultTitle = getString(R.string.notification_ringing_default_title),
+        )
     }
 
     companion object {
@@ -70,16 +74,19 @@ class RingingActivity : ComponentActivity() {
 
 data class RingingAlarmState(
     val alarmId: Long = -1L,
-    val title: String = "Alarm",
+    val title: String = "",
 ) {
     companion object {
         private const val EXTRA_ALARM_ID = "alarm_id"
         private const val EXTRA_ALARM_TITLE = "alarm_title"
         private const val INVALID_ALARM_ID = -1L
 
-        fun fromIntent(intent: Intent?): RingingAlarmState = RingingAlarmState(
+        fun fromIntent(
+            intent: Intent?,
+            defaultTitle: String,
+        ): RingingAlarmState = RingingAlarmState(
             alarmId = intent?.getLongExtra(EXTRA_ALARM_ID, INVALID_ALARM_ID) ?: INVALID_ALARM_ID,
-            title = intent?.getStringExtra(EXTRA_ALARM_TITLE).orEmpty().ifBlank { "Alarm" },
+            title = intent?.getStringExtra(EXTRA_ALARM_TITLE).orEmpty().ifBlank { defaultTitle },
         )
     }
 }

@@ -2,16 +2,13 @@ package com.cory.noter.ui.alarm_list
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.cory.noter.R
 import com.cory.noter.alarm.AlarmSchedulingUseCase
 import com.cory.noter.alarm.ScheduleResult
 import com.cory.noter.data.alarm.AlarmRepository
 import com.cory.noter.domain.alarm.Alarm
 import com.cory.noter.domain.alarm.RepeatRule
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.time.format.TextStyle
-import java.util.Locale
+import com.cory.noter.ui.text.UiText
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,14 +18,14 @@ import kotlinx.coroutines.launch
 
 data class AlarmListUiState(
     val alarms: List<AlarmListItemUiModel> = emptyList(),
-    val errorMessage: String? = null,
+    val errorMessage: UiText? = null,
 )
 
 data class AlarmListItemUiModel(
     val id: Long,
     val title: String,
-    val nextTriggerText: String,
-    val repeatLabel: String,
+    val nextTriggerAtMillis: Long?,
+    val repeatRule: RepeatRule,
     val enabled: Boolean,
 )
 
@@ -64,7 +61,7 @@ class AlarmListViewModel(
 
             handleScheduleResult(
                 result = schedulingUseCase.syncSchedule(updatedAlarm),
-                missingPermissionPrefix = "Alarm saved but scheduling needs permission",
+                missingPermissionResId = R.string.alarm_list_schedule_permission_saved_error,
             )
         }
     }
@@ -74,14 +71,14 @@ class AlarmListViewModel(
             repository.delete(alarmId)
             handleScheduleResult(
                 result = schedulingUseCase.cancel(alarmId),
-                missingPermissionPrefix = "Alarm deleted but scheduler reported a permission issue",
+                missingPermissionResId = R.string.alarm_list_schedule_permission_deleted_error,
             )
         }
     }
 
     private fun handleScheduleResult(
         result: ScheduleResult,
-        missingPermissionPrefix: String,
+        missingPermissionResId: Int,
     ) {
         val errorMessage = when (result) {
             ScheduleResult.Scheduled,
@@ -89,10 +86,10 @@ class AlarmListViewModel(
             -> null
 
             is ScheduleResult.MissingPermission -> {
-                "$missingPermissionPrefix: ${result.permission}"
+                UiText.Resource(missingPermissionResId, listOf(result.permission))
             }
 
-            is ScheduleResult.Failed -> result.reason
+            is ScheduleResult.Failed -> UiText.Raw(result.reason)
         }
 
         mutableUiState.update { it.copy(errorMessage = errorMessage) }
@@ -101,35 +98,8 @@ class AlarmListViewModel(
     private fun toUiModel(alarm: Alarm): AlarmListItemUiModel = AlarmListItemUiModel(
         id = alarm.id,
         title = alarm.title,
-        nextTriggerText = formatNextTrigger(alarm.nextTriggerAtMillis),
-        repeatLabel = alarm.repeatRule.toLabel(),
+        nextTriggerAtMillis = alarm.nextTriggerAtMillis,
+        repeatRule = alarm.repeatRule,
         enabled = alarm.enabled,
     )
-
-    private fun formatNextTrigger(nextTriggerAtMillis: Long?): String {
-        if (nextTriggerAtMillis == null) {
-            return "Not scheduled"
-        }
-
-        val formatter = DateTimeFormatter.ofPattern("MMM d, HH:mm", Locale.getDefault())
-        return formatter.format(
-            Instant.ofEpochMilli(nextTriggerAtMillis).atZone(ZoneId.systemDefault()),
-        )
-    }
-
-    private fun RepeatRule.toLabel(): String = when (this) {
-        is RepeatRule.Once -> "Once"
-        RepeatRule.Daily -> "Daily"
-        RepeatRule.Weekdays -> "Weekdays"
-        is RepeatRule.CustomWeekdays -> days
-            .sortedBy { it.value }
-            .joinToString(", ") { day ->
-                day.getDisplayName(TextStyle.SHORT, Locale.getDefault())
-            }
-        is RepeatRule.WeeklyInterval -> "Every $intervalWeeks weeks: " + days
-            .sortedBy { it.value }
-            .joinToString(", ") { day ->
-                day.getDisplayName(TextStyle.SHORT, Locale.getDefault())
-            }
-    }
 }

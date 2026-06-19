@@ -1,5 +1,6 @@
 package com.cory.noter.ui.editor
 
+import com.cory.noter.R
 import com.cory.noter.ai.OpenRouterModel
 import com.cory.noter.alarm.AlarmSchedulingUseCase
 import com.cory.noter.alarm.FakeAlarmScheduler
@@ -9,6 +10,7 @@ import com.cory.noter.domain.alarm.AlarmValidation
 import com.cory.noter.domain.alarm.RepeatRule
 import com.cory.noter.ui.FakeAlarmRepository
 import com.cory.noter.ui.MainDispatcherRule
+import com.cory.noter.ui.text.UiText
 import com.google.common.truth.Truth.assertThat
 import java.time.Clock
 import java.time.DayOfWeek
@@ -237,6 +239,11 @@ class AlarmEditorViewModelTest {
         assertThat(viewModel.uiState.value.savedAlarmId).isNull()
         assertThat(viewModel.uiState.value.exactAlarmPermissionRequired).isTrue()
         assertThat(viewModel.uiState.value.errorMessage)
-            .contains(android.Manifest.permission.SCHEDULE_EXACT_ALARM)
+            .isEqualTo(
+                UiText.Resource(
+                    R.string.editor_schedule_missing_permission,
+                    listOf(android.Manifest.permission.SCHEDULE_EXACT_ALARM),
+                ),
+            )
     }
 }

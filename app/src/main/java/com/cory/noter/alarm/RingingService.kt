@@ -13,6 +13,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
+import com.cory.noter.R
 import com.cory.noter.di.appContainer
 import com.cory.noter.ui.ringing.RingingActivity
 import kotlinx.coroutines.CoroutineScope
@@ -42,7 +43,9 @@ class RingingService : Service() {
         return when (intent?.action) {
             ACTION_START_RINGING -> {
                 val alarmId = intent.getLongExtra(EXTRA_ALARM_ID, INVALID_ALARM_ID)
-                val alarmTitle = intent.getStringExtra(EXTRA_ALARM_TITLE).orEmpty().ifBlank { "Alarm" }
+                val alarmTitle = intent.getStringExtra(EXTRA_ALARM_TITLE)
+                    .orEmpty()
+                    .ifBlank { getString(R.string.notification_ringing_default_title) }
                 val ringtoneUri = intent.getStringExtra(EXTRA_RINGTONE_URI).orEmpty()
                 if (alarmId == INVALID_ALARM_ID || ringtoneUri.isBlank()) {
                     stopSelf(startId)
@@ -113,7 +116,7 @@ class RingingService : Service() {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
             .setContentTitle(alarmTitle)
-            .setContentText("Alarm is ringing")
+            .setContentText(getString(R.string.notification_ringing_body))
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setOngoing(true)
@@ -130,7 +133,7 @@ class RingingService : Service() {
             }
             .addAction(
                 0,
-                "Stop",
+                getString(R.string.notification_ringing_stop),
                 PendingIntent.getService(
                     this,
                     requestCodeFor(alarmId),
@@ -148,7 +151,7 @@ class RingingService : Service() {
     private fun buildCleanupFailureNotification(reason: String): android.app.Notification =
         NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.stat_notify_error)
-            .setContentTitle("Alarm cleanup failed")
+            .setContentTitle(getString(R.string.notification_ringing_cleanup_failed))
             .setContentText(reason)
             .setStyle(NotificationCompat.BigTextStyle().bigText(reason))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -178,10 +181,10 @@ class RingingService : Service() {
         notificationManager.createNotificationChannel(
             NotificationChannel(
                 CHANNEL_ID,
-                "Ringing alarms",
+                getString(R.string.notification_ringing_channel_name),
                 NotificationManager.IMPORTANCE_HIGH,
             ).apply {
-                description = "Alarm notifications for active ringing flows."
+                description = getString(R.string.notification_ringing_channel_description)
                 setBypassDnd(true)
                 lockscreenVisibility = NotificationCompat.VISIBILITY_PUBLIC
             },

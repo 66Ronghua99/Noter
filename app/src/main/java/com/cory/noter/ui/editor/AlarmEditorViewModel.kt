@@ -2,6 +2,7 @@ package com.cory.noter.ui.editor
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.cory.noter.R
 import com.cory.noter.alarm.AlarmSchedulingUseCase
 import com.cory.noter.alarm.ScheduleResult
 import com.cory.noter.data.alarm.AlarmDraft
@@ -11,6 +12,7 @@ import com.cory.noter.domain.alarm.Alarm
 import com.cory.noter.domain.alarm.AlarmSource
 import com.cory.noter.domain.alarm.AlarmValidation
 import com.cory.noter.domain.alarm.RepeatRule
+import com.cory.noter.ui.text.UiText
 import java.time.Clock
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -44,7 +46,7 @@ data class AlarmEditorUiState(
     val enabled: Boolean = true,
     val isExisting: Boolean = false,
     val validationErrors: List<AlarmValidation.Error> = emptyList(),
-    val errorMessage: String? = null,
+    val errorMessage: UiText? = null,
     val exactAlarmPermissionRequired: Boolean = false,
     val savedAlarmId: Long? = null,
     val deleted: Boolean = false,
@@ -323,7 +325,11 @@ class AlarmEditorViewModel(
                 }
             }.getOrElse { error ->
                 mutableUiState.update {
-                    it.copy(errorMessage = error.message ?: "Unable to save alarm.")
+                    it.copy(
+                        errorMessage = error.message
+                            ?.let(UiText::Raw)
+                            ?: UiText.Resource(R.string.editor_save_failed_default),
+                    )
                 }
                 return@launch
             }
@@ -362,7 +368,7 @@ class AlarmEditorViewModel(
             val onceDate = runCatching { LocalDate.parse(state.onceDateText) }.getOrNull()
             if (onceDate == null) {
                 mutableUiState.update {
-                    it.copy(errorMessage = "Enter a valid date in YYYY-MM-DD format.")
+                    it.copy(errorMessage = UiText.Resource(R.string.editor_invalid_once_date))
                 }
                 null
             } else {
@@ -380,7 +386,7 @@ class AlarmEditorViewModel(
         val startDate = runCatching { LocalDate.parse(state.intervalStartDateText) }.getOrNull()
         if (startDate == null) {
             mutableUiState.update {
-                it.copy(errorMessage = "Enter a valid start date in YYYY-MM-DD format.")
+                it.copy(errorMessage = UiText.Resource(R.string.editor_invalid_interval_start_date))
             }
             return null
         }
@@ -388,7 +394,7 @@ class AlarmEditorViewModel(
         val endDate = runCatching { LocalDate.parse(state.intervalEndDateText) }.getOrNull()
         if (endDate == null) {
             mutableUiState.update {
-                it.copy(errorMessage = "Enter a valid end date in YYYY-MM-DD format.")
+                it.copy(errorMessage = UiText.Resource(R.string.editor_invalid_interval_end_date))
             }
             return null
         }
@@ -396,14 +402,14 @@ class AlarmEditorViewModel(
         val intervalWeeks = state.intervalWeeksText.toIntOrNull()
         if (intervalWeeks == null || intervalWeeks <= 0) {
             mutableUiState.update {
-                it.copy(errorMessage = "Enter a positive number of weeks.")
+                it.copy(errorMessage = UiText.Resource(R.string.editor_invalid_interval_weeks_input))
             }
             return null
         }
 
         if (endDate.isBefore(startDate)) {
             mutableUiState.update {
-                it.copy(errorMessage = "End date must be on or after start date.")
+                it.copy(errorMessage = UiText.Resource(R.string.editor_validation_invalid_interval_range))
             }
             return null
         }
@@ -424,12 +430,15 @@ class AlarmEditorViewModel(
         is RepeatRule.WeeklyInterval -> EditorRepeatOption.INTERVAL
     }
 
-    private fun ScheduleResult.toEditorMessage(): String? = when (this) {
+    private fun ScheduleResult.toEditorMessage(): UiText? = when (this) {
         ScheduleResult.Scheduled,
         ScheduleResult.Cancelled,
         -> null
 
-        is ScheduleResult.MissingPermission -> "Alarm saved but scheduling needs permission: $permission"
-        is ScheduleResult.Failed -> reason
+        is ScheduleResult.MissingPermission -> UiText.Resource(
+            R.string.editor_schedule_missing_permission,
+            listOf(permission),
+        )
+        is ScheduleResult.Failed -> UiText.Raw(reason)
     }
 }

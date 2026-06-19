@@ -2,9 +2,12 @@ package com.cory.noter.ui.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.annotation.StringRes
+import com.cory.noter.R
 import com.cory.noter.ai.OpenRouterModel
 import com.cory.noter.data.settings.SettingsRepository
 import com.cory.noter.permissions.PermissionStatusReader
+import com.cory.noter.ui.text.UiText
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,10 +17,10 @@ import kotlinx.coroutines.launch
 
 data class PermissionGuidanceUiModel(
     val id: String,
-    val title: String,
+    @param:StringRes val titleResId: Int,
     val granted: Boolean,
-    val summary: String,
-    val actionLabel: String?,
+    @param:StringRes val summaryResId: Int,
+    @param:StringRes val actionLabelResId: Int?,
 )
 
 data class SettingsUiState(
@@ -26,7 +29,7 @@ data class SettingsUiState(
     val defaultRingtoneUri: String = "",
     val modelOptions: List<String> = OpenRouterModel.builtInIds,
     val permissionRows: List<PermissionGuidanceUiModel> = emptyList(),
-    val errorMessage: String? = null,
+    val errorMessage: UiText? = null,
 )
 
 class SettingsViewModel(
@@ -76,7 +79,7 @@ class SettingsViewModel(
         viewModelScope.launch {
             val result = settingsRepository.setOpenRouterApiKey(uiState.value.openRouterApiKey)
             mutableUiState.update {
-                it.copy(errorMessage = result.exceptionOrNull()?.message)
+                it.copy(errorMessage = result.exceptionOrNull()?.message?.let(UiText::Raw))
             }
         }
     }
@@ -85,7 +88,7 @@ class SettingsViewModel(
         viewModelScope.launch {
             val result = settingsRepository.setSelectedModel(modelId)
             mutableUiState.update {
-                it.copy(errorMessage = result.exceptionOrNull()?.message)
+                it.copy(errorMessage = result.exceptionOrNull()?.message?.let(UiText::Raw))
             }
         }
     }
@@ -94,7 +97,7 @@ class SettingsViewModel(
         viewModelScope.launch {
             val result = settingsRepository.setDefaultRingtoneUri(ringtoneUri)
             mutableUiState.update {
-                it.copy(errorMessage = result.exceptionOrNull()?.message)
+                it.copy(errorMessage = result.exceptionOrNull()?.message?.let(UiText::Raw))
             }
         }
     }
@@ -102,24 +105,24 @@ class SettingsViewModel(
     private fun buildPermissionRows(): List<PermissionGuidanceUiModel> = listOf(
         PermissionGuidanceUiModel(
             id = "notifications",
-            title = "Notifications",
+            titleResId = R.string.settings_permission_notifications_title,
             granted = notificationPermissionProvider(),
-            summary = "Needed for alarm alerts on Android 13 and later.",
-            actionLabel = "Allow notifications",
+            summaryResId = R.string.settings_permission_notifications_summary,
+            actionLabelResId = R.string.settings_permission_notifications_action,
         ),
         PermissionGuidanceUiModel(
             id = "exact_alarms",
-            title = "Exact alarms",
+            titleResId = R.string.settings_permission_exact_alarms_title,
             granted = exactAlarmPermissionReader.canScheduleExactAlarms(),
-            summary = "Needed for reliable alarm delivery at the exact minute.",
-            actionLabel = "Open exact alarm settings",
+            summaryResId = R.string.settings_permission_exact_alarms_summary,
+            actionLabelResId = R.string.settings_permission_exact_alarms_action,
         ),
         PermissionGuidanceUiModel(
             id = "battery_optimization",
-            title = "Battery optimization",
+            titleResId = R.string.settings_permission_battery_title,
             granted = batteryOptimizationIgnoredProvider(),
-            summary = "Helps the app keep alarms reliable in the background.",
-            actionLabel = "Open battery settings",
+            summaryResId = R.string.settings_permission_battery_summary,
+            actionLabelResId = R.string.settings_permission_battery_action,
         ),
     )
 }
