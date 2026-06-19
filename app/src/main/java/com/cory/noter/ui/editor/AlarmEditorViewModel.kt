@@ -38,7 +38,7 @@ data class AlarmEditorUiState(
     val onceDateText: String = "",
     val intervalStartDateText: String = "",
     val intervalEndDateText: String = "",
-    val intervalWeeksText: String = "2",
+    val intervalWeeksText: String = "1",
     val customWeekdays: Set<DayOfWeek> = emptySet(),
     val ringtoneUri: String = "",
     val enabled: Boolean = true,
@@ -182,9 +182,22 @@ class AlarmEditorViewModel(
     }
 
     fun onIntervalStartDateChanged(intervalStartDateText: String) {
-        mutableUiState.update {
-            it.copy(
+        mutableUiState.update { current ->
+            val selectedStartDate = runCatching { LocalDate.parse(intervalStartDateText) }.getOrNull()
+            val currentEndDate = runCatching { LocalDate.parse(current.intervalEndDateText) }.getOrNull()
+            val nextEndDateText = if (
+                selectedStartDate != null &&
+                currentEndDate != null &&
+                selectedStartDate.isAfter(currentEndDate)
+            ) {
+                intervalStartDateText
+            } else {
+                current.intervalEndDateText
+            }
+
+            current.copy(
                 intervalStartDateText = intervalStartDateText,
+                intervalEndDateText = nextEndDateText,
                 validationErrors = emptyList(),
                 errorMessage = null,
                 exactAlarmPermissionRequired = false,

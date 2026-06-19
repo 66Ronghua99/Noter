@@ -29,6 +29,43 @@ class AlarmEditorViewModelTest {
     private val clock = Clock.fixed(Instant.parse("2026-04-23T01:00:00Z"), zoneId)
 
     @Test
+    fun `new alarm defaults weekly interval count to one`() = runTest {
+        val repository = FakeAlarmRepository(clock = clock, zoneId = zoneId)
+        val viewModel = AlarmEditorViewModel(
+            alarmId = null,
+            repository = repository,
+            settingsRepository = FakeSettingsRepository(),
+            schedulingUseCase = AlarmSchedulingUseCase(FakeAlarmScheduler()),
+            clock = clock,
+            zoneId = zoneId,
+        )
+
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.intervalWeeksText).isEqualTo("1")
+    }
+
+    @Test
+    fun `interval start date after end date moves end date forward`() = runTest {
+        val repository = FakeAlarmRepository(clock = clock, zoneId = zoneId)
+        val viewModel = AlarmEditorViewModel(
+            alarmId = null,
+            repository = repository,
+            settingsRepository = FakeSettingsRepository(),
+            schedulingUseCase = AlarmSchedulingUseCase(FakeAlarmScheduler()),
+            clock = clock,
+            zoneId = zoneId,
+        )
+
+        advanceUntilIdle()
+        viewModel.onIntervalEndDateChanged("2026-05-01")
+        viewModel.onIntervalStartDateChanged("2026-06-01")
+
+        assertThat(viewModel.uiState.value.intervalStartDateText).isEqualTo("2026-06-01")
+        assertThat(viewModel.uiState.value.intervalEndDateText).isEqualTo("2026-06-01")
+    }
+
+    @Test
     fun `save with blank title exposes validation failure`() = runTest {
         val repository = FakeAlarmRepository(clock = clock, zoneId = zoneId)
         val viewModel = AlarmEditorViewModel(
