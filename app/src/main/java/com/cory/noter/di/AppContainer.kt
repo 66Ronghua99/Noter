@@ -11,7 +11,7 @@ import com.cory.noter.ai.AndroidOpenRouterDebugLogger
 import com.cory.noter.ai.AiAlarmCreator
 import com.cory.noter.ai.AiCreateBackgroundScheduler
 import com.cory.noter.ai.AiCreateResultNotifier
-import com.cory.noter.ai.ApplicationAiCreateBackgroundScheduler
+import com.cory.noter.ai.WorkManagerAiCreateBackgroundScheduler
 import com.cory.noter.ai.OpenRouterAgentClient
 import com.cory.noter.alarm.AlarmRingingCoordinator
 import com.cory.noter.alarm.AlarmScheduler
@@ -26,15 +26,11 @@ import com.cory.noter.data.settings.SettingsRepository
 import com.cory.noter.notifications.AndroidAiCreateResultNotifier
 import com.cory.noter.permissions.AndroidPermissionStatusReader
 import com.cory.noter.permissions.PermissionStatusReader
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 
 class AppContainer(
     context: Context,
 ) {
     private val applicationContext = context.applicationContext
-    private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     val database: AlarmDatabase by lazy {
         Room.databaseBuilder(
@@ -103,11 +99,7 @@ class AppContainer(
     }
 
     val aiCreateBackgroundScheduler: AiCreateBackgroundScheduler by lazy {
-        ApplicationAiCreateBackgroundScheduler(
-            creator = aiAlarmCreator,
-            notifier = aiCreateResultNotifier,
-            scope = applicationScope,
-        )
+        WorkManagerAiCreateBackgroundScheduler(applicationContext)
     }
 
     val alarmRingingCoordinator: AlarmRingingCoordinator by lazy {

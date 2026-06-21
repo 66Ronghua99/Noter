@@ -1,6 +1,7 @@
 package com.cory.noter.di
 
 import androidx.test.core.app.ApplicationProvider
+import com.cory.noter.ai.WorkManagerAiCreateBackgroundScheduler
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -31,6 +32,8 @@ class AppContainerTest {
         assertThat(firstAgentLoopRunner === secondAgentLoopRunner).isTrue()
         assertThat(firstReconciliation === secondReconciliation).isTrue()
         assertThat(container.aiAlarmCreator === container.aiAlarmCreator).isTrue()
+        assertThat(container.aiCreateBackgroundScheduler)
+            .isInstanceOf(WorkManagerAiCreateBackgroundScheduler::class.java)
         assertThat(container.alarmRingingCoordinator === container.alarmRingingCoordinator).isTrue()
 
         val creatorRunnerField = container.aiAlarmCreator.javaClass.getDeclaredField("agentLoopRunner")

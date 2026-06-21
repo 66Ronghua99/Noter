@@ -1,6 +1,7 @@
 package com.cory.noter.ai
 
 import com.cory.noter.agent.AgentLoopConfig
+import com.cory.noter.agent.AgentFailure
 import com.cory.noter.agent.AgentLlmResult
 import com.cory.noter.agent.AgentLoopRunner
 import com.cory.noter.agent.AgentMessage
@@ -373,6 +374,20 @@ class AiAlarmCreatorTest {
         assertThat((result as AiCreateResult.Created).alarm.title).isEqualTo("Take medicine")
     }
 
+    @Test
+    fun `model turn limit before commit becomes invalid response and creates no alarm`() = runTest {
+        settingsRepository.set(validSettings())
+
+        val result = creator.mapFailureForTest(
+            AgentFailure.ModelTurnLimitExceeded("Model turn limit exceeded."),
+        )
+
+        assertThat(result).isEqualTo(
+            AiCreateResult.InvalidResponse("Model turn limit exceeded."),
+        )
+        assertThat(repository.alarms.first()).isEmpty()
+    }
+
     private fun validSettings(
         modelId: String = OpenRouterModel.DefaultId,
     ): AppSettings = AppSettings(
@@ -413,5 +428,15 @@ class AiAlarmCreatorTest {
         override suspend fun create(draft: com.cory.noter.data.alarm.AlarmDraft): com.cory.noter.domain.alarm.Alarm {
             error("database write failed")
         }
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun AiAlarmCreator.mapFailureForTest(failure: AgentFailure): AiCreateResult {
+        val method = AiAlarmCreator::class.java.getDeclaredMethod(
+            "toAiCreateResult",
+            AgentFailure::class.java,
+        )
+        method.isAccessible = true
+        return method.invoke(this, failure) as AiCreateResult
     }
 }
