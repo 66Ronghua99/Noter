@@ -6,13 +6,13 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.room.Room
 import com.cory.noter.NoterApplication
+import com.cory.noter.agent.AgentLoopRunner
 import com.cory.noter.ai.AndroidOpenRouterDebugLogger
 import com.cory.noter.ai.AiAlarmCreator
 import com.cory.noter.ai.AiCreateBackgroundScheduler
 import com.cory.noter.ai.AiCreateResultNotifier
 import com.cory.noter.ai.ApplicationAiCreateBackgroundScheduler
-import com.cory.noter.ai.OpenRouterClient
-import com.cory.noter.ai.OpenRouterGateway
+import com.cory.noter.ai.OpenRouterAgentClient
 import com.cory.noter.alarm.AlarmRingingCoordinator
 import com.cory.noter.alarm.AlarmScheduler
 import com.cory.noter.alarm.AlarmSchedulingUseCase
@@ -77,18 +77,22 @@ class AppContainer(
         AlarmSchedulingUseCase(alarmScheduler)
     }
 
-    val openRouterClient: OpenRouterGateway by lazy {
-        OpenRouterClient(
+    val openRouterAgentClient: OpenRouterAgentClient by lazy {
+        OpenRouterAgentClient(
             debugLogger = AndroidOpenRouterDebugLogger(
                 enabled = applicationContext.isDebuggableApplication(),
             ),
         )
     }
 
+    val agentLoopRunner: AgentLoopRunner by lazy {
+        AgentLoopRunner(openRouterAgentClient)
+    }
+
     val aiAlarmCreator: AiAlarmCreator by lazy {
         AiAlarmCreator(
             settingsRepository = settingsRepository,
-            openRouterClient = openRouterClient,
+            agentLoopRunner = agentLoopRunner,
             alarmRepository = alarmRepository,
             schedulingUseCase = alarmSchedulingUseCase,
         )

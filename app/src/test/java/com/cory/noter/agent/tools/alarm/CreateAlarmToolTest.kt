@@ -140,6 +140,44 @@ class CreateAlarmToolTest {
     }
 
     @Test
+    fun `clarification request returns dedicated agent failure without repository write`() = runTest {
+        val repository = RecordingAlarmRepository(clock = clock, zoneId = zoneId)
+        val tool = createTool(repository = repository)
+
+        val result = tool.execute(
+            AgentToolCall(
+                id = "call-1",
+                name = "create_alarm",
+                arguments = clarificationArguments(),
+            ),
+        )
+
+        assertThat(result).isInstanceOf(AgentToolExecution.Failure::class.java)
+        val failure = result as AgentToolExecution.Failure
+        assertThat(failure.failure).isEqualTo(AgentFailure.ClarificationRequired("Which day should I use?"))
+        assertThat(failure.committedResult).isNull()
+        assertThat(repository.createCalls).isEqualTo(0)
+    }
+
+    @Test
+    fun `repository create failure returns dedicated create failed agent failure`() = runTest {
+        val tool = createTool(repository = CreateFailingAlarmRepository())
+
+        val result = tool.execute(
+            AgentToolCall(
+                id = "call-1",
+                name = "create_alarm",
+                arguments = validOnceArguments(),
+            ),
+        )
+
+        assertThat(result).isInstanceOf(AgentToolExecution.Failure::class.java)
+        val failure = result as AgentToolExecution.Failure
+        assertThat(failure.failure).isEqualTo(AgentFailure.CreateFailed("database write failed"))
+        assertThat(failure.committedResult).isNull()
+    }
+
+    @Test
     fun `missing exact alarm permission returns committed scheduling permission result`() = runTest {
         val repository = FakeAlarmRepository(clock = clock, zoneId = zoneId)
         val scheduler = FakeAlarmScheduler().apply {
@@ -191,6 +229,7 @@ class CreateAlarmToolTest {
         assertThat(failure.committedResult).isNotNull()
         assertThat(failure.committedResult!!.committed).isTrue()
         assertThat(failure.committedResult!!.content.toString()).contains("\"status\":\"schedule_failed\"")
+        assertThat(failure.committedResult!!.content.toString()).contains("\"reason\":\"scheduler unavailable\"")
     }
 
     private fun createTool(
@@ -244,6 +283,25 @@ class CreateAlarmToolTest {
         }
     """.trimIndent()
 
+    private fun clarificationArguments(): String = """
+        {
+          "title": "Take medicine",
+          "hour": 8,
+          "minute": 30,
+          "repeatRule": {
+            "type": "once",
+            "daysOfWeek": [],
+            "startDate": null,
+            "endDate": null,
+            "intervalWeeks": null
+          },
+          "date": "2026-04-24",
+          "confidence": 0.45,
+          "needsClarification": true,
+          "clarificationReason": "Which day should I use?"
+        }
+    """.trimIndent()
+
     private class RecordingAlarmRepository(
         clock: Clock,
         zoneId: ZoneId,
@@ -267,5 +325,21 @@ class CreateAlarmToolTest {
         override suspend fun disable(id: Long): Alarm? = delegate.disable(id)
 
         override suspend fun delete(id: Long) = delegate.delete(id)
+    }
+
+    private class CreateFailingAlarmRepository : AlarmRepository {
+        override val alarms: Flow<List<Alarm>> = kotlinx.coroutines.flow.flowOf(emptyList())
+
+        override suspend fun get(id: Long): Alarm? = null
+
+        override suspend fun create(draft: AlarmDraft): Alarm = error("database write failed")
+
+        override suspend fun update(alarm: Alarm): Alarm = alarm
+
+        override suspend fun enable(id: Long): Alarm? = null
+
+        override suspend fun disable(id: Long): Alarm? = null
+
+        override suspend fun delete(id: Long) = Unit
     }
 }

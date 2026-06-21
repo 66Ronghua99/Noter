@@ -17,14 +17,28 @@ class AppContainerTest {
         val secondSettingsRepository = container.settingsRepository
         val firstScheduler = container.alarmScheduler
         val secondScheduler = container.alarmScheduler
+        val firstAgentClient = container.openRouterAgentClient
+        val secondAgentClient = container.openRouterAgentClient
+        val firstAgentLoopRunner = container.agentLoopRunner
+        val secondAgentLoopRunner = container.agentLoopRunner
         val firstReconciliation = container.startupReconciliation
         val secondReconciliation = container.startupReconciliation
 
         assertThat(firstAlarmRepository === secondAlarmRepository).isTrue()
         assertThat(firstSettingsRepository === secondSettingsRepository).isTrue()
         assertThat(firstScheduler === secondScheduler).isTrue()
+        assertThat(firstAgentClient === secondAgentClient).isTrue()
+        assertThat(firstAgentLoopRunner === secondAgentLoopRunner).isTrue()
         assertThat(firstReconciliation === secondReconciliation).isTrue()
         assertThat(container.aiAlarmCreator === container.aiAlarmCreator).isTrue()
         assertThat(container.alarmRingingCoordinator === container.alarmRingingCoordinator).isTrue()
+
+        val creatorRunnerField = container.aiAlarmCreator.javaClass.getDeclaredField("agentLoopRunner")
+        creatorRunnerField.isAccessible = true
+        assertThat(creatorRunnerField.get(container.aiAlarmCreator)).isSameInstanceAs(firstAgentLoopRunner)
+
+        val runnerGatewayField = firstAgentLoopRunner.javaClass.getDeclaredField("gateway")
+        runnerGatewayField.isAccessible = true
+        assertThat(runnerGatewayField.get(firstAgentLoopRunner)).isSameInstanceAs(firstAgentClient)
     }
 }

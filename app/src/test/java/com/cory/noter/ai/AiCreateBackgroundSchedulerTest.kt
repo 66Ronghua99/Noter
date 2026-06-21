@@ -1,12 +1,17 @@
 package com.cory.noter.ai
 
+import com.cory.noter.agent.AgentLlmResult
+import com.cory.noter.agent.AgentLoopRunner
+import com.cory.noter.agent.AgentMessage
+import com.cory.noter.agent.AgentMessageRole
+import com.cory.noter.agent.AgentToolCall
 import com.cory.noter.alarm.AlarmSchedulingUseCase
 import com.cory.noter.alarm.FakeAlarmScheduler
 import com.cory.noter.alarm.ScheduleResult
 import com.cory.noter.data.settings.FakeSettingsRepository
 import com.cory.noter.domain.settings.AppSettings
 import com.cory.noter.ui.FakeAlarmRepository
-import com.cory.noter.ui.FakeOpenRouterGateway
+import com.cory.noter.ui.FakeAgentLlmGateway
 import com.google.common.truth.Truth.assertThat
 import java.time.Clock
 import java.time.Instant
@@ -25,8 +30,20 @@ class AiCreateBackgroundSchedulerTest {
         val notifier = RecordingNotifier()
         val scheduler = ApplicationAiCreateBackgroundScheduler(
             creator = creator(
-                openRouterGateway = FakeOpenRouterGateway().apply {
-                    nextResult = OpenRouterResult.Success(validAlarmJson())
+                agentGateway = FakeAgentLlmGateway().apply {
+                    results += AgentLlmResult.Message(
+                        AgentMessage(
+                            role = AgentMessageRole.ASSISTANT,
+                            content = "",
+                            toolCalls = listOf(
+                                AgentToolCall(
+                                    id = "call-1",
+                                    name = "create_alarm",
+                                    arguments = validAlarmJson(),
+                                ),
+                            ),
+                        ),
+                    )
                 },
                 alarmScheduler = FakeAlarmScheduler().apply {
                     nextScheduleResult = ScheduleResult.MissingPermission(
@@ -47,7 +64,7 @@ class AiCreateBackgroundSchedulerTest {
     }
 
     private fun creator(
-        openRouterGateway: OpenRouterGateway,
+        agentGateway: FakeAgentLlmGateway,
         alarmScheduler: FakeAlarmScheduler,
     ): AiAlarmCreator = AiAlarmCreator(
         settingsRepository = FakeSettingsRepository(
@@ -57,11 +74,10 @@ class AiCreateBackgroundSchedulerTest {
                 defaultRingtoneUri = AppSettings.DefaultRingtoneUri,
             ),
         ),
-        openRouterClient = openRouterGateway,
+        agentLoopRunner = AgentLoopRunner(agentGateway),
         alarmRepository = FakeAlarmRepository(clock = clock, zoneId = zoneId),
         schedulingUseCase = AlarmSchedulingUseCase(alarmScheduler),
         promptBuilder = AiAlarmPromptBuilder(),
-        responseParser = AiAlarmResponseParser(),
         clock = clock,
     )
 

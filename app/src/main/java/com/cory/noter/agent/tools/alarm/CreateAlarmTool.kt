@@ -46,7 +46,7 @@ class CreateAlarmTool(
             return when (error) {
                 is CreateAlarmArgumentsParser.ClarificationRequiredException -> {
                     AgentToolExecution.Failure(
-                        AgentFailure.ToolExecutionFailed(error.reason),
+                        AgentFailure.ClarificationRequired(error.reason),
                     )
                 }
 
@@ -87,7 +87,7 @@ class CreateAlarmTool(
             )
         }.getOrElse { error ->
             return AgentToolExecution.Failure(
-                AgentFailure.ToolExecutionFailed(error.message ?: "Alarm creation failed."),
+                AgentFailure.CreateFailed(error.message ?: "Alarm creation failed."),
             )
         }
 
@@ -108,7 +108,9 @@ class CreateAlarmTool(
                 committedResult = AgentToolResult(
                     toolCallId = call.id,
                     toolName = spec.name,
-                    content = createdAlarmContent("schedule_failed", createdAlarm),
+                    content = createdAlarmContent("schedule_failed", createdAlarm) {
+                        put("reason", "Alarm ${createdAlarm.id} scheduling returned Cancelled unexpectedly.")
+                    },
                     committed = true,
                 ),
             )
@@ -132,7 +134,9 @@ class CreateAlarmTool(
                 committedResult = AgentToolResult(
                     toolCallId = call.id,
                     toolName = spec.name,
-                    content = createdAlarmContent("schedule_failed", createdAlarm),
+                    content = createdAlarmContent("schedule_failed", createdAlarm) {
+                        put("reason", scheduleResult.reason)
+                    },
                     committed = true,
                 ),
             )

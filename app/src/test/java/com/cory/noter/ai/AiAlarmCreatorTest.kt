@@ -1,5 +1,6 @@
 package com.cory.noter.ai
 
+import com.cory.noter.agent.AgentLoopConfig
 import com.cory.noter.agent.AgentLlmResult
 import com.cory.noter.agent.AgentLoopRunner
 import com.cory.noter.agent.AgentMessage
@@ -116,6 +117,29 @@ class AiAlarmCreatorTest {
     }
 
     @Test
+    fun `remote failure leaves alarms unchanged`() = runTest {
+        settingsRepository.set(validSettings())
+        fakeAgentGateway.results += AgentLlmResult.RemoteFailure(503, "provider unavailable")
+
+        val result = creator.createFromText("tomorrow 8 remind me to take medicine")
+
+        assertThat(result).isEqualTo(AiCreateResult.RemoteFailure(503, "provider unavailable"))
+        assertThat(repository.alarms.first()).isEmpty()
+        assertThat(fakeScheduler.scheduledAlarms).isEmpty()
+    }
+
+    @Test
+    fun `invalid model response becomes invalid response without creating alarm`() = runTest {
+        settingsRepository.set(validSettings())
+        fakeAgentGateway.results += AgentLlmResult.InvalidResponse("assistant payload was malformed")
+
+        val result = creator.createFromText("tomorrow 8 remind me to take medicine")
+
+        assertThat(result).isEqualTo(AiCreateResult.InvalidResponse("assistant payload was malformed"))
+        assertThat(repository.alarms.first()).isEmpty()
+    }
+
+    @Test
     fun `missing tool call does not create alarm`() = runTest {
         settingsRepository.set(validSettings())
         fakeAgentGateway.results += AgentLlmResult.Message(
@@ -127,6 +151,63 @@ class AiAlarmCreatorTest {
         assertThat(result).isInstanceOf(AiCreateResult.InvalidResponse::class.java)
         assertThat((result as AiCreateResult.InvalidResponse).reason)
             .isEqualTo("Model did not call a tool.")
+        assertThat(repository.alarms.first()).isEmpty()
+    }
+
+    @Test
+    fun `tool not registered becomes invalid response without creating alarm`() = runTest {
+        settingsRepository.set(validSettings())
+        fakeAgentGateway.results += AgentLlmResult.Message(
+            AgentMessage(
+                role = AgentMessageRole.ASSISTANT,
+                content = "",
+                toolCalls = listOf(
+                    AgentToolCall(
+                        id = "call-1",
+                        name = "missing_tool",
+                        arguments = validAlarmJson(),
+                    ),
+                ),
+            ),
+        )
+
+        val result = creator.createFromText("tomorrow 8 remind me to take medicine")
+
+        assertThat(result).isEqualTo(AiCreateResult.InvalidResponse("Tool is not registered: missing_tool"))
+        assertThat(repository.alarms.first()).isEmpty()
+    }
+
+    @Test
+    fun `tool execution limit before first tool call becomes invalid response`() = runTest {
+        settingsRepository.set(validSettings())
+        val limitedCreator = AiAlarmCreator(
+            settingsRepository = settingsRepository,
+            agentLoopRunner = AgentLoopRunner(
+                fakeAgentGateway,
+                AgentLoopConfig(maxToolExecutions = 0),
+            ),
+            alarmRepository = repository,
+            schedulingUseCase = AlarmSchedulingUseCase(fakeScheduler),
+            promptBuilder = AiAlarmPromptBuilder(),
+            clock = Clock.fixed(now.toInstant(), zone),
+        )
+        fakeAgentGateway.results += AgentLlmResult.Message(
+            AgentMessage(
+                role = AgentMessageRole.ASSISTANT,
+                content = "",
+                toolCalls = listOf(
+                    AgentToolCall(
+                        id = "call-1",
+                        name = "create_alarm",
+                        arguments = validAlarmJson(),
+                    ),
+                ),
+            ),
+        )
+
+        val result = limitedCreator.createFromText("tomorrow 8 remind me to take medicine")
+
+        assertThat(result).isEqualTo(AiCreateResult.InvalidResponse("Tool execution limit exceeded."))
         assertThat(repository.alarms.first()).isEmpty()
     }
 
@@ -180,6 +261,60 @@ class AiAlarmCreatorTest {
     }
 
     @Test
+    fun `clarification required preserves dedicated result category`() = runTest {
+        settingsRepository.set(validSettings())
+        fakeAgentGateway.results += AgentLlmResult.Message(
+            AgentMessage(
+                role = AgentMessageRole.ASSISTANT,
+                content = "",
+                toolCalls = listOf(
+                    AgentToolCall(
+                        id = "call-1",
+                        name = "create_alarm",
+                        arguments = clarificationAlarmJson(),
+                    ),
+                ),
+            ),
+        )
+
+        val result = creator.createFromText("set a medicine reminder for tomorrow morning")
+
+        assertThat(result).isEqualTo(AiCreateResult.ClarificationRequired("Which day should I use?"))
+        assertThat(repository.alarms.first()).isEmpty()
+    }
+
+    @Test
+    fun `repository create failure preserves create failed category`() = runTest {
+        settingsRepository.set(validSettings())
+        val createFailingCreator = AiAlarmCreator(
+            settingsRepository = settingsRepository,
+            agentLoopRunner = AgentLoopRunner(fakeAgentGateway),
+            alarmRepository = CreateFailingAlarmRepository(repository),
+            schedulingUseCase = AlarmSchedulingUseCase(fakeScheduler),
+            promptBuilder = AiAlarmPromptBuilder(),
+            clock = Clock.fixed(now.toInstant(), zone),
+        )
+        fakeAgentGateway.results += AgentLlmResult.Message(
+            AgentMessage(
+                role = AgentMessageRole.ASSISTANT,
+                content = "",
+                toolCalls = listOf(
+                    AgentToolCall(
+                        id = "call-1",
+                        name = "create_alarm",
+                        arguments = validAlarmJson(),
+                    ),
+                ),
+            ),
+        )
+
+        val result = createFailingCreator.createFromText("tomorrow morning remind me to take medicine")
+
+        assertThat(result).isEqualTo(AiCreateResult.CreateFailed("database write failed"))
+        assertThat(repository.alarms.first()).isEmpty()
+    }
+
+    @Test
     fun `committed tool result stays authoritative when finalization fails`() = runTest {
         settingsRepository.set(validSettings())
         fakeAgentGateway.results += AgentLlmResult.Message(
@@ -204,6 +339,40 @@ class AiAlarmCreatorTest {
         assertThat(created.title).isEqualTo("Take medicine")
     }
 
+    @Test
+    fun `model turn limit after committed create still returns created alarm`() = runTest {
+        settingsRepository.set(validSettings())
+        val turnLimitedCreator = AiAlarmCreator(
+            settingsRepository = settingsRepository,
+            agentLoopRunner = AgentLoopRunner(
+                fakeAgentGateway,
+                AgentLoopConfig(maxModelTurns = 1),
+            ),
+            alarmRepository = repository,
+            schedulingUseCase = AlarmSchedulingUseCase(fakeScheduler),
+            promptBuilder = AiAlarmPromptBuilder(),
+            clock = Clock.fixed(now.toInstant(), zone),
+        )
+        fakeAgentGateway.results += AgentLlmResult.Message(
+            AgentMessage(
+                role = AgentMessageRole.ASSISTANT,
+                content = "",
+                toolCalls = listOf(
+                    AgentToolCall(
+                        id = "call-1",
+                        name = "create_alarm",
+                        arguments = validAlarmJson(),
+                    ),
+                ),
+            ),
+        )
+
+        val result = turnLimitedCreator.createFromText("tomorrow morning remind me to take medicine")
+
+        assertThat(result).isInstanceOf(AiCreateResult.Created::class.java)
+        assertThat((result as AiCreateResult.Created).alarm.title).isEqualTo("Take medicine")
+    }
+
     private fun validSettings(
         modelId: String = OpenRouterModel.DefaultId,
     ): AppSettings = AppSettings(
@@ -224,4 +393,25 @@ class AiAlarmCreatorTest {
           "clarificationReason": ""
         }
     """.trimIndent()
+
+    private fun clarificationAlarmJson(): String = """
+        {
+          "title": "Take medicine",
+          "hour": 8,
+          "minute": 30,
+          "repeatRule": { "type": "once", "daysOfWeek": [] },
+          "date": "2026-04-24",
+          "confidence": 0.4,
+          "needsClarification": true,
+          "clarificationReason": "Which day should I use?"
+        }
+    """.trimIndent()
+
+    private class CreateFailingAlarmRepository(
+        private val delegate: AlarmRepository,
+    ) : AlarmRepository by delegate {
+        override suspend fun create(draft: com.cory.noter.data.alarm.AlarmDraft): com.cory.noter.domain.alarm.Alarm {
+            error("database write failed")
+        }
+    }
 }

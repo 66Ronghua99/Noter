@@ -128,6 +128,10 @@ sealed interface AgentFailure {
 
     data class ToolExecutionFailed(val reason: String) : AgentFailure
 
+    data class ClarificationRequired(val reason: String) : AgentFailure
+
+    data class CreateFailed(val reason: String) : AgentFailure
+
     data class NetworkFailure(val reason: String) : AgentFailure
 
     data class RateLimited(val reason: String) : AgentFailure
