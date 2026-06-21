@@ -8,6 +8,7 @@ import com.cory.noter.agent.AgentToolCall
 import com.cory.noter.agent.AgentToolChoice
 import com.cory.noter.agent.AgentToolSpec
 import com.google.common.truth.Truth.assertThat
+import java.io.IOException
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
@@ -106,17 +107,181 @@ class OpenRouterAgentClientTest {
     }
 
     @Test
-    fun `assistant content without tool calls maps to message not alarm parser failure`() = runTest {
+    fun `tool follow up messages preserve tool metadata and auto choice omits tool choice`() = runTest {
+        var capturedBody = ""
         val client = OpenRouterAgentClient(
             callFactory = OkHttpClient.Builder()
-                .addInterceptor { chain ->
+                .addInterceptor(Interceptor { chain ->
+                    val buffer = Buffer()
+                    chain.request().body!!.writeTo(buffer)
+                    capturedBody = buffer.readUtf8()
                     Response.Builder()
                         .request(chain.request())
                         .protocol(Protocol.HTTP_1_1)
                         .code(200)
                         .message("OK")
-                        .body("""{"choices":[{"message":{"role":"assistant","content":"Created."}}]}""".toResponseBody("application/json".toMediaType()))
+                        .body("""{"choices":[{"message":{"role":"assistant","content":"Done."}}]}""".toResponseBody("application/json".toMediaType()))
                         .build()
+                })
+                .build(),
+        )
+
+        val result = client.complete(
+            AgentLlmRequest(
+                apiKey = "sk-or-v1-test",
+                modelId = "deepseek/deepseek-v4-flash",
+                messages = listOf(
+                    AgentMessage(AgentMessageRole.USER, "Run the tool."),
+                    AgentMessage(
+                        role = AgentMessageRole.TOOL,
+                        content = "{\"title\":\"Take medicine\"}",
+                        toolCallId = "call-1",
+                        toolName = "create_alarm",
+                    ),
+                ),
+                tools = listOf(
+                    AgentToolSpec(
+                        "create_alarm",
+                        "Create an alarm.",
+                        buildJsonObject { put("type", "object") },
+                    ),
+                ),
+                toolChoice = AgentToolChoice.Auto,
+            ),
+        )
+
+        assertThat(result).isEqualTo(
+            AgentLlmResult.Message(AgentMessage(AgentMessageRole.ASSISTANT, "Done.")),
+        )
+
+        val body = Json.parseToJsonElement(capturedBody).jsonObject
+        assertThat(body).doesNotContainKey("tool_choice")
+        val messages = body["messages"]!!.jsonArray
+        assertThat(messages[1].jsonObject["role"]!!.jsonPrimitive.content).isEqualTo("tool")
+        assertThat(messages[1].jsonObject["tool_call_id"]!!.jsonPrimitive.content).isEqualTo("call-1")
+        assertThat(messages[1].jsonObject["name"]!!.jsonPrimitive.content).isEqualTo("create_alarm")
+    }
+
+    @Test
+    fun `assistant tool role is preserved instead of rewritten to assistant`() = runTest {
+        val client = responseClient(
+            """
+            {
+              "choices": [
+                {
+                  "message": {
+                    "role": "tool",
+                    "content": "tool result"
+                  }
+                }
+              ]
+            }
+            """.trimIndent(),
+        )
+
+        val result = client.complete(basicRequest())
+
+        assertThat(result).isEqualTo(
+            AgentLlmResult.Message(AgentMessage(AgentMessageRole.TOOL, "tool result")),
+        )
+    }
+
+    @Test
+    fun `missing message in successful response is invalid`() = runTest {
+        val client = responseClient("""{"choices":[{}]}""")
+
+        val result = client.complete(basicRequest())
+
+        assertThat(result).isEqualTo(
+            AgentLlmResult.InvalidResponse("OpenRouter response did not contain an assistant message."),
+        )
+    }
+
+    @Test
+    fun `unsupported role in successful response is invalid`() = runTest {
+        val client = responseClient(
+            """
+            {
+              "choices": [
+                {
+                  "message": {
+                    "role": "critic",
+                    "content": "nope"
+                  }
+                }
+              ]
+            }
+            """.trimIndent(),
+        )
+
+        val result = client.complete(basicRequest())
+
+        assertThat(result).isEqualTo(
+            AgentLlmResult.InvalidResponse("OpenRouter response did not contain an assistant message."),
+        )
+    }
+
+    @Test
+    fun `non string content in successful response is invalid`() = runTest {
+        val client = responseClient(
+            """
+            {
+              "choices": [
+                {
+                  "message": {
+                    "role": "assistant",
+                    "content": 123
+                  }
+                }
+              ]
+            }
+            """.trimIndent(),
+        )
+
+        val result = client.complete(basicRequest())
+
+        assertThat(result).isEqualTo(
+            AgentLlmResult.InvalidResponse("OpenRouter response did not contain an assistant message."),
+        )
+    }
+
+    @Test
+    fun `tool call with missing required fields is invalid`() = runTest {
+        val client = responseClient(
+            """
+            {
+              "choices": [
+                {
+                  "message": {
+                    "role": "assistant",
+                    "tool_calls": [
+                      {
+                        "type": "function",
+                        "function": {
+                          "name": "create_alarm"
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+            """.trimIndent(),
+        )
+
+        val result = client.complete(basicRequest())
+
+        assertThat(result).isEqualTo(
+            AgentLlmResult.InvalidResponse("OpenRouter response did not contain an assistant message."),
+        )
+    }
+
+    @Test
+    fun `network failure returns network failure`() = runTest {
+        val client = OpenRouterAgentClient(
+            callFactory = OkHttpClient.Builder()
+                .addInterceptor {
+                    throw IOException("socket timeout")
                 }
                 .build(),
         )
@@ -124,7 +289,49 @@ class OpenRouterAgentClientTest {
         val result = client.complete(basicRequest())
 
         assertThat(result).isEqualTo(
-            AgentLlmResult.Message(AgentMessage(AgentMessageRole.ASSISTANT, "Created.")),
+            AgentLlmResult.NetworkFailure("socket timeout"),
+        )
+    }
+
+    @Test
+    fun `rate limit returns rate limited failure`() = runTest {
+        val client = responseClient(
+            """
+            {
+              "error": {
+                "message": "Rate limit exceeded for model."
+              }
+            }
+            """.trimIndent(),
+            code = 429,
+            message = "Too Many Requests",
+        )
+
+        val result = client.complete(basicRequest())
+
+        assertThat(result).isEqualTo(
+            AgentLlmResult.RateLimited("Rate limit exceeded for model."),
+        )
+    }
+
+    @Test
+    fun `remote failure returns remote failure`() = runTest {
+        val client = responseClient(
+            """
+            {
+              "error": {
+                "message": "Upstream exploded."
+              }
+            }
+            """.trimIndent(),
+            code = 502,
+            message = "Bad Gateway",
+        )
+
+        val result = client.complete(basicRequest())
+
+        assertThat(result).isEqualTo(
+            AgentLlmResult.RemoteFailure(502, "Upstream exploded."),
         )
     }
 }
@@ -141,4 +348,22 @@ private fun basicRequest(): AgentLlmRequest = AgentLlmRequest(
         ),
     ),
     toolChoice = AgentToolChoice.Required("create_alarm"),
+)
+
+private fun responseClient(
+    body: String,
+    code: Int = 200,
+    message: String = "OK",
+): OpenRouterAgentClient = OpenRouterAgentClient(
+    callFactory = OkHttpClient.Builder()
+        .addInterceptor(Interceptor { chain ->
+            Response.Builder()
+                .request(chain.request())
+                .protocol(Protocol.HTTP_1_1)
+                .code(code)
+                .message(message)
+                .body(body.toResponseBody("application/json".toMediaType()))
+                .build()
+        })
+        .build(),
 )

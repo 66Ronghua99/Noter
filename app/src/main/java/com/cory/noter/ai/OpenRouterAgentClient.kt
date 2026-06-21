@@ -14,6 +14,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonArray
@@ -120,38 +121,23 @@ class OpenRouterAgentClient(
     }
 
     private fun parseAssistantMessage(responseText: String): AgentLlmResult = runCatching {
-        val choices = json.parseToJsonElement(responseText).jsonObject["choices"] as? JsonArray
-            ?: return@runCatching AgentLlmResult.InvalidResponse(
-                "OpenRouter response did not contain an assistant message.",
-            )
-        val assistantMessageJson = choices.firstOrNull()
+        val assistantMessageJson = json.parseToJsonElement(responseText).jsonObject
+            .requiredArray("choices")
+            .firstOrNull()
             ?.jsonObject
-            ?.get("message")
-            ?.jsonObject
-            ?: return@runCatching AgentLlmResult.InvalidResponse(
-                "OpenRouter response did not contain an assistant message.",
-            )
+            ?.requiredObject("message")
+            ?: return@runCatching invalidAssistantMessage()
 
-        val content = when (val messageContent = assistantMessageJson["content"]) {
-            is JsonPrimitive -> if (messageContent.isString) messageContent.content else ""
-            else -> ""
-        }
+        val role = assistantMessageJson.requiredRole("role")
+            ?: return@runCatching invalidAssistantMessage()
         AgentLlmResult.Message(
             AgentMessage(
-                role = AgentMessageRole.ASSISTANT,
-                content = content,
-                toolCalls = assistantMessageJson["tool_calls"]?.jsonArray
-                    ?.mapNotNull { toolCallJson ->
-                        val functionJson = toolCallJson.jsonObject["function"]?.jsonObject
-                        val id = toolCallJson.jsonObject["id"]?.jsonPrimitive?.content.orEmpty()
-                        val name = functionJson?.get("name")?.jsonPrimitive?.content.orEmpty()
-                        val arguments = functionJson?.get("arguments")?.jsonPrimitive?.content.orEmpty()
-                        AgentToolCall(id, name, arguments)
-                    }
-                    ?: emptyList(),
+                role = role,
+                content = assistantMessageJson.optionalString("content") ?: "",
+                toolCalls = assistantMessageJson.optionalToolCalls(),
             ),
         )
-    }.getOrElse { AgentLlmResult.InvalidResponse("OpenRouter response did not contain an assistant message.") }
+    }.getOrElse { invalidAssistantMessage() }
 
     private fun toResult(response: Response): AgentLlmResult {
         val responseText = response.body?.string().orEmpty()
@@ -188,6 +174,67 @@ class OpenRouterAgentClient(
     private fun String.previewForLog(maxChars: Int = 500): String = compactForLog().let { compact ->
         if (compact.length <= maxChars) compact else compact.take(maxChars) + "...<truncated>"
     }
+
+    private fun JsonObject.requiredArray(name: String): JsonArray =
+        this[name] as? JsonArray ?: throw invalidAssistantMessageException()
+
+    private fun JsonObject.requiredObject(name: String): JsonObject =
+        this[name]?.jsonObject ?: throw invalidAssistantMessageException()
+
+    private fun JsonObject.requiredRole(name: String): AgentMessageRole? {
+        val roleText = requiredNonBlankString(name)
+        return when (roleText) {
+            "system" -> AgentMessageRole.SYSTEM
+            "user" -> AgentMessageRole.USER
+            "assistant" -> AgentMessageRole.ASSISTANT
+            "tool" -> AgentMessageRole.TOOL
+            else -> null
+        }
+    }
+
+    private fun JsonObject.optionalString(name: String): String? {
+        val element = this[name] ?: return null
+        if (element === JsonNull) {
+            return null
+        }
+        val primitive = element as? JsonPrimitive ?: throw invalidAssistantMessageException()
+        return if (primitive.isString) primitive.content else throw invalidAssistantMessageException()
+    }
+
+    private fun JsonObject.optionalToolCalls(): List<AgentToolCall> {
+        val element = this["tool_calls"] ?: return emptyList()
+        if (element === JsonNull) {
+            return emptyList()
+        }
+        val array = element as? JsonArray ?: throw invalidAssistantMessageException()
+        return array.map { toolCallJson ->
+            val toolCallObject = toolCallJson.jsonObject
+            val functionObject = toolCallObject.requiredObject("function")
+            AgentToolCall(
+                id = toolCallObject.requiredNonBlankString("id"),
+                name = functionObject.requiredNonBlankString("name"),
+                arguments = functionObject.requiredNonBlankString("arguments"),
+            )
+        }
+    }
+
+    private fun JsonObject.requiredNonBlankString(name: String): String {
+        val primitive = this[name] as? JsonPrimitive ?: throw invalidAssistantMessageException()
+        if (!primitive.isString) {
+            throw invalidAssistantMessageException()
+        }
+        val content = primitive.content
+        if (content.isBlank()) {
+            throw invalidAssistantMessageException()
+        }
+        return content
+    }
+
+    private fun invalidAssistantMessage(): AgentLlmResult.InvalidResponse =
+        AgentLlmResult.InvalidResponse("OpenRouter response did not contain an assistant message.")
+
+    private fun invalidAssistantMessageException(): IllegalArgumentException =
+        IllegalArgumentException("OpenRouter response did not contain an assistant message.")
 
     private companion object {
         const val DEFAULT_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions"
