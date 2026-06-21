@@ -11,6 +11,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.cory.noter.alarm.AlarmSchedulingUseCase
 import com.cory.noter.alarm.FakeAlarmScheduler
+import com.cory.noter.alarm.ScheduleResult
 import com.cory.noter.data.alarm.AlarmDatabase
 import com.cory.noter.data.alarm.AlarmRepository
 import com.cory.noter.data.alarm.RoomAlarmRepository
@@ -313,6 +314,34 @@ class AiAlarmCreatorTest {
 
         assertThat(result).isEqualTo(AiCreateResult.CreateFailed("database write failed"))
         assertThat(repository.alarms.first()).isEmpty()
+    }
+
+    @Test
+    fun `committed schedule failure maps committed reason`() = runTest {
+        settingsRepository.set(validSettings())
+        fakeScheduler.nextScheduleResult = ScheduleResult.Failed("scheduler backend rejected alarm")
+        fakeAgentGateway.results += AgentLlmResult.Message(
+            AgentMessage(
+                role = AgentMessageRole.ASSISTANT,
+                content = "",
+                toolCalls = listOf(
+                    AgentToolCall(
+                        id = "call-1",
+                        name = "create_alarm",
+                        arguments = validAlarmJson(),
+                    ),
+                ),
+            ),
+        )
+
+        val result = creator.createFromText("tomorrow morning remind me to take medicine")
+
+        assertThat(result).isInstanceOf(AiCreateResult.ScheduleFailed::class.java)
+        val scheduleFailed = result as AiCreateResult.ScheduleFailed
+        assertThat(scheduleFailed.reason).isEqualTo("scheduler backend rejected alarm")
+        assertThat(scheduleFailed.alarm.title).isEqualTo("Take medicine")
+        assertThat(repository.alarms.first()).containsExactly(scheduleFailed.alarm)
+        assertThat(fakeScheduler.scheduledAlarms).isEmpty()
     }
 
     @Test
