@@ -22,14 +22,13 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.Call
 import okhttp3.Callback
-import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 
 class OpenRouterAgentClient(
     private val callFactory: Call.Factory = defaultOpenRouterCallFactory(),
-    private val endpoint: String = DEFAULT_ENDPOINT,
+    private val endpoint: String = OPEN_ROUTER_CHAT_COMPLETIONS_ENDPOINT,
     private val json: Json = Json { ignoreUnknownKeys = true },
     private val debugLogger: OpenRouterDebugLogger = NoOpOpenRouterDebugLogger,
 ) : AgentLlmGateway {
@@ -40,7 +39,7 @@ class OpenRouterAgentClient(
                 .url(endpoint)
                 .header("Authorization", "Bearer ${request.apiKey}")
                 .header("Content-Type", "application/json")
-                .post(requestBody.toRequestBody(JSON_MEDIA_TYPE))
+                .post(requestBody.toRequestBody(OPEN_ROUTER_JSON_MEDIA_TYPE))
                 .build()
 
             debugLogger.debug(
@@ -235,11 +234,6 @@ class OpenRouterAgentClient(
 
     private fun invalidAssistantMessageException(): IllegalArgumentException =
         IllegalArgumentException("OpenRouter response did not contain an assistant message.")
-
-    private companion object {
-        const val DEFAULT_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions"
-        val JSON_MEDIA_TYPE = "application/json".toMediaType()
-    }
 }
 
 @Serializable

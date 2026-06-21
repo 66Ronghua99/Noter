@@ -1,0 +1,9 @@
+app/src/test/java/com/cory/noter/ai/AiAlarmPromptBuilderTest.kt:44:        assertThat(prompt).doesNotContain("submit_alarm_draft")
+app/src/test/java/com/cory/noter/ai/AiAlarmCreatorTest.kt:262:            .isNotEqualTo("submit_alarm_draft")
+app/src/test/java/com/cory/noter/ai/OpenRouterAgentClientTest.kt:33:            "submit_alarm_draft",
+app/src/test/java/com/cory/noter/ai/OpenRouterAgentClientTest.kt:34:            "OpenRouterGateway",
+app/src/test/java/com/cory/noter/ai/OpenRouterAgentClientTest.kt:35:            "OpenRouterResult",
+app/src/test/java/com/cory/noter/ai/OpenRouterAgentClientTest.kt:36:            "AiAlarmResponseParser",
+app/src/test/java/com/cory/noter/ai/OpenRouterAgentClientTest.kt:128:        assertThat(capturedBody).doesNotContain("submit_alarm_draft")
+app/src/test/java/com/cory/noter/agent/tools/alarm/CreateAlarmToolTest.kt:33:    fun `tool exposes create_alarm schema and not submit_alarm_draft`() {
+app/src/test/java/com/cory/noter/agent/tools/alarm/CreateAlarmToolTest.kt:37:        assertThat(tool.spec.name).isNotEqualTo("submit_alarm_draft")

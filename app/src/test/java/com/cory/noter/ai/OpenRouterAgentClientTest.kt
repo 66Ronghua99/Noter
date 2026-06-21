@@ -8,6 +8,7 @@ import com.cory.noter.agent.AgentToolCall
 import com.cory.noter.agent.AgentToolChoice
 import com.cory.noter.agent.AgentToolSpec
 import com.google.common.truth.Truth.assertThat
+import java.io.File
 import java.io.IOException
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
@@ -26,6 +27,29 @@ import okio.Buffer
 import org.junit.Test
 
 class OpenRouterAgentClientTest {
+    @Test
+    fun `production source does not keep legacy single purpose openrouter path`() {
+        val forbiddenTokens = listOf(
+            "submit_alarm_draft",
+            "OpenRouterGateway",
+            "OpenRouterResult",
+            "AiAlarmResponseParser",
+        )
+
+        val matches = File("src/main/java")
+            .walkTopDown()
+            .filter { it.isFile && it.extension == "kt" }
+            .flatMap { file ->
+                val source = file.readText()
+                forbiddenTokens.asSequence()
+                    .filter { token -> source.contains(token) }
+                    .map { token -> "${file.relativeTo(File(".")).path}:$token" }
+            }
+            .toList()
+
+        assertThat(matches).isEmpty()
+    }
+
     @Test
     fun `complete posts generic messages tools and required create_alarm choice`() = runTest {
         var capturedBody = ""

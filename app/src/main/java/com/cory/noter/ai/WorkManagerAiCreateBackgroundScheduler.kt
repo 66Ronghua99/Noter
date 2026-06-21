@@ -9,7 +9,8 @@ import androidx.work.workDataOf
 class WorkManagerAiCreateBackgroundScheduler(
     context: Context,
 ) : AiCreateBackgroundScheduler {
-    private val workManager = WorkManager.getInstance(context.applicationContext)
+    private val appContext = context.applicationContext
+    private val workManager by lazy { WorkManager.getInstance(appContext) }
 
     override fun enqueue(prompt: String) {
         val request = OneTimeWorkRequestBuilder<AiCreateWorker>()

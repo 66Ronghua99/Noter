@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.room.Room
 import com.cory.noter.NoterApplication
+import com.cory.noter.agent.AgentLlmGateway
 import com.cory.noter.agent.AgentLoopRunner
 import com.cory.noter.ai.AndroidOpenRouterDebugLogger
 import com.cory.noter.ai.AiAlarmCreator
@@ -73,7 +74,7 @@ class AppContainer(
         AlarmSchedulingUseCase(alarmScheduler)
     }
 
-    val openRouterAgentClient: OpenRouterAgentClient by lazy {
+    val openRouterAgentClient: AgentLlmGateway by lazy {
         OpenRouterAgentClient(
             debugLogger = AndroidOpenRouterDebugLogger(
                 enabled = applicationContext.isDebuggableApplication(),
