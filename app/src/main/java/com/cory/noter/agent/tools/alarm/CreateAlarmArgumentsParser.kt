@@ -1,0 +1,254 @@
+package com.cory.noter.agent.tools.alarm
+
+import com.cory.noter.domain.ai.AiAlarmDraft
+import com.cory.noter.domain.alarm.RepeatRule
+import java.time.DayOfWeek
+import java.time.LocalDate
+import java.time.format.DateTimeParseException
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.doubleOrNull
+import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.jsonObject
+
+class CreateAlarmArgumentsParser {
+    private val json = Json {
+        ignoreUnknownKeys = false
+    }
+
+    class ClarificationRequiredException(val reason: String) : IllegalArgumentException(
+        "Needs clarification: ${reason.ifBlank { "No reason provided" }}",
+    )
+
+    fun parse(arguments: String): Result<AiAlarmDraft> = runCatching {
+        val root = try {
+            json.parseToJsonElement(arguments).jsonObject
+        } catch (exception: IllegalArgumentException) {
+            throw invalid("Invalid JSON", exception)
+        } catch (exception: SerializationException) {
+            throw invalid("Invalid JSON", exception)
+        }
+
+        root.requireOnlyKeys(
+            allowedKeys = setOf(
+                "title",
+                "hour",
+                "minute",
+                "repeatRule",
+                "date",
+                "confidence",
+                "needsClarification",
+                "clarificationReason",
+            ),
+        )
+
+        val needsClarification = root.requiredBoolean("needsClarification")
+        val clarificationReason = root.requiredString("clarificationReason")
+        if (needsClarification) {
+            if (clarificationReason.isBlank()) {
+                throw invalid("clarificationReason must be non-empty when needsClarification is true")
+            }
+            throw ClarificationRequiredException(clarificationReason)
+        }
+
+        val title = root.requiredString("title").trim()
+        if (title.isEmpty()) {
+            throw invalid("title must be non-empty")
+        }
+
+        val hour = root.requiredInt("hour")
+        if (hour !in 0..23) {
+            throw invalid("hour must be an integer from 0 through 23")
+        }
+
+        val minute = root.requiredInt("minute")
+        if (minute !in 0..59) {
+            throw invalid("minute must be an integer from 0 through 59")
+        }
+
+        val repeatRuleObject = root.requiredObject("repeatRule")
+        repeatRuleObject.requireOnlyKeys(
+            allowedKeys = setOf("type", "daysOfWeek", "startDate", "endDate", "intervalWeeks"),
+            owner = "repeatRule",
+        )
+        val repeatRuleType = repeatRuleObject.requiredString("type")
+        val daysOfWeek = repeatRuleObject.requiredIntArray("daysOfWeek")
+        val invalidDay = daysOfWeek.firstOrNull { it !in 1..7 }
+        if (invalidDay != null) {
+            throw invalid("repeatRule.daysOfWeek must contain only integers from 1 through 7")
+        }
+
+        val repeatRule = when (repeatRuleType) {
+            "once" -> {
+                val date = root.requiredDate("date")
+                RepeatRule.Once(date)
+            }
+            "daily" -> RepeatRule.Daily
+            "weekdays" -> RepeatRule.Weekdays
+            "custom_weekdays" -> {
+                if (daysOfWeek.isEmpty()) {
+                    throw invalid("repeatRule.daysOfWeek must not be empty for custom_weekdays")
+                }
+                RepeatRule.CustomWeekdays(daysOfWeek.map { DayOfWeek.of(it) }.toSet())
+            }
+            "weekly_interval" -> {
+                if (daysOfWeek.isEmpty()) {
+                    throw invalid("repeatRule.daysOfWeek must not be empty for weekly_interval")
+                }
+                val startDate = repeatRuleObject.requiredDate("startDate")
+                val intervalWeeks = repeatRuleObject.requiredInt("intervalWeeks")
+                if (intervalWeeks <= 0) {
+                    throw invalid("repeatRule.intervalWeeks must be greater than zero")
+                }
+                val endDate = repeatRuleObject.optionalDateOrNull("endDate")
+                    ?: startDate.plusYears(1)
+                if (endDate.isBefore(startDate)) {
+                    throw invalid("repeatRule.endDate must be on or after repeatRule.startDate")
+                }
+                RepeatRule.WeeklyInterval(
+                    startDate = startDate,
+                    endDate = endDate,
+                    intervalWeeks = intervalWeeks,
+                    days = daysOfWeek.map { DayOfWeek.of(it) }.toSet(),
+                )
+            }
+            else -> throw invalid("repeatRule.type must be one of once, daily, weekdays, custom_weekdays, weekly_interval")
+        }
+
+        val originalDate = when (repeatRule) {
+            is RepeatRule.Once -> repeatRule.date
+            RepeatRule.Daily,
+            RepeatRule.Weekdays,
+            is RepeatRule.CustomWeekdays,
+            is RepeatRule.WeeklyInterval,
+            -> root.optionalValidDate("date")
+        }
+
+        val confidence = root.requiredDouble("confidence")
+        if (!confidence.isFinite() || confidence !in 0.0..1.0) {
+            throw invalid("confidence must be a finite number from 0.0 through 1.0")
+        }
+
+        AiAlarmDraft(
+            title = title,
+            hour = hour,
+            minute = minute,
+            repeatRule = repeatRule,
+            originalDate = originalDate,
+            confidence = confidence,
+            originalResponseText = arguments,
+        )
+    }
+
+    private fun JsonObject.requireOnlyKeys(allowedKeys: Set<String>, owner: String? = null) {
+        val unexpectedKey = keys.firstOrNull { it !in allowedKeys } ?: return
+        val prefix = owner?.let { "$it " }.orEmpty()
+        throw invalid("${prefix}unexpected key: $unexpectedKey")
+    }
+
+    private fun JsonObject.requiredObject(name: String): JsonObject {
+        val element = this[name] ?: throw invalid("$name is required")
+        return element as? JsonObject ?: throw invalid("$name must be an object")
+    }
+
+    private fun JsonObject.requiredString(name: String): String {
+        val primitive = requiredPrimitive(name)
+        if (!primitive.isString) {
+            throw invalid("$name must be a string")
+        }
+        return primitive.content
+    }
+
+    private fun JsonObject.requiredInt(name: String): Int {
+        val primitive = requiredPrimitive(name)
+        if (primitive.isString) {
+            throw invalid("$name must be an integer")
+        }
+        return primitive.intOrNull ?: throw invalid("$name must be an integer")
+    }
+
+    private fun JsonObject.requiredDouble(name: String): Double {
+        val primitive = requiredPrimitive(name)
+        if (primitive.isString) {
+            throw invalid("$name must be a number")
+        }
+        return primitive.doubleOrNull ?: throw invalid("$name must be a number")
+    }
+
+    private fun JsonObject.requiredBoolean(name: String): Boolean {
+        val primitive = requiredPrimitive(name)
+        if (primitive.isString) {
+            throw invalid("$name must be a boolean")
+        }
+        return primitive.booleanOrNull ?: throw invalid("$name must be a boolean")
+    }
+
+    private fun JsonObject.requiredIntArray(name: String): List<Int> {
+        val element = this[name] ?: throw invalid("$name is required")
+        val array = element as? JsonArray ?: throw invalid("$name must be an array")
+        return array.mapIndexed { index, item ->
+            val primitive = item as? JsonPrimitive ?: throw invalid("$name[$index] must be an integer")
+            if (primitive.isString) {
+                throw invalid("$name[$index] must be an integer")
+            }
+            primitive.intOrNull ?: throw invalid("$name[$index] must be an integer")
+        }
+    }
+
+    private fun JsonObject.requiredDate(name: String): LocalDate {
+        if (!containsKey(name)) {
+            throw invalid("$name is required")
+        }
+        val dateText = requiredString(name)
+        if (dateText.isBlank()) {
+            throw invalid("$name must be an ISO local date")
+        }
+        return try {
+            LocalDate.parse(dateText)
+        } catch (exception: DateTimeParseException) {
+            throw invalid("$name must be an ISO local date", exception)
+        }
+    }
+
+    private fun JsonObject.optionalDateOrNull(name: String): LocalDate? {
+        val element = this[name] ?: return null
+        val primitive = element as? JsonPrimitive ?: throw invalid("$name must be a string")
+        if (!primitive.isString) {
+            return null
+        }
+        val dateText = primitive.content
+        if (dateText.isBlank()) {
+            return null
+        }
+        return try {
+            LocalDate.parse(dateText)
+        } catch (exception: DateTimeParseException) {
+            throw invalid("$name must be an ISO local date", exception)
+        }
+    }
+
+    private fun JsonObject.optionalValidDate(name: String): LocalDate? {
+        val primitive = this[name] as? JsonPrimitive ?: return null
+        if (!primitive.isString) {
+            return null
+        }
+        val dateText = primitive.content
+        if (dateText.isBlank()) {
+            return null
+        }
+        return runCatching { LocalDate.parse(dateText) }.getOrNull()
+    }
+
+    private fun JsonObject.requiredPrimitive(name: String): JsonPrimitive {
+        val element = this[name] ?: throw invalid("$name is required")
+        return element as? JsonPrimitive ?: throw invalid("$name must be a primitive value")
+    }
+
+    private fun invalid(message: String, cause: Throwable? = null): IllegalArgumentException {
+        return IllegalArgumentException(message, cause)
+    }
+}
