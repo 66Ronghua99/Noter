@@ -113,23 +113,62 @@ class AgentLoopRunnerTest {
 
     @Test
     fun `runner fails when requested tool is not registered`() = runTest {
-        val runner = AgentLoopRunner(
-            RecordingGateway(
-                AgentLlmResult.Message(
-                    AgentMessage(
-                        role = AgentMessageRole.ASSISTANT,
-                        content = "",
-                        toolCalls = listOf(AgentToolCall("call-1", "missing_tool", "{}")),
-                    ),
+        val gateway = RecordingGateway(
+            AgentLlmResult.Message(
+                AgentMessage(AgentMessageRole.ASSISTANT, "unused"),
+            ),
+        )
+
+        val result = AgentLoopRunner(gateway).run(
+            basicRequest(
+                toolRegistry = AgentToolRegistry(emptyList()),
+                toolChoice = AgentToolChoice.Required("missing_tool"),
+            ),
+        )
+
+        assertThat(result).isEqualTo(AgentRunResult.Failed(AgentFailure.ToolNotRegistered("missing_tool")))
+        assertThat(gateway.requests).isEmpty()
+    }
+
+    @Test
+    fun `runner rejects non assistant final message and keeps committed tool result`() = runTest {
+        val gateway = RecordingGateway(
+            AgentLlmResult.Message(
+                AgentMessage(
+                    role = AgentMessageRole.ASSISTANT,
+                    content = "",
+                    toolCalls = listOf(AgentToolCall("call-1", "create_alarm", """{"title":"Take medicine"}""")),
+                ),
+            ),
+            AgentLlmResult.Message(
+                AgentMessage(AgentMessageRole.USER, "Created."),
+            ),
+        )
+        val tool = RecordingTool(
+            AgentToolSpec("create_alarm", "Create an alarm.", buildJsonObject { put("type", "object") }),
+            AgentToolExecution.Success(
+                AgentToolResult(
+                    toolCallId = "call-1",
+                    toolName = "create_alarm",
+                    content = buildJsonObject {
+                        put("status", "created")
+                        put("alarmId", 42)
+                    },
+                    committed = true,
                 ),
             ),
         )
 
-        val result = runner.run(basicRequest())
-
-        assertThat(result).isEqualTo(
-            AgentRunResult.Failed(AgentFailure.ToolNotRegistered("missing_tool")),
+        val result = AgentLoopRunner(gateway).run(
+            basicRequest(toolRegistry = AgentToolRegistry(listOf(tool))),
         )
+
+        assertThat(result).isInstanceOf(AgentRunResult.CompletedWithFinalizationFailure::class.java)
+        assertThat((result as AgentRunResult.CompletedWithFinalizationFailure).committedResults).hasSize(1)
+        assertThat(result.failure).isEqualTo(AgentFailure.ModelFailure("Model message role must be ASSISTANT."))
+        assertThat(gateway.requests).hasSize(2)
+        assertThat(gateway.requests[1].messages.last().role).isEqualTo(AgentMessageRole.TOOL)
+        assertThat(gateway.requests[1].messages.last().toolCallId).isEqualTo("call-1")
     }
 
     private fun basicRequest(
@@ -148,12 +187,13 @@ class AgentLoopRunnerTest {
                 ),
             ),
         ),
+        toolChoice: AgentToolChoice = AgentToolChoice.Required("create_alarm"),
     ): AgentRunRequest = AgentRunRequest(
         apiKey = "sk-test",
         modelId = "deepseek/deepseek-v4-flash",
         initialMessages = listOf(AgentMessage(AgentMessageRole.USER, "tomorrow at 8")),
         toolRegistry = toolRegistry,
-        toolChoice = AgentToolChoice.Required("create_alarm"),
+        toolChoice = toolChoice,
     )
 }
 

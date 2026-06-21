@@ -11,6 +11,16 @@ class AgentLoopRunner(
         require(config.maxModelTurns > 0) { "maxModelTurns must be greater than zero" }
         require(config.maxToolExecutions >= 0) { "maxToolExecutions must not be negative" }
 
+        when (val toolChoice = request.toolChoice) {
+            is AgentToolChoice.Required -> {
+                if (request.toolRegistry.get(toolChoice.toolName) == null) {
+                    return AgentRunResult.Failed(AgentFailure.ToolNotRegistered(toolChoice.toolName))
+                }
+            }
+
+            AgentToolChoice.Auto -> Unit
+        }
+
         val messages = request.initialMessages.toMutableList()
         val toolResults = mutableListOf<AgentToolResult>()
         var modelTurns = 0
@@ -34,6 +44,13 @@ class AgentLoopRunner(
                 is AgentLlmResult.RateLimited -> return committedOrFailed(toolResults, AgentFailure.RateLimited(llmResult.reason))
                 is AgentLlmResult.RemoteFailure -> return committedOrFailed(toolResults, AgentFailure.RemoteFailure(llmResult.code, llmResult.reason))
                 is AgentLlmResult.InvalidResponse -> return committedOrFailed(toolResults, AgentFailure.ModelFailure(llmResult.reason))
+            }
+
+            if (assistantMessage.role != AgentMessageRole.ASSISTANT) {
+                return committedOrFailed(
+                    toolResults,
+                    AgentFailure.ModelFailure("Model message role must be ASSISTANT."),
+                )
             }
             messages += assistantMessage
 
