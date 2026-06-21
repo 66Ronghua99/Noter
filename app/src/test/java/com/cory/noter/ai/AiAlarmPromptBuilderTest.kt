@@ -18,7 +18,7 @@ class AiAlarmPromptBuilderTest {
     }
 
     @Test
-    fun `prompt includes local context allowed rules and tool call instruction`() {
+    fun `prompt includes local context allowed rules and create alarm instruction`() {
         val now = ZonedDateTime.of(2026, 4, 23, 15, 45, 0, 0, ZoneId.of("Asia/Shanghai"))
 
         val prompt = AiAlarmPromptBuilder().build(
@@ -40,7 +40,8 @@ class AiAlarmPromptBuilderTest {
         assertThat(prompt).contains("ISO weekday numbering")
         assertThat(prompt).contains("Monday is 1")
         assertThat(prompt).contains("Sunday is 7")
-        assertThat(prompt).contains("Call submit_alarm_draft")
+        assertThat(prompt).contains("Call create_alarm")
+        assertThat(prompt).doesNotContain("submit_alarm_draft")
         assertThat(prompt).doesNotContain("Return only JSON")
         assertThat(prompt).contains("\"needsClarification\"")
     }

@@ -1,5 +1,10 @@
 package com.cory.noter.ai
 
+import com.cory.noter.agent.AgentLlmResult
+import com.cory.noter.agent.AgentLoopRunner
+import com.cory.noter.agent.AgentMessage
+import com.cory.noter.agent.AgentMessageRole
+import com.cory.noter.agent.AgentToolCall
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.cory.noter.alarm.AlarmSchedulingUseCase
@@ -12,6 +17,7 @@ import com.cory.noter.domain.alarm.AlarmSource
 import com.cory.noter.domain.alarm.NextTriggerCalculator
 import com.cory.noter.domain.alarm.RepeatRule
 import com.cory.noter.domain.settings.AppSettings
+import com.cory.noter.ui.FakeAgentLlmGateway
 import com.google.common.truth.Truth.assertThat
 import java.time.Clock
 import java.time.LocalDate
@@ -32,7 +38,7 @@ class AiAlarmCreatorTest {
     private lateinit var database: AlarmDatabase
     private lateinit var repository: AlarmRepository
     private lateinit var settingsRepository: FakeSettingsRepository
-    private lateinit var fakeOpenRouter: FakeOpenRouterGateway
+    private lateinit var fakeAgentGateway: FakeAgentLlmGateway
     private lateinit var fakeScheduler: FakeAlarmScheduler
     private lateinit var creator: AiAlarmCreator
 
@@ -51,15 +57,14 @@ class AiAlarmCreatorTest {
             zoneIdProvider = { zone },
         )
         settingsRepository = FakeSettingsRepository()
-        fakeOpenRouter = FakeOpenRouterGateway()
+        fakeAgentGateway = FakeAgentLlmGateway()
         fakeScheduler = FakeAlarmScheduler()
         creator = AiAlarmCreator(
             settingsRepository = settingsRepository,
-            openRouterClient = fakeOpenRouter,
+            agentLoopRunner = AgentLoopRunner(fakeAgentGateway),
             alarmRepository = repository,
             schedulingUseCase = AlarmSchedulingUseCase(fakeScheduler),
             promptBuilder = AiAlarmPromptBuilder(),
-            responseParser = AiAlarmResponseParser(),
             clock = Clock.fixed(now.toInstant(), zone),
         )
     }
@@ -82,14 +87,14 @@ class AiAlarmCreatorTest {
         val result = creator.createFromText("tomorrow 8 remind me to take medicine")
 
         assertThat(result).isEqualTo(AiCreateResult.MissingApiKey)
-        assertThat(fakeOpenRouter.requests).isEmpty()
+        assertThat(fakeAgentGateway.requests).isEmpty()
         assertThat(repository.alarms.first()).isEmpty()
     }
 
     @Test
     fun `network failure leaves alarms unchanged`() = runTest {
         settingsRepository.set(validSettings())
-        fakeOpenRouter.nextResult = OpenRouterResult.NetworkFailure("socket timeout")
+        fakeAgentGateway.results += AgentLlmResult.NetworkFailure("socket timeout")
 
         val result = creator.createFromText("tomorrow 8 remind me to take medicine")
 
@@ -101,95 +106,48 @@ class AiAlarmCreatorTest {
     @Test
     fun `rate limited model leaves alarms unchanged`() = runTest {
         settingsRepository.set(validSettings(modelId = "deepseek/deepseek-v3.2"))
-        fakeOpenRouter.nextResult = OpenRouterResult.RateLimited("Rate limit exceeded.")
+        fakeAgentGateway.results += AgentLlmResult.RateLimited("Rate limit exceeded.")
 
         val result = creator.createFromText("tomorrow 8 remind me to take medicine")
 
         assertThat(result).isEqualTo(AiCreateResult.RateLimited("Rate limit exceeded."))
-        assertThat(fakeOpenRouter.requests.single().modelId).isEqualTo("deepseek/deepseek-v3.2")
+        assertThat(fakeAgentGateway.requests.single().modelId).isEqualTo("deepseek/deepseek-v3.2")
         assertThat(repository.alarms.first()).isEmpty()
     }
 
     @Test
-    fun `invalid parsed response does not create alarm`() = runTest {
+    fun `missing tool call does not create alarm`() = runTest {
         settingsRepository.set(validSettings())
-        fakeOpenRouter.nextResult = OpenRouterResult.Success("not json")
+        fakeAgentGateway.results += AgentLlmResult.Message(
+            AgentMessage(AgentMessageRole.ASSISTANT, "I cannot do that."),
+        )
 
         val result = creator.createFromText("tomorrow 8 remind me to take medicine")
 
         assertThat(result).isInstanceOf(AiCreateResult.InvalidResponse::class.java)
-        assertThat((result as AiCreateResult.InvalidResponse).reason).contains("Invalid JSON")
-        assertThat(repository.alarms.first()).isEmpty()
-    }
-
-    @Test
-    fun `clarification response is surfaced distinctly`() = runTest {
-        settingsRepository.set(validSettings())
-        fakeOpenRouter.nextResult = OpenRouterResult.Success(
-            """
-            {
-              "title": "",
-              "hour": 8,
-              "minute": 0,
-              "repeatRule": { "type": "once", "daysOfWeek": [] },
-              "date": "2026-04-24",
-              "confidence": 0.2,
-              "needsClarification": true,
-              "clarificationReason": "Which day should I use?"
-            }
-            """.trimIndent(),
-        )
-
-        val result = creator.createFromText("remind me to take medicine at 8")
-
-        assertThat(result).isEqualTo(
-            AiCreateResult.ClarificationRequired("Which day should I use?"),
-        )
-        assertThat(repository.alarms.first()).isEmpty()
-    }
-
-    @Test
-    fun `blank clarification reason is rejected as invalid response`() = runTest {
-        settingsRepository.set(validSettings())
-        fakeOpenRouter.nextResult = OpenRouterResult.Success(
-            """
-            {
-              "title": "",
-              "hour": 8,
-              "minute": 0,
-              "repeatRule": { "type": "once", "daysOfWeek": [] },
-              "date": "2026-04-24",
-              "confidence": 0.2,
-              "needsClarification": true,
-              "clarificationReason": ""
-            }
-            """.trimIndent(),
-        )
-
-        val result = creator.createFromText("remind me to take medicine at 8")
-
-        assertThat(result).isInstanceOf(AiCreateResult.InvalidResponse::class.java)
         assertThat((result as AiCreateResult.InvalidResponse).reason)
-            .contains("clarificationReason")
+            .isEqualTo("Model did not call a tool.")
         assertThat(repository.alarms.first()).isEmpty()
     }
 
     @Test
     fun `valid response creates ai alarm and schedules it`() = runTest {
         settingsRepository.set(validSettings(modelId = "deepseek/deepseek-v3.2"))
-        fakeOpenRouter.nextResult = OpenRouterResult.Success(
-            """
-            {
-              "title": "Take medicine",
-              "hour": 8,
-              "minute": 30,
-              "repeatRule": { "type": "once", "daysOfWeek": [] },
-              "date": "2026-04-24",
-              "confidence": 0.92,
-              "needsClarification": false,
-              "clarificationReason": ""
-            }
-            """.trimIndent(),
+        fakeAgentGateway.results += AgentLlmResult.Message(
+            AgentMessage(
+                role = AgentMessageRole.ASSISTANT,
+                content = "",
+                toolCalls = listOf(
+                    AgentToolCall(
+                        id = "call-1",
+                        name = "create_alarm",
+                        arguments = validAlarmJson(),
+                    ),
+                ),
+            ),
+        )
+        fakeAgentGateway.results += AgentLlmResult.Message(
+            AgentMessage(AgentMessageRole.ASSISTANT, "Created."),
         )
 
         val result = creator.createFromText("tomorrow morning remind me to take medicine")
@@ -210,10 +168,40 @@ class AiAlarmCreatorTest {
         )
         assertThat(repository.alarms.first()).containsExactly(created)
         assertThat(fakeScheduler.scheduledAlarms[created.id]).isEqualTo(created)
-        assertThat(fakeOpenRouter.requests.single().modelId)
+        assertThat(fakeAgentGateway.requests).hasSize(2)
+        assertThat(fakeAgentGateway.requests[0].modelId)
             .isEqualTo("deepseek/deepseek-v3.2")
-        assertThat(fakeOpenRouter.requests.single().prompt)
+        assertThat(fakeAgentGateway.requests[0].messages.single().content)
             .contains("Current local date: 2026-04-23")
+        assertThat(fakeAgentGateway.requests.first().tools.single().name)
+            .isEqualTo("create_alarm")
+        assertThat(fakeAgentGateway.requests.first().tools.single().name)
+            .isNotEqualTo("submit_alarm_draft")
+    }
+
+    @Test
+    fun `committed tool result stays authoritative when finalization fails`() = runTest {
+        settingsRepository.set(validSettings())
+        fakeAgentGateway.results += AgentLlmResult.Message(
+            AgentMessage(
+                role = AgentMessageRole.ASSISTANT,
+                content = "",
+                toolCalls = listOf(
+                    AgentToolCall(
+                        id = "call-1",
+                        name = "create_alarm",
+                        arguments = validAlarmJson(),
+                    ),
+                ),
+            ),
+        )
+        fakeAgentGateway.results += AgentLlmResult.InvalidResponse("malformed final assistant message")
+
+        val result = creator.createFromText("tomorrow morning remind me to take medicine")
+
+        assertThat(result).isInstanceOf(AiCreateResult.Created::class.java)
+        val created = (result as AiCreateResult.Created).alarm
+        assertThat(created.title).isEqualTo("Take medicine")
     }
 
     private fun validSettings(
@@ -224,27 +212,16 @@ class AiAlarmCreatorTest {
         defaultRingtoneUri = AppSettings.DefaultRingtoneUri,
     )
 
-    private class FakeOpenRouterGateway : OpenRouterGateway {
-        val requests = mutableListOf<RequestCall>()
-        var nextResult: OpenRouterResult = OpenRouterResult.Success("{}")
-
-        override suspend fun createChatCompletion(
-            apiKey: String,
-            modelId: String,
-            prompt: String,
-        ): OpenRouterResult {
-            requests += RequestCall(
-                apiKey = apiKey,
-                modelId = modelId,
-                prompt = prompt,
-            )
-            return nextResult
+    private fun validAlarmJson(): String = """
+        {
+          "title": "Take medicine",
+          "hour": 8,
+          "minute": 30,
+          "repeatRule": { "type": "once", "daysOfWeek": [] },
+          "date": "2026-04-24",
+          "confidence": 0.92,
+          "needsClarification": false,
+          "clarificationReason": ""
         }
-    }
-
-    private data class RequestCall(
-        val apiKey: String,
-        val modelId: String,
-        val prompt: String,
-    )
+    """.trimIndent()
 }

@@ -1,16 +1,30 @@
 package com.cory.noter.ai
 
+import com.cory.noter.agent.AgentLlmGateway
+import com.cory.noter.agent.AgentLlmRequest
+import com.cory.noter.agent.AgentLlmResult
+import com.cory.noter.agent.AgentFailure
+import com.cory.noter.agent.AgentLoopRunner
+import com.cory.noter.agent.AgentMessage
+import com.cory.noter.agent.AgentMessageRole
+import com.cory.noter.agent.AgentRunRequest
+import com.cory.noter.agent.AgentRunResult
+import com.cory.noter.agent.AgentToolCall
+import com.cory.noter.agent.AgentToolChoice
+import com.cory.noter.agent.AgentToolRegistry
+import com.cory.noter.agent.AgentToolResult
+import com.cory.noter.agent.tools.alarm.CreateAlarmTool
+import com.cory.noter.agent.tools.alarm.CreateAlarmToolContext
 import com.cory.noter.alarm.AlarmSchedulingUseCase
-import com.cory.noter.alarm.ScheduleResult
-import com.cory.noter.data.alarm.AlarmDraft
 import com.cory.noter.data.alarm.AlarmRepository
 import com.cory.noter.data.settings.SettingsRepository
 import com.cory.noter.domain.alarm.Alarm
-import com.cory.noter.domain.alarm.AlarmSource
-import com.cory.noter.domain.alarm.AlarmValidation
 import java.time.Clock
 import java.time.ZonedDateTime
 import kotlinx.coroutines.flow.first
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.longOrNull
 
 sealed interface AiCreateResult {
     data object MissingApiKey : AiCreateResult
@@ -28,13 +42,29 @@ sealed interface AiCreateResult {
 
 class AiAlarmCreator(
     private val settingsRepository: SettingsRepository,
-    private val openRouterClient: OpenRouterGateway,
+    private val agentLoopRunner: AgentLoopRunner,
     private val alarmRepository: AlarmRepository,
     private val schedulingUseCase: AlarmSchedulingUseCase,
     private val promptBuilder: AiAlarmPromptBuilder = AiAlarmPromptBuilder(),
-    private val responseParser: AiAlarmResponseParser = AiAlarmResponseParser(),
     private val clock: Clock = Clock.systemDefaultZone(),
 ) {
+    constructor(
+        settingsRepository: SettingsRepository,
+        openRouterClient: OpenRouterGateway,
+        alarmRepository: AlarmRepository,
+        schedulingUseCase: AlarmSchedulingUseCase,
+        promptBuilder: AiAlarmPromptBuilder = AiAlarmPromptBuilder(),
+        @Suppress("UNUSED_PARAMETER") responseParser: AiAlarmResponseParser = AiAlarmResponseParser(),
+        clock: Clock = Clock.systemDefaultZone(),
+    ) : this(
+        settingsRepository = settingsRepository,
+        agentLoopRunner = AgentLoopRunner(LegacyOpenRouterAgentGateway(openRouterClient)),
+        alarmRepository = alarmRepository,
+        schedulingUseCase = schedulingUseCase,
+        promptBuilder = promptBuilder,
+        clock = clock,
+    )
+
     suspend fun createFromText(userRequest: String): AiCreateResult {
         val settings = settingsRepository.settings.first()
         val apiKey = settings.openRouterApiKey.trim()
@@ -47,97 +77,168 @@ class AiAlarmCreator(
             return AiCreateResult.MissingModel
         }
 
-        val prompt = promptBuilder.build(
-            userRequest = userRequest,
-            now = ZonedDateTime.now(clock),
+        val toolRegistry = AgentToolRegistry(
+            listOf(
+                CreateAlarmTool(
+                    context = CreateAlarmToolContext(
+                        userRequest = userRequest,
+                        ringtoneUri = settings.defaultRingtoneUri,
+                    ),
+                    alarmRepository = alarmRepository,
+                    schedulingUseCase = schedulingUseCase,
+                    clock = clock,
+                ),
+            ),
         )
 
-        return when (
-            val remoteResult = openRouterClient.createChatCompletion(
+        val result = agentLoopRunner.run(
+            AgentRunRequest(
                 apiKey = apiKey,
                 modelId = modelId,
-                prompt = prompt,
-            )
-        ) {
-            is OpenRouterResult.Success -> createAlarmFromResponse(
-                responseText = remoteResult.responseText,
-                userRequest = userRequest,
-                ringtoneUri = settings.defaultRingtoneUri,
-            )
-            is OpenRouterResult.NetworkFailure -> AiCreateResult.NetworkFailure(remoteResult.reason)
-            is OpenRouterResult.RateLimited -> AiCreateResult.RateLimited(remoteResult.reason)
-            is OpenRouterResult.RemoteFailure -> AiCreateResult.RemoteFailure(
-                remoteResult.code,
-                remoteResult.reason,
-            )
-            is OpenRouterResult.InvalidResponse -> AiCreateResult.InvalidResponse(remoteResult.reason)
+                initialMessages = listOf(
+                    AgentMessage(
+                        AgentMessageRole.SYSTEM,
+                        promptBuilder.build(userRequest, ZonedDateTime.now(clock)),
+                    ),
+                ),
+                toolRegistry = toolRegistry,
+                toolChoice = AgentToolChoice.Required("create_alarm"),
+            ),
+        )
+
+        return result.toAiCreateResult()
+    }
+
+    private suspend fun AgentRunResult.toAiCreateResult(): AiCreateResult = when (this) {
+        is AgentRunResult.Completed -> toolResults.lastOrNull()?.toAiCreateResult()
+            ?: AiCreateResult.InvalidResponse("Agent completed without a tool result.")
+
+        is AgentRunResult.CompletedWithFinalizationFailure -> committedResults.last().toAiCreateResult(
+            failure = failure,
+        )
+
+        is AgentRunResult.Failed -> failure.toAiCreateResult()
+    }
+
+    private suspend fun AgentToolResult.toAiCreateResult(
+        failure: AgentFailure? = null,
+    ): AiCreateResult {
+        val status = content.requiredString("status")
+            ?: return AiCreateResult.InvalidResponse("Agent tool result did not include a valid status.")
+        val alarmId = content.requiredLong("alarmId")
+            ?: return AiCreateResult.InvalidResponse("Agent tool result referenced a missing alarm.")
+        val alarm = alarmRepository.get(alarmId)
+            ?: return AiCreateResult.InvalidResponse("Agent tool result referenced a missing alarm.")
+
+        return when (status) {
+            "created" -> AiCreateResult.Created(alarm)
+
+            "missing_scheduling_permission" -> {
+                val permission = content.requiredString("permission")
+                    ?: return AiCreateResult.InvalidResponse(
+                        "Agent tool result did not include the missing scheduling permission.",
+                    )
+                AiCreateResult.MissingSchedulingPermission(alarm, permission)
+            }
+
+            "schedule_failed" -> {
+                val reason = content.requiredString("reason")
+                    ?: failure.scheduleFailureReason()
+                    ?: return AiCreateResult.InvalidResponse(
+                        "Agent tool result did not include a scheduling failure reason.",
+                    )
+                AiCreateResult.ScheduleFailed(alarm, reason)
+            }
+
+            else -> AiCreateResult.InvalidResponse("Unsupported agent tool result status: $status")
         }
     }
 
-    private suspend fun createAlarmFromResponse(
-        responseText: String,
-        userRequest: String,
-        ringtoneUri: String,
-    ): AiCreateResult {
-        val parsedDraft = responseParser.parse(responseText).getOrElse { error ->
-            return when (error) {
-                is AiAlarmResponseParser.ClarificationRequiredException -> {
-                    AiCreateResult.ClarificationRequired(error.reason)
-                }
+    private fun AgentFailure.toAiCreateResult(): AiCreateResult = when (this) {
+        is AgentFailure.ModelFailure -> AiCreateResult.InvalidResponse(reason)
+        is AgentFailure.NetworkFailure -> AiCreateResult.NetworkFailure(reason)
+        is AgentFailure.RateLimited -> AiCreateResult.RateLimited(reason)
+        is AgentFailure.RemoteFailure -> AiCreateResult.RemoteFailure(code, reason)
+        is AgentFailure.ToolExecutionFailed -> AiCreateResult.InvalidResponse(reason)
+        is AgentFailure.MissingToolCall -> AiCreateResult.InvalidResponse(reason)
+        is AgentFailure.ToolNotRegistered -> AiCreateResult.InvalidResponse(
+            "Tool is not registered: $toolName",
+        )
+        is AgentFailure.ToolLimitExceeded -> AiCreateResult.InvalidResponse(reason)
+        is AgentFailure.ModelTurnLimitExceeded -> AiCreateResult.InvalidResponse(reason)
+    }
 
-                else -> AiCreateResult.InvalidResponse(
-                    error.message ?: "OpenRouter returned an invalid alarm response.",
+    private fun AgentFailure?.scheduleFailureReason(): String? = when (this) {
+        is AgentFailure.ToolExecutionFailed -> reason
+        else -> null
+    }
+
+    private fun Map<String, JsonElement>.requiredString(key: String): String? =
+        (get(key) as? JsonPrimitive)
+            ?.takeIf { it.isString }
+            ?.content
+            ?.takeIf { it.isNotBlank() }
+
+    private fun Map<String, JsonElement>.requiredLong(key: String): Long? =
+        (get(key) as? JsonPrimitive)?.longOrNull
+
+    private class LegacyOpenRouterAgentGateway(
+        private val delegate: OpenRouterGateway,
+    ) : AgentLlmGateway {
+        override suspend fun complete(request: AgentLlmRequest): AgentLlmResult {
+            val lastMessage = request.messages.lastOrNull()
+            if (lastMessage?.role == AgentMessageRole.TOOL) {
+                return AgentLlmResult.Message(
+                    AgentMessage(
+                        role = AgentMessageRole.ASSISTANT,
+                        content = "Created.",
+                    ),
+                )
+            }
+
+            val prompt = request.messages.lastOrNull { message ->
+                message.role == AgentMessageRole.SYSTEM || message.role == AgentMessageRole.USER
+            }?.content ?: return AgentLlmResult.InvalidResponse(
+                "Agent request did not include a prompt message.",
+            )
+
+            return when (
+                val result = delegate.createChatCompletion(
+                    apiKey = request.apiKey,
+                    modelId = request.modelId,
+                    prompt = prompt,
+                )
+            ) {
+                is OpenRouterResult.Success -> AgentLlmResult.Message(
+                    AgentMessage(
+                        role = AgentMessageRole.ASSISTANT,
+                        content = "",
+                        toolCalls = listOf(
+                            AgentToolCall(
+                                id = "legacy-create-alarm",
+                                name = request.requiredToolName(),
+                                arguments = result.responseText,
+                            ),
+                        ),
+                    ),
+                )
+
+                is OpenRouterResult.NetworkFailure -> AgentLlmResult.NetworkFailure(result.reason)
+                is OpenRouterResult.RateLimited -> AgentLlmResult.RateLimited(result.reason)
+                is OpenRouterResult.RemoteFailure -> AgentLlmResult.RemoteFailure(
+                    result.code,
+                    result.reason,
+                )
+
+                is OpenRouterResult.InvalidResponse -> AgentLlmResult.InvalidResponse(
+                    result.reason.replace("submit_alarm_draft", "create_alarm"),
                 )
             }
         }
 
-        val validationErrors = AlarmValidation.validateDraft(
-            title = parsedDraft.title,
-            hour = parsedDraft.hour,
-            minute = parsedDraft.minute,
-            repeatRule = parsedDraft.repeatRule,
-            now = clock.instant(),
-            zoneId = clock.zone,
-        )
-        if (validationErrors.isNotEmpty()) {
-            return AiCreateResult.InvalidResponse(
-                "Alarm validation failed: ${validationErrors.joinToString(", ")}",
-            )
-        }
-
-        val createdAlarm = runCatching {
-            alarmRepository.create(
-                AlarmDraft(
-                    title = parsedDraft.title,
-                    hour = parsedDraft.hour,
-                    minute = parsedDraft.minute,
-                    repeatRule = parsedDraft.repeatRule,
-                    enabled = true,
-                    ringtoneUri = ringtoneUri,
-                    source = AlarmSource.AI,
-                    aiOriginalText = userRequest,
-                ),
-            )
-        }.getOrElse { error ->
-            return AiCreateResult.CreateFailed(
-                error.message ?: "Alarm creation failed.",
-            )
-        }
-
-        return when (val scheduleResult = schedulingUseCase.syncSchedule(createdAlarm)) {
-            ScheduleResult.Scheduled -> AiCreateResult.Created(createdAlarm)
-            ScheduleResult.Cancelled -> AiCreateResult.ScheduleFailed(
-                createdAlarm,
-                "Alarm ${createdAlarm.id} scheduling returned Cancelled unexpectedly.",
-            )
-            is ScheduleResult.MissingPermission -> AiCreateResult.MissingSchedulingPermission(
-                createdAlarm,
-                scheduleResult.permission,
-            )
-            is ScheduleResult.Failed -> AiCreateResult.ScheduleFailed(
-                createdAlarm,
-                scheduleResult.reason,
-            )
+        private fun AgentLlmRequest.requiredToolName(): String = when (val choice = toolChoice) {
+            is AgentToolChoice.Required -> choice.toolName
+            AgentToolChoice.Auto -> tools.singleOrNull()?.name ?: "create_alarm"
         }
     }
 }

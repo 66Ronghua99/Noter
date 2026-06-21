@@ -1,17 +1,20 @@
 package com.cory.noter.ui.ai
 
 import com.cory.noter.R
+import com.cory.noter.agent.AgentLlmResult
+import com.cory.noter.agent.AgentLoopRunner
+import com.cory.noter.agent.AgentMessage
+import com.cory.noter.agent.AgentMessageRole
+import com.cory.noter.agent.AgentToolCall
 import com.cory.noter.ai.AiAlarmCreator
 import com.cory.noter.ai.AiAlarmPromptBuilder
-import com.cory.noter.ai.AiAlarmResponseParser
-import com.cory.noter.ai.OpenRouterResult
 import com.cory.noter.alarm.AlarmSchedulingUseCase
 import com.cory.noter.alarm.FakeAlarmScheduler
 import com.cory.noter.alarm.ScheduleResult
 import com.cory.noter.data.settings.FakeSettingsRepository
 import com.cory.noter.domain.settings.AppSettings
 import com.cory.noter.ui.FakeAlarmRepository
-import com.cory.noter.ui.FakeOpenRouterGateway
+import com.cory.noter.ui.FakeAgentLlmGateway
 import com.cory.noter.ui.MainDispatcherRule
 import com.cory.noter.ui.text.UiText
 import com.google.common.truth.Truth.assertThat
@@ -36,11 +39,10 @@ class AiCreateViewModelTest {
         val viewModel = AiCreateViewModel(
             creator = AiAlarmCreator(
                 settingsRepository = settingsRepository,
-                openRouterClient = FakeOpenRouterGateway(),
+                agentLoopRunner = AgentLoopRunner(FakeAgentLlmGateway()),
                 alarmRepository = FakeAlarmRepository(clock = clock, zoneId = zoneId),
                 schedulingUseCase = AlarmSchedulingUseCase(FakeAlarmScheduler()),
                 promptBuilder = AiAlarmPromptBuilder(),
-                responseParser = AiAlarmResponseParser(),
                 clock = clock,
             ),
             settingsRepository = settingsRepository,
@@ -65,20 +67,19 @@ class AiCreateViewModelTest {
                 defaultRingtoneUri = AppSettings.DefaultRingtoneUri,
             ),
         )
-        val openRouterGateway = FakeOpenRouterGateway().apply {
-            nextResult = OpenRouterResult.Success(
-                """
-                {
-                  "title": "Take medicine",
-                  "hour": 8,
-                  "minute": 0,
-                  "repeatRule": { "type": "once", "daysOfWeek": [] },
-                  "date": "2026-04-24",
-                  "confidence": 0.92,
-                  "needsClarification": false,
-                  "clarificationReason": ""
-                }
-                """.trimIndent(),
+        val agentGateway = FakeAgentLlmGateway().apply {
+            results += AgentLlmResult.Message(
+                AgentMessage(
+                    role = AgentMessageRole.ASSISTANT,
+                    content = "",
+                    toolCalls = listOf(
+                        AgentToolCall(
+                            id = "call-1",
+                            name = "create_alarm",
+                            arguments = validAlarmJson(),
+                        ),
+                    ),
+                ),
             )
         }
         val scheduler = FakeAlarmScheduler().apply {
@@ -89,11 +90,10 @@ class AiCreateViewModelTest {
         val viewModel = AiCreateViewModel(
             creator = AiAlarmCreator(
                 settingsRepository = settingsRepository,
-                openRouterClient = openRouterGateway,
+                agentLoopRunner = AgentLoopRunner(agentGateway),
                 alarmRepository = FakeAlarmRepository(clock = clock, zoneId = zoneId),
                 schedulingUseCase = AlarmSchedulingUseCase(scheduler),
                 promptBuilder = AiAlarmPromptBuilder(),
-                responseParser = AiAlarmResponseParser(),
                 clock = clock,
             ),
             settingsRepository = settingsRepository,
@@ -120,11 +120,10 @@ class AiCreateViewModelTest {
         val viewModel = AiCreateViewModel(
             creator = AiAlarmCreator(
                 settingsRepository = FakeSettingsRepository(),
-                openRouterClient = FakeOpenRouterGateway(),
+                agentLoopRunner = AgentLoopRunner(FakeAgentLlmGateway()),
                 alarmRepository = FakeAlarmRepository(clock = clock, zoneId = zoneId),
                 schedulingUseCase = AlarmSchedulingUseCase(FakeAlarmScheduler()),
                 promptBuilder = AiAlarmPromptBuilder(),
-                responseParser = AiAlarmResponseParser(),
                 clock = clock,
             ),
             settingsRepository = FakeSettingsRepository(),
@@ -149,4 +148,17 @@ class AiCreateViewModelTest {
             prompts += prompt
         }
     }
+
+    private fun validAlarmJson(): String = """
+        {
+          "title": "Take medicine",
+          "hour": 8,
+          "minute": 0,
+          "repeatRule": { "type": "once", "daysOfWeek": [] },
+          "date": "2026-04-24",
+          "confidence": 0.92,
+          "needsClarification": false,
+          "clarificationReason": ""
+        }
+    """.trimIndent()
 }
