@@ -58,8 +58,13 @@ class AiCreateWorker(
     private fun AiCreateResult.toWorkerResult(): Result = when (this) {
         is AiCreateResult.NetworkFailure,
         is AiCreateResult.RateLimited,
-        is AiCreateResult.RemoteFailure,
         -> Result.retry()
+
+        is AiCreateResult.RemoteFailure -> if (code in 500..599) {
+            Result.retry()
+        } else {
+            Result.failure()
+        }
 
         AiCreateResult.MissingApiKey,
         AiCreateResult.MissingModel,

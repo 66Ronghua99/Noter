@@ -27,6 +27,7 @@
   - `AgentLoopRunner` forces `create_alarm` only on the first model turn, then keeps `tools` with `AgentToolChoice.Auto` for the follow-up turn after the tool result is appended.
   - `OpenRouterAgentClient` sends `parallel_tool_calls: false` and omits `tool_choice` on Auto follow-up requests while still including the `tools` array.
   - `AiCreateWorker` now maps transient provider and transport failures to WorkManager retry, permanent config/model/tool failures to failure, and committed product outcomes to success after notifier delivery.
+  - `AiCreateWorker` treats remote HTTP 5xx failures as retryable and remote HTTP 4xx failures as permanent failures.
 - Model-facing tool name is `create_alarm`, verified by the focused regression suite and the request-body assertions in `OpenRouterAgentClientTest`.
 - `submit_alarm_draft` is absent from production OpenRouter request construction; the legacy cleanup scan found no production matches after deleting the old single-purpose client/parser path.
 - Agent loop defaults remain `maxModelTurns = 2` and `maxToolExecutions = 1` in `app/src/main/java/com/cory/noter/agent/AgentProtocol.kt`, and `AgentLoopRunnerTest` still passes under those defaults.

@@ -104,6 +104,9 @@ class AiCreateBackgroundSchedulerTest {
         val permanentResults = listOf(
             AiCreateResult.MissingApiKey,
             AiCreateResult.MissingModel,
+            AiCreateResult.RemoteFailure(400, "bad request"),
+            AiCreateResult.RemoteFailure(401, "unauthorized"),
+            AiCreateResult.RemoteFailure(404, "model not found"),
             AiCreateResult.InvalidResponse("bad payload"),
             AiCreateResult.ClarificationRequired("need more detail"),
             AiCreateResult.CreateFailed("validation failed"),
