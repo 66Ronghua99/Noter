@@ -25,6 +25,7 @@ class AgentLoopRunner(
         val toolResults = mutableListOf<AgentToolResult>()
         var modelTurns = 0
         var toolExecutions = 0
+        var nextToolChoice: AgentToolChoice = request.toolChoice
 
         while (modelTurns < config.maxModelTurns) {
             modelTurns += 1
@@ -34,7 +35,7 @@ class AgentLoopRunner(
                     modelId = request.modelId,
                     messages = messages.toList(),
                     tools = request.toolRegistry.specs,
-                    toolChoice = request.toolChoice,
+                    toolChoice = nextToolChoice,
                 ),
             )
 
@@ -77,6 +78,7 @@ class AgentLoopRunner(
                         toolExecutions += 1
                         toolResults += execution.result
                         messages += execution.result.toToolMessage()
+                        nextToolChoice = AgentToolChoice.Auto
                     }
 
                     is AgentToolExecution.Failure -> {

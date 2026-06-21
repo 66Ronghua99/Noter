@@ -125,6 +125,7 @@ class OpenRouterAgentClientTest {
         assertThat(body["model"]!!.jsonPrimitive.content).isEqualTo("deepseek/deepseek-v4-flash")
         assertThat(body["tools"]!!.jsonArray.single().jsonObject["function"]!!.jsonObject["name"]!!.jsonPrimitive.content)
             .isEqualTo("create_alarm")
+        assertThat(body["parallel_tool_calls"]!!.jsonPrimitive.content).isEqualTo("false")
         assertThat(capturedBody).doesNotContain("submit_alarm_draft")
         assertThat(body["tool_choice"]!!.jsonObject["function"]!!.jsonObject["name"]!!.jsonPrimitive.content)
             .isEqualTo("create_alarm")
@@ -180,6 +181,9 @@ class OpenRouterAgentClientTest {
 
         val body = Json.parseToJsonElement(capturedBody).jsonObject
         assertThat(body).doesNotContainKey("tool_choice")
+        assertThat(body["parallel_tool_calls"]!!.jsonPrimitive.content).isEqualTo("false")
+        assertThat(body["tools"]!!.jsonArray.single().jsonObject["function"]!!.jsonObject["name"]!!.jsonPrimitive.content)
+            .isEqualTo("create_alarm")
         val messages = body["messages"]!!.jsonArray
         assertThat(messages[1].jsonObject["role"]!!.jsonPrimitive.content).isEqualTo("tool")
         assertThat(messages[1].jsonObject["tool_call_id"]!!.jsonPrimitive.content).isEqualTo("call-1")

@@ -52,6 +52,9 @@ class AgentLoopRunnerTest {
         assertThat(tool.calls.single().name).isEqualTo("create_alarm")
         assertThat(gateway.requests).hasSize(2)
         assertThat(gateway.requests[0].tools.single().name).isEqualTo("create_alarm")
+        assertThat(gateway.requests[0].toolChoice).isEqualTo(AgentToolChoice.Required("create_alarm"))
+        assertThat(gateway.requests[1].tools.single().name).isEqualTo("create_alarm")
+        assertThat(gateway.requests[1].toolChoice).isEqualTo(AgentToolChoice.Auto)
         assertThat(gateway.requests[1].messages.last().role).isEqualTo(AgentMessageRole.TOOL)
         assertThat(gateway.requests[1].messages.last().toolCallId).isEqualTo("call-1")
     }

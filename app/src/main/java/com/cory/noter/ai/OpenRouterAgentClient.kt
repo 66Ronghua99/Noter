@@ -96,6 +96,7 @@ class OpenRouterAgentClient(
         model = modelId,
         messages = messages.map { it.toChatMessage() },
         tools = tools.map { ChatTool("function", ToolFunction(it.name, it.description, it.parameters)) },
+        parallelToolCalls = false,
         toolChoice = when (val choice = toolChoice) {
             AgentToolChoice.Auto -> null
             is AgentToolChoice.Required -> ToolChoice("function", ToolChoiceFunction(choice.toolName))
@@ -241,6 +242,8 @@ private data class ChatCompletionRequest(
     val model: String,
     val messages: List<ChatMessage>,
     val tools: List<ChatTool>,
+    @SerialName("parallel_tool_calls")
+    val parallelToolCalls: Boolean,
     @SerialName("tool_choice")
     val toolChoice: ToolChoice? = null,
 )

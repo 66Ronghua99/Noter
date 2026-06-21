@@ -59,8 +59,8 @@ class AiCreateBackgroundSchedulerTest {
     }
 
     @Test
-    fun `worker notifies started and result around ai create for non empty prompt`() = runTest {
-        val expected = AiCreateResult.InvalidResponse("provider malformed response")
+    fun `worker notifies started and result around committed ai create outcome`() = runTest {
+        val expected = AiCreateResult.Created(sampleAlarm(id = 10L))
         val runtime = RecordingRuntime(expected)
         AiCreateWorker.runtimeFactory = { runtime }
         val prompt = "tomorrow at 8 am remind me to take medicine"
@@ -74,6 +74,77 @@ class AiCreateBackgroundSchedulerTest {
             "createFromText:$prompt",
             "notifyResult:$expected",
         ).inOrder()
+    }
+
+    @Test
+    fun `worker retries transient ai create failures and still notifies result`() = runTest {
+        val transientResults = listOf(
+            AiCreateResult.NetworkFailure("timeout") to "notifyResult:${AiCreateResult.NetworkFailure("timeout")}",
+            AiCreateResult.RateLimited("slow down") to "notifyResult:${AiCreateResult.RateLimited("slow down")}",
+            AiCreateResult.RemoteFailure(502, "upstream") to "notifyResult:${AiCreateResult.RemoteFailure(502, "upstream")}",
+        )
+
+        transientResults.forEach { (aiResult, notifyEvent) ->
+            val runtime = RecordingRuntime(aiResult)
+            AiCreateWorker.runtimeFactory = { runtime }
+
+            val result = buildWorker("retry me").doWork()
+
+            assertThat(result).isInstanceOf(ListenableWorker.Result.Retry::class.java)
+            assertThat(runtime.events).containsExactly(
+                "notifyStarted",
+                "createFromText:retry me",
+                notifyEvent,
+            ).inOrder()
+        }
+    }
+
+    @Test
+    fun `worker fails permanent ai create failures and succeeds committed outcomes`() = runTest {
+        val permanentResults = listOf(
+            AiCreateResult.MissingApiKey,
+            AiCreateResult.MissingModel,
+            AiCreateResult.InvalidResponse("bad payload"),
+            AiCreateResult.ClarificationRequired("need more detail"),
+            AiCreateResult.CreateFailed("validation failed"),
+        )
+
+        permanentResults.forEach { aiResult ->
+            val runtime = RecordingRuntime(aiResult)
+            AiCreateWorker.runtimeFactory = { runtime }
+
+            val result = buildWorker("permanent").doWork()
+
+            assertThat(result).isInstanceOf(ListenableWorker.Result.Failure::class.java)
+            assertThat(runtime.events).containsExactly(
+                "notifyStarted",
+                "createFromText:permanent",
+                "notifyResult:$aiResult",
+            ).inOrder()
+        }
+
+        val committedOutcomes = listOf(
+            AiCreateResult.ScheduleFailed(alarm = sampleAlarm(id = 11L), reason = "scheduler rejected"),
+            AiCreateResult.MissingSchedulingPermission(
+                alarm = sampleAlarm(id = 12L),
+                permission = "android.permission.SCHEDULE_EXACT_ALARM",
+            ),
+            AiCreateResult.Created(sampleAlarm(id = 13L)),
+        )
+
+        committedOutcomes.forEach { aiResult ->
+            val runtime = RecordingRuntime(aiResult)
+            AiCreateWorker.runtimeFactory = { runtime }
+
+            val result = buildWorker("committed").doWork()
+
+            assertThat(result).isInstanceOf(ListenableWorker.Result.Success::class.java)
+            assertThat(runtime.events).containsExactly(
+                "notifyStarted",
+                "createFromText:committed",
+                "notifyResult:$aiResult",
+            ).inOrder()
+        }
     }
 
     private fun workSpecInputData(
@@ -115,3 +186,18 @@ class AiCreateBackgroundSchedulerTest {
         }
     }
 }
+
+private fun sampleAlarm(id: Long) = com.cory.noter.domain.alarm.Alarm(
+    id = id,
+    title = "Take medicine",
+    hour = 8,
+    minute = 0,
+    repeatRule = com.cory.noter.domain.alarm.RepeatRule.Once(java.time.LocalDate.parse("2026-06-22")),
+    enabled = true,
+    ringtoneUri = "content://ringtone/default",
+    source = com.cory.noter.domain.alarm.AlarmSource.AI,
+    aiOriginalText = "take medicine",
+    nextTriggerAtMillis = 1_719_014_400_000,
+    createdAtMillis = 1_719_000_000_000,
+    updatedAtMillis = 1_719_000_000_000,
+)

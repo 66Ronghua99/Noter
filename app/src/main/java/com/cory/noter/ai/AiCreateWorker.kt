@@ -21,7 +21,7 @@ class AiCreateWorker(
         runtime.notifyStarted()
         val result = runtime.createFromText(prompt)
         runtime.notifyResult(result)
-        return Result.success()
+        return result.toWorkerResult()
     }
 
     internal interface Runtime {
@@ -53,5 +53,24 @@ class AiCreateWorker(
         var runtimeFactory: (Context) -> Runtime = ::productionRuntime
 
         fun productionRuntime(context: Context): Runtime = AppContainerRuntime(context)
+    }
+
+    private fun AiCreateResult.toWorkerResult(): Result = when (this) {
+        is AiCreateResult.NetworkFailure,
+        is AiCreateResult.RateLimited,
+        is AiCreateResult.RemoteFailure,
+        -> Result.retry()
+
+        AiCreateResult.MissingApiKey,
+        AiCreateResult.MissingModel,
+        is AiCreateResult.InvalidResponse,
+        is AiCreateResult.ClarificationRequired,
+        is AiCreateResult.CreateFailed,
+        -> Result.failure()
+
+        is AiCreateResult.MissingSchedulingPermission,
+        is AiCreateResult.ScheduleFailed,
+        is AiCreateResult.Created,
+        -> Result.success()
     }
 }

@@ -33,11 +33,8 @@ Daemon will be stopped at the end of the build
 > Task :app:lintAnalyzeDebugAndroidTest
 > Task :app:lintAnalyzeDebugUnitTest
 > Task :app:lintAnalyzeDebug
-
-> Task :app:lintReportDebug
-Wrote HTML report to file:///home/ronghua/codes/Noter/app/build/reports/lint-results-debug.html
-
+> Task :app:lintReportDebug UP-TO-DATE
 > Task :app:lintDebug
 
-BUILD SUCCESSFUL in 43s
-29 actionable tasks: 8 executed, 21 up-to-date
+BUILD SUCCESSFUL in 49s
+29 actionable tasks: 7 executed, 22 up-to-date
