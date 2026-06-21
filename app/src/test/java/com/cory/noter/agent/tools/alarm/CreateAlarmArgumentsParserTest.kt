@@ -62,6 +62,195 @@ class CreateAlarmArgumentsParserTest {
     }
 
     @Test
+    fun `rejects top level unexpected keys`() {
+        val result = parser.parse(
+            """
+            {
+              "title": "Take medicine",
+              "hour": 8,
+              "minute": 30,
+              "repeatRule": {
+                "type": "once",
+                "daysOfWeek": [],
+                "startDate": null,
+                "endDate": null,
+                "intervalWeeks": null
+              },
+              "date": "2026-04-24",
+              "confidence": 0.92,
+              "needsClarification": false,
+              "clarificationReason": "",
+              "unexpected": "do not accept"
+            }
+            """.trimIndent(),
+        )
+
+        assertThat(result.isFailure).isTrue()
+        assertThat(result.exceptionOrNull()).hasMessageThat().contains("unexpected key")
+    }
+
+    @Test
+    fun `rejects missing clarificationReason`() {
+        val result = parser.parse(
+            """
+            {
+              "title": "Take medicine",
+              "hour": 8,
+              "minute": 30,
+              "repeatRule": {
+                "type": "once",
+                "daysOfWeek": [],
+                "startDate": null,
+                "endDate": null,
+                "intervalWeeks": null
+              },
+              "date": "2026-04-24",
+              "confidence": 0.92,
+              "needsClarification": false
+            }
+            """.trimIndent(),
+        )
+
+        assertThat(result.isFailure).isTrue()
+        assertThat(result.exceptionOrNull()).hasMessageThat().contains("clarificationReason")
+    }
+
+    @Test
+    fun `rejects negative confidence`() {
+        val result = parser.parse(
+            """
+            {
+              "title": "Take medicine",
+              "hour": 8,
+              "minute": 30,
+              "repeatRule": {
+                "type": "once",
+                "daysOfWeek": [],
+                "startDate": null,
+                "endDate": null,
+                "intervalWeeks": null
+              },
+              "date": "2026-04-24",
+              "confidence": -0.1,
+              "needsClarification": false,
+              "clarificationReason": ""
+            }
+            """.trimIndent(),
+        )
+
+        assertThat(result.isFailure).isTrue()
+        assertThat(result.exceptionOrNull()).hasMessageThat().contains("confidence")
+    }
+
+    @Test
+    fun `rejects confidence greater than one`() {
+        val result = parser.parse(
+            """
+            {
+              "title": "Take medicine",
+              "hour": 8,
+              "minute": 30,
+              "repeatRule": {
+                "type": "once",
+                "daysOfWeek": [],
+                "startDate": null,
+                "endDate": null,
+                "intervalWeeks": null
+              },
+              "date": "2026-04-24",
+              "confidence": 1.1,
+              "needsClarification": false,
+              "clarificationReason": ""
+            }
+            """.trimIndent(),
+        )
+
+        assertThat(result.isFailure).isTrue()
+        assertThat(result.exceptionOrNull()).hasMessageThat().contains("confidence")
+    }
+
+    @Test
+    fun `rejects weekday range outside iso bounds`() {
+        val result = parser.parse(
+            """
+            {
+              "title": "Workout",
+              "hour": 7,
+              "minute": 0,
+              "repeatRule": {
+                "type": "custom_weekdays",
+                "daysOfWeek": [1, 8],
+                "startDate": null,
+                "endDate": null,
+                "intervalWeeks": null
+              },
+              "date": null,
+              "confidence": 0.9,
+              "needsClarification": false,
+              "clarificationReason": ""
+            }
+            """.trimIndent(),
+        )
+
+        assertThat(result.isFailure).isTrue()
+        assertThat(result.exceptionOrNull()).hasMessageThat().contains("daysOfWeek")
+    }
+
+    @Test
+    fun `rejects non string weekly interval end date`() {
+        val result = parser.parse(
+            """
+            {
+              "title": "Stretch",
+              "hour": 7,
+              "minute": 15,
+              "repeatRule": {
+                "type": "weekly_interval",
+                "daysOfWeek": [1, 3, 5],
+                "startDate": "2026-04-24",
+                "endDate": 3,
+                "intervalWeeks": 2
+              },
+              "date": "",
+              "confidence": 0.88,
+              "needsClarification": false,
+              "clarificationReason": ""
+            }
+            """.trimIndent(),
+        )
+
+        assertThat(result.isFailure).isTrue()
+        assertThat(result.exceptionOrNull()).hasMessageThat().contains("endDate")
+    }
+
+    @Test
+    fun `rejects invalid weekly interval fields`() {
+        val result = parser.parse(
+            """
+            {
+              "title": "Stretch",
+              "hour": 7,
+              "minute": 15,
+              "repeatRule": {
+                "type": "weekly_interval",
+                "daysOfWeek": [1, 3, 5],
+                "startDate": "2026-04-24",
+                "endDate": "2026-04-20",
+                "intervalWeeks": 0
+              },
+              "date": "",
+              "confidence": 0.88,
+              "needsClarification": false,
+              "clarificationReason": ""
+            }
+            """.trimIndent(),
+        )
+
+        assertThat(result.isFailure).isTrue()
+        assertThat(result.exceptionOrNull()).hasMessageThat().contains("intervalWeeks")
+    }
+
+    @Test
     fun `rejects invalid hour`() {
         val result = parser.parse(
             """

@@ -9,6 +9,7 @@ import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.doubleOrNull
@@ -216,18 +217,24 @@ class CreateAlarmArgumentsParser {
 
     private fun JsonObject.optionalDateOrNull(name: String): LocalDate? {
         val element = this[name] ?: return null
-        val primitive = element as? JsonPrimitive ?: throw invalid("$name must be a string")
-        if (!primitive.isString) {
-            return null
-        }
-        val dateText = primitive.content
-        if (dateText.isBlank()) {
-            return null
-        }
-        return try {
-            LocalDate.parse(dateText)
-        } catch (exception: DateTimeParseException) {
-            throw invalid("$name must be an ISO local date", exception)
+        return when (element) {
+            JsonNull -> null
+            is JsonPrimitive -> {
+                if (!element.isString) {
+                    throw invalid("$name must be null or an ISO local date")
+                }
+                val dateText = element.content
+                if (dateText.isBlank()) {
+                    null
+                } else {
+                    try {
+                        LocalDate.parse(dateText)
+                    } catch (exception: DateTimeParseException) {
+                        throw invalid("$name must be an ISO local date", exception)
+                    }
+                }
+            }
+            else -> throw invalid("$name must be null or an ISO local date")
         }
     }
 

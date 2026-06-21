@@ -19,6 +19,8 @@ import java.time.ZonedDateTime
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Test
 
@@ -34,6 +36,38 @@ class CreateAlarmToolTest {
         assertThat(tool.spec.name).isEqualTo("create_alarm")
         assertThat(tool.spec.name).isNotEqualTo("submit_alarm_draft")
         assertThat(tool.spec.parameters["type"]!!.jsonPrimitive.content).isEqualTo("object")
+        val properties = tool.spec.parameters["properties"]!!.jsonObject
+        assertThat(properties.keys).containsExactly(
+            "title",
+            "hour",
+            "minute",
+            "repeatRule",
+            "date",
+            "confidence",
+            "needsClarification",
+            "clarificationReason",
+        )
+        val repeatRuleProperties = properties["repeatRule"]!!.jsonObject["properties"]!!.jsonObject
+        assertThat(repeatRuleProperties.keys).containsExactly(
+            "type",
+            "daysOfWeek",
+            "startDate",
+            "endDate",
+            "intervalWeeks",
+        )
+        assertThat(tool.spec.parameters["required"]!!.jsonArray.map { it.jsonPrimitive.content }).containsExactly(
+            "title",
+            "hour",
+            "minute",
+            "repeatRule",
+            "date",
+            "confidence",
+            "needsClarification",
+            "clarificationReason",
+        ).inOrder()
+        assertThat(properties["repeatRule"]!!.jsonObject["required"]!!.jsonArray.map { it.jsonPrimitive.content })
+            .containsExactly("type", "daysOfWeek")
+            .inOrder()
         assertThat(tool.spec.parameters.toString()).contains("weekly_interval")
     }
 
@@ -79,6 +113,28 @@ class CreateAlarmToolTest {
         assertThat(result).isInstanceOf(AgentToolExecution.Failure::class.java)
         val failure = result as AgentToolExecution.Failure
         assertThat(failure.failure).isEqualTo(AgentFailure.ToolExecutionFailed("Invalid JSON"))
+        assertThat(failure.committedResult).isNull()
+        assertThat(repository.createCalls).isEqualTo(0)
+    }
+
+    @Test
+    fun `validation failure fails before repository write`() = runTest {
+        val repository = RecordingAlarmRepository(clock = clock, zoneId = zoneId)
+        val tool = createTool(repository = repository)
+
+        val result = tool.execute(
+            AgentToolCall(
+                id = "call-1",
+                name = "create_alarm",
+                arguments = expiredOnceArguments(),
+            ),
+        )
+
+        assertThat(result).isInstanceOf(AgentToolExecution.Failure::class.java)
+        val failure = result as AgentToolExecution.Failure
+        assertThat(failure.failure).isEqualTo(
+            AgentFailure.ToolExecutionFailed("Alarm validation failed: EXPIRED_ONE_TIME_ALARM"),
+        )
         assertThat(failure.committedResult).isNull()
         assertThat(repository.createCalls).isEqualTo(0)
     }
@@ -163,6 +219,25 @@ class CreateAlarmToolTest {
             "intervalWeeks": null
           },
           "date": "2026-04-24",
+          "confidence": 0.92,
+          "needsClarification": false,
+          "clarificationReason": ""
+        }
+    """.trimIndent()
+
+    private fun expiredOnceArguments(): String = """
+        {
+          "title": "Take medicine",
+          "hour": 8,
+          "minute": 30,
+          "repeatRule": {
+            "type": "once",
+            "daysOfWeek": [],
+            "startDate": null,
+            "endDate": null,
+            "intervalWeeks": null
+          },
+          "date": "2026-04-23",
           "confidence": 0.92,
           "needsClarification": false,
           "clarificationReason": ""
