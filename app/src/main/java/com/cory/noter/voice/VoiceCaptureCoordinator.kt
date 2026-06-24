@@ -2,6 +2,9 @@ package com.cory.noter.voice
 
 import com.cory.noter.ai.AsrModel
 import com.cory.noter.data.settings.SettingsRepository
+import java.util.logging.Level
+import java.util.logging.Logger
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
 
 fun interface MicrophonePermissionChecker {
@@ -129,6 +132,7 @@ class VoiceCaptureCoordinator(
     private val temporaryAudioCleanup: TemporaryAudioCleanup,
     private val aiCreateEnqueuer: VoiceAiCreateEnqueuer,
 ) : VoiceCaptureController {
+    private val logger = Logger.getLogger(VoiceCaptureCoordinator::class.java.name)
     private var activeCapture: ActiveVoiceCapture? = null
 
     override suspend fun start(): VoiceCaptureResult {
@@ -163,12 +167,12 @@ class VoiceCaptureCoordinator(
             is VoiceRecordingStopResult.Recorded -> processRecordedAudio(capture, stopResult.audio)
             is VoiceRecordingStopResult.Failed -> {
                 capture.systemSpeechRecognition?.cancel()
-                temporaryAudioCleanup.cleanup(capture.recording.handle)
+                cleanupWithoutMasking(capture.recording.handle)
                 VoiceCaptureResult.Failed(VoiceCaptureFailure.RecordingFailed(stopResult.reason))
             }
             VoiceRecordingStopResult.Cancelled -> {
                 capture.systemSpeechRecognition?.cancel()
-                temporaryAudioCleanup.cleanup(capture.recording.handle)
+                cleanupWithoutMasking(capture.recording.handle)
                 VoiceCaptureResult.Cancelled
             }
         }
@@ -180,7 +184,7 @@ class VoiceCaptureCoordinator(
 
         capture.systemSpeechRecognition?.cancel()
         capture.recording.cancel()
-        temporaryAudioCleanup.cleanup(capture.recording.handle)
+        cleanupWithoutMasking(capture.recording.handle)
         return VoiceCaptureResult.Cancelled
     }
 
@@ -199,7 +203,18 @@ class VoiceCaptureCoordinator(
 
             return transcribeWithRemoteAsr(audio)
         } finally {
-            temporaryAudioCleanup.cleanup(audio.handle)
+            cleanupWithoutMasking(audio.handle)
+        }
+    }
+
+    private suspend fun cleanupWithoutMasking(handle: TemporaryAudioHandle) {
+        try {
+            temporaryAudioCleanup.cleanup(handle)
+        } catch (error: Exception) {
+            if (error is CancellationException) {
+                throw error
+            }
+            logger.log(Level.WARNING, "Temporary voice audio cleanup failed for ${handle.id}.", error)
         }
     }
 

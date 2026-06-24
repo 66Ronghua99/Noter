@@ -129,6 +129,39 @@ class VoiceHomeSmokeTest {
     }
 
     @Test
+    fun voice_home_cancelled_record_press_invokes_cancel_without_release() {
+        var pressed = 0
+        var released = 0
+        var cancelled = 0
+
+        composeRule.setContent {
+            MaterialTheme {
+                VoiceHomeScreen(
+                    state = VoiceHomeUiState(status = VoiceHomeStatus.Idle),
+                    onRecordPressed = { pressed += 1 },
+                    onRecordReleased = { released += 1 },
+                    onRecordCancelled = { cancelled += 1 },
+                    onRetry = {},
+                    onOpenTextInput = {},
+                    onOpenAlarmList = {},
+                    onOpenSettings = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag(VoiceHomeTestTags.RecordButton)
+            .assertIsDisplayed()
+            .performTouchInput {
+                down(center)
+                cancel()
+            }
+
+        assertEquals(1, pressed)
+        assertEquals(0, released)
+        assertEquals(1, cancelled)
+    }
+
+    @Test
     fun voice_home_recording_surface_exposes_cancel_action() {
         var cancelled = 0
 

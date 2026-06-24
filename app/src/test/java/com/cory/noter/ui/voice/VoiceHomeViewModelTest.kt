@@ -371,6 +371,26 @@ class VoiceHomeViewModelTest {
     }
 
     @Test
+    fun `cleanup failure after system stt success does not mask enqueued result`() = runTest {
+        val cleanup = RecordingTemporaryAudioCleanup(failure = IllegalStateException("delete failed"))
+        val enqueuer = RecordingVoiceAiCreateEnqueuer()
+        val coordinator = newCoordinator(
+            systemSpeechRecognizer = FakeSystemSpeechRecognizer(
+                stopResult = SystemSpeechResult.Transcript("wake me at eight"),
+            ),
+            cleanup = cleanup,
+            enqueuer = enqueuer,
+        )
+
+        assertThat(coordinator.start()).isEqualTo(VoiceCaptureResult.RecordingStarted)
+        val result = coordinator.release()
+
+        assertThat(result).isEqualTo(VoiceCaptureResult.Enqueued("wake me at eight"))
+        assertThat(enqueuer.transcripts).containsExactly("wake me at eight")
+        assertThat(cleanup.cleanedHandles).containsExactly(TemporaryAudioHandle("voice-temp"))
+    }
+
+    @Test
     fun `blank system stt transcript fails before enqueue and before openrouter asr`() = runTest {
         val remoteAsr = RecordingRemoteAsrTranscriber()
         val enqueuer = RecordingVoiceAiCreateEnqueuer()
@@ -489,6 +509,42 @@ class VoiceHomeViewModelTest {
         assertThat(result)
             .isEqualTo(VoiceCaptureResult.Failed(VoiceCaptureFailure.AsrFailed("remote asr failed")))
         assertThat(enqueuer.transcripts).isEmpty()
+        assertThat(cleanup.cleanedHandles).containsExactly(TemporaryAudioHandle("voice-temp"))
+    }
+
+    @Test
+    fun `cleanup failure after openrouter asr failure does not mask asr failure result`() = runTest {
+        val cleanup = RecordingTemporaryAudioCleanup(failure = IllegalStateException("delete failed"))
+        val enqueuer = RecordingVoiceAiCreateEnqueuer()
+        val coordinator = newCoordinator(
+            systemSpeechRecognizer = FakeSystemSpeechRecognizer(
+                stopResult = SystemSpeechResult.Failed("system stt unavailable"),
+            ),
+            remoteAsr = RecordingRemoteAsrTranscriber(
+                nextResult = VoiceAsrResult.Failed("remote asr failed"),
+            ),
+            cleanup = cleanup,
+            enqueuer = enqueuer,
+        )
+
+        assertThat(coordinator.start()).isEqualTo(VoiceCaptureResult.RecordingStarted)
+        val result = coordinator.release()
+
+        assertThat(result)
+            .isEqualTo(VoiceCaptureResult.Failed(VoiceCaptureFailure.AsrFailed("remote asr failed")))
+        assertThat(enqueuer.transcripts).isEmpty()
+        assertThat(cleanup.cleanedHandles).containsExactly(TemporaryAudioHandle("voice-temp"))
+    }
+
+    @Test
+    fun `cleanup failure after cancel does not mask cancelled result`() = runTest {
+        val cleanup = RecordingTemporaryAudioCleanup(failure = IllegalStateException("delete failed"))
+        val coordinator = newCoordinator(cleanup = cleanup)
+
+        assertThat(coordinator.start()).isEqualTo(VoiceCaptureResult.RecordingStarted)
+        val result = coordinator.cancel()
+
+        assertThat(result).isEqualTo(VoiceCaptureResult.Cancelled)
         assertThat(cleanup.cleanedHandles).containsExactly(TemporaryAudioHandle("voice-temp"))
     }
 
@@ -630,11 +686,14 @@ class VoiceHomeViewModelTest {
         }
     }
 
-    private class RecordingTemporaryAudioCleanup : TemporaryAudioCleanup {
+    private class RecordingTemporaryAudioCleanup(
+        private val failure: RuntimeException? = null,
+    ) : TemporaryAudioCleanup {
         val cleanedHandles = mutableListOf<TemporaryAudioHandle>()
 
         override suspend fun cleanup(handle: TemporaryAudioHandle) {
             cleanedHandles += handle
+            failure?.let { throw it }
         }
     }
 

@@ -31,7 +31,8 @@
 - Task 6 focused unit tests: Codex-verified after the Round 7 quick-release review fix.
 - Task 7 focused navigation/app wiring checks: Codex-verified after the Round 8 stop-gate review.
 - Debug androidTest APK compile: passed after adding the Round 8 app-level voice home navigation smoke coverage.
-- Full local gate (`testDebugUnitTest`, `lintDebug`, `assembleDebug`): passed in Round 9.
+- Review Phase Round 10 fixes: focused RED/GREEN evidence recorded for canceled press gestures and cleanup failures not masking voice results.
+- Full local gate (`testDebugUnitTest`, `lintDebug`, `assembleDebug`): passed in Round 10 after the review fixes.
 - Connected Android test: unavailable in Round 9 because `/home/ronghua/.cache/android-sdk/platform-tools/adb devices -l` showed no attached devices; proof is recorded in `round9-adb-devices.log`.
 
 ## Task 2: Permanent `reject_unclear_request` Tool
@@ -290,3 +291,39 @@
 - Bounded architecture/refactor review:
   - Result: pass.
   - Notes: `ui/voice` remains presentation/ViewModel-only with no Android recorder/STT, OpenRouter, WorkManager, Room, repository, or scheduler imports. `voice/VoiceCaptureCoordinator.kt` owns provider-neutral recording/STT/ASR/enqueue lifecycle. `voice/AndroidVoiceAdapters.kt` owns Android recorder, system STT, cleanup, permission, and background enqueue adapters. `voice/OpenRouterVoiceAsrTranscriber.kt` owns OpenRouter ASR mapping. `AiAlarmCreator.kt` continues to use the agent path and existing background text AI creation path.
+
+## Round 10: Review Phase Blocking Fixes
+
+- Round contract: `.humanize/rlcr/2026-06-24_23-32-34/round-10-contract.md`
+- Review source: `.humanize/rlcr/2026-06-24_23-32-34/round-10-review-result.md`
+- BitLesson selection: `.humanize/bitlesson.md` still has no actual lessons. The selector returned the placeholder format for the contract and both fix tasks, so Round 10 proceeded with `LESSON_IDS: NONE`.
+- Canceled press gesture RED evidence:
+  - Log: `artifacts/2026-06-24-voice-first-ai-alarm/round10-red-cancelled-press.log`
+  - Command: `JAVA_TOOL_OPTIONS=-Duser.home=/tmp/noter-home HOME=/tmp/noter-home GRADLE_USER_HOME=/tmp/noter-gradle-home JAVA_HOME=/home/ronghua/.cache/codex-jdks/jdk-17 ANDROID_HOME=/home/ronghua/.cache/android-sdk ./gradlew --no-daemon --console=plain testDebugUnitTest --tests com.cory.noter.ui.voice.VoiceRecordPressGestureTest`
+  - Result: expected compile failure because `handleRecordPressCompletion` did not exist.
+- Canceled press gesture GREEN evidence:
+  - Log: `artifacts/2026-06-24-voice-first-ai-alarm/round10-green-cancelled-press.log`
+  - Command: same focused `VoiceRecordPressGestureTest`.
+  - Result: passed after canceled press completion routed to `onRecordCancelled` and release completion routed to `onRecordReleased`.
+- Cleanup masking RED evidence:
+  - Log: `artifacts/2026-06-24-voice-first-ai-alarm/round10-red-cleanup-masking.log`
+  - Command: `JAVA_TOOL_OPTIONS=-Duser.home=/tmp/noter-home HOME=/tmp/noter-home GRADLE_USER_HOME=/tmp/noter-gradle-home JAVA_HOME=/home/ronghua/.cache/codex-jdks/jdk-17 ANDROID_HOME=/home/ronghua/.cache/android-sdk ./gradlew --no-daemon --console=plain testDebugUnitTest --tests com.cory.noter.ui.voice.VoiceHomeViewModelTest`
+  - Result: expected failures because cleanup exceptions escaped after system STT success, OpenRouter ASR failure, and cancel.
+- Cleanup masking GREEN evidence:
+  - Log: `artifacts/2026-06-24-voice-first-ai-alarm/round10-green-cleanup-masking.log`
+  - Command: same focused `VoiceHomeViewModelTest`.
+  - Result: passed after cleanup failures were logged without replacing non-cancellation voice results.
+- androidTest compile evidence:
+  - Log: `artifacts/2026-06-24-voice-first-ai-alarm/round10-green-assemble-debug-android-test.log`
+  - Command: `JAVA_TOOL_OPTIONS=-Duser.home=/tmp/noter-home HOME=/tmp/noter-home GRADLE_USER_HOME=/tmp/noter-gradle-home JAVA_HOME=/home/ronghua/.cache/codex-jdks/jdk-17 ANDROID_HOME=/home/ronghua/.cache/android-sdk ./gradlew --no-daemon --console=plain assembleDebugAndroidTest`
+  - Result: passed; `BUILD SUCCESSFUL in 28s`.
+- Full local gate after review fixes:
+  - Unit log: `artifacts/2026-06-24-voice-first-ai-alarm/round10-test-debug-unit-test.log`; `testDebugUnitTest` passed with `BUILD SUCCESSFUL in 22s`.
+  - Lint log: `artifacts/2026-06-24-voice-first-ai-alarm/round10-lint-debug.log`; `lintDebug` passed with `BUILD SUCCESSFUL in 42s`.
+  - Assemble log: `artifacts/2026-06-24-voice-first-ai-alarm/round10-assemble-debug.log`; `assembleDebug` passed with `BUILD SUCCESSFUL in 16s`.
+- Final Round 10 checks:
+  - Diff log: `artifacts/2026-06-24-voice-first-ai-alarm/round10-git-diff-check.log`; `git diff --check` passed with no output.
+  - Legacy absence log: `artifacts/2026-06-24-voice-first-ai-alarm/round10-submit-alarm-draft-absence.log`; no production `submit_alarm_draft` hits were found.
+- Bounded architecture/refactor review:
+  - Result: pass.
+  - Notes: canceled-press handling remains in `ui/voice/VoiceHomeScreen.kt`; the small `handleRecordPressCompletion` helper is used by production gesture code and has JVM regression coverage. Cleanup failure handling remains in `voice/VoiceCaptureCoordinator.kt`; it logs ordinary cleanup failures with `java.util.logging`, preserves coroutine cancellation, and does not move Android recorder/STT, OpenRouter, WorkManager, Room, repository, or scheduler ownership into `ui/voice`.

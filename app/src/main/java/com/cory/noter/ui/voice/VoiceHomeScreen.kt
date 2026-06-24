@@ -99,6 +99,7 @@ fun VoiceHomeScreen(
                     status = state.status,
                     onRecordPressed = onRecordPressed,
                     onRecordReleased = onRecordReleased,
+                    onRecordCancelled = onRecordCancelled,
                 )
 
                 if (state.status == VoiceHomeStatus.Recording) {
@@ -167,6 +168,7 @@ private fun VoiceRecordButton(
     status: VoiceHomeStatus,
     onRecordPressed: () -> Unit,
     onRecordReleased: () -> Unit,
+    onRecordCancelled: () -> Unit,
 ) {
     val containerColor = when (status) {
         VoiceHomeStatus.Recording -> MaterialTheme.colorScheme.tertiaryContainer
@@ -184,13 +186,15 @@ private fun VoiceRecordButton(
             .size(196.dp)
             .testTag(VoiceHomeTestTags.RecordButton)
             .semantics { role = Role.Button }
-            .pointerInput(onRecordPressed, onRecordReleased) {
+            .pointerInput(onRecordPressed, onRecordReleased, onRecordCancelled) {
                 detectTapGestures(
                     onPress = {
                         onRecordPressed()
-                        if (tryAwaitRelease()) {
-                            onRecordReleased()
-                        }
+                        handleRecordPressCompletion(
+                            wasReleased = tryAwaitRelease(),
+                            onRecordReleased = onRecordReleased,
+                            onRecordCancelled = onRecordCancelled,
+                        )
                     },
                 )
             },
@@ -213,6 +217,18 @@ private fun VoiceRecordButton(
                 textAlign = TextAlign.Center,
             )
         }
+    }
+}
+
+internal fun handleRecordPressCompletion(
+    wasReleased: Boolean,
+    onRecordReleased: () -> Unit,
+    onRecordCancelled: () -> Unit,
+) {
+    if (wasReleased) {
+        onRecordReleased()
+    } else {
+        onRecordCancelled()
     }
 }
 
