@@ -285,6 +285,8 @@
   - Log: `artifacts/2026-06-24-voice-first-ai-alarm/round9-adb-devices.log`
   - Command: `/home/ronghua/.cache/android-sdk/platform-tools/adb devices -l`
   - Result: connected execution was unavailable; the fresh device list only printed `List of devices attached`.
+- Plan-file immutability note:
+  - Result: the tracked implementation plan file is intentionally left unchanged because the active Humanize stop gate rejects plan-file mutations during the session. The final evidence and handoff state are recorded here, in `PROGRESS.md`, `NEXT_STEP.md`, `MEMORY.md`, and the mutable Humanize goal tracker.
 - Bounded architecture/refactor review:
   - Result: pass.
   - Notes: `ui/voice` remains presentation/ViewModel-only with no Android recorder/STT, OpenRouter, WorkManager, Room, repository, or scheduler imports. `voice/VoiceCaptureCoordinator.kt` owns provider-neutral recording/STT/ASR/enqueue lifecycle. `voice/AndroidVoiceAdapters.kt` owns Android recorder, system STT, cleanup, permission, and background enqueue adapters. `voice/OpenRouterVoiceAsrTranscriber.kt` owns OpenRouter ASR mapping. `AiAlarmCreator.kt` continues to use the agent path and existing background text AI creation path.
