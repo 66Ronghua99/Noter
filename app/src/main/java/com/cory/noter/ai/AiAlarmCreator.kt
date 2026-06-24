@@ -96,6 +96,10 @@ class AiAlarmCreator(
 
         is AgentRunResult.CompletedWithFinalizationFailure -> committedResults.last().toAiCreateResult()
 
+        is AgentRunResult.FailedAfterToolResults -> toolResults.asReversed()
+            .firstNotNullOfOrNull { it.toClarificationRequiredOrNull() }
+            ?: failure.toAiCreateResult()
+
         is AgentRunResult.Failed -> failure.toAiCreateResult()
     }
 
@@ -138,6 +142,15 @@ class AiAlarmCreator(
 
             else -> AiCreateResult.InvalidResponse("Unsupported agent tool result status: $status")
         }
+    }
+
+    private fun AgentToolResult.toClarificationRequiredOrNull(): AiCreateResult.ClarificationRequired? {
+        val status = content.requiredString("status") ?: return null
+        if (status != "rejected" || committed) {
+            return null
+        }
+        val reason = content.requiredString("reason") ?: return null
+        return AiCreateResult.ClarificationRequired(reason)
     }
 
     private fun AgentFailure.toAiCreateResult(): AiCreateResult = when (this) {

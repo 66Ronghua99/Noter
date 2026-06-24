@@ -98,20 +98,20 @@ class AgentLoopRunner(
         }
 
         return committedOrFailed(
-            committedResults = toolResults,
+            toolResults = toolResults,
             failure = AgentFailure.ModelTurnLimitExceeded("Model turn limit exceeded."),
         )
     }
 
     private fun committedOrFailed(
-        committedResults: List<AgentToolResult>,
+        toolResults: List<AgentToolResult>,
         failure: AgentFailure,
     ): AgentRunResult {
-        val committed = committedResults.filter { it.committed }
-        return if (committed.isNotEmpty()) {
-            AgentRunResult.CompletedWithFinalizationFailure(committed, failure)
-        } else {
-            AgentRunResult.Failed(failure)
+        val committed = toolResults.filter { it.committed }
+        return when {
+            committed.isNotEmpty() -> AgentRunResult.CompletedWithFinalizationFailure(committed, failure)
+            toolResults.isNotEmpty() -> AgentRunResult.FailedAfterToolResults(toolResults.toList(), failure)
+            else -> AgentRunResult.Failed(failure)
         }
     }
 

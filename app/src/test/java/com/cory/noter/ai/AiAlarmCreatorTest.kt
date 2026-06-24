@@ -314,6 +314,38 @@ class AiAlarmCreatorTest {
     }
 
     @Test
+    fun `reject unclear request remains clarification when final assistant turn fails`() = runTest {
+        settingsRepository.set(validSettings())
+        fakeAgentGateway.results += AgentLlmResult.Message(
+            AgentMessage(
+                role = AgentMessageRole.ASSISTANT,
+                content = "",
+                toolCalls = listOf(
+                    AgentToolCall(
+                        id = "call-reject",
+                        name = "reject_unclear_request",
+                        arguments = """
+                            {
+                              "reason": "I couldn't tell when to set the alarm.",
+                              "retryHint": "Try saying a day and time."
+                            }
+                        """.trimIndent(),
+                    ),
+                ),
+            ),
+        )
+        fakeAgentGateway.results += AgentLlmResult.NetworkFailure("after reject")
+
+        val result = creator.createFromText("remind me sometime")
+
+        assertThat(result).isEqualTo(
+            AiCreateResult.ClarificationRequired("I couldn't tell when to set the alarm."),
+        )
+        assertThat(repository.alarms.first()).isEmpty()
+        assertThat(fakeScheduler.scheduledAlarms).isEmpty()
+    }
+
+    @Test
     fun `clarification required preserves dedicated result category`() = runTest {
         settingsRepository.set(validSettings())
         fakeAgentGateway.results += AgentLlmResult.Message(

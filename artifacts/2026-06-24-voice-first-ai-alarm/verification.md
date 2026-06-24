@@ -52,3 +52,24 @@
 - Bounded architecture/refactor review:
   - Result: pass; no boundary drift found.
   - Notes: `RejectUnclearRequestTool` is provider-neutral and has no repository or scheduler dependency; `AiAlarmCreator` remains the UI-facing adapter that registers tools and maps tool results; prompt wording remains in `AiAlarmPromptBuilder`; alarm writes and scheduling still flow only through `CreateAlarmTool`.
+
+## Round 1: Preserve Reject Result Through Finalization Failure
+
+- Review source: `.humanize/rlcr/2026-06-24_23-32-34/round-0-review-result.md`
+- Red evidence: `artifacts/2026-06-24-voice-first-ai-alarm/round1-red-reject-finalization.log`
+  - Command: `GRADLE_USER_HOME=/tmp/noter-gradle-home JAVA_HOME=/home/ronghua/.cache/codex-jdks/jdk-17 ANDROID_HOME=/home/ronghua/.cache/android-sdk ./gradlew --no-daemon testDebugUnitTest --tests com.cory.noter.agent.AgentLoopRunnerTest --tests com.cory.noter.ai.AiAlarmCreatorTest`
+  - Result: expected compile failure because the provider-neutral preserved-tool-result path did not exist yet.
+- Green evidence: `artifacts/2026-06-24-voice-first-ai-alarm/round1-green-reject-finalization-focused.log`
+  - Command: `GRADLE_USER_HOME=/tmp/noter-gradle-home JAVA_HOME=/home/ronghua/.cache/codex-jdks/jdk-17 ANDROID_HOME=/home/ronghua/.cache/android-sdk ./gradlew --no-daemon testDebugUnitTest --tests com.cory.noter.agent.AgentLoopRunnerTest --tests com.cory.noter.ai.AiAlarmCreatorTest --tests com.cory.noter.agent.tools.RejectUnclearRequestToolTest`
+  - Result: passed after adding `AgentRunResult.FailedAfterToolResults`, preserving non-committing tool results in `AgentLoopRunner`, and mapping preserved rejected results to `AiCreateResult.ClarificationRequired`.
+- Required focused command evidence:
+  - `artifacts/2026-06-24-voice-first-ai-alarm/round1-green-agent-loop-runner.log`
+  - `artifacts/2026-06-24-voice-first-ai-alarm/round1-green-ai-alarm-creator.log`
+  - `artifacts/2026-06-24-voice-first-ai-alarm/round1-green-reject-tool.log`
+  - All listed Round 1 focused commands passed.
+- Diff check:
+  - Command: `git diff --check`
+  - Result: passed with no output.
+- Bounded architecture/refactor review:
+  - Result: pass; no boundary drift found.
+  - Notes: `AgentRunResult.FailedAfterToolResults` is provider-neutral agent runtime plumbing for non-committing tool results; committed create-alarm results still use `CompletedWithFinalizationFailure`; `AiAlarmCreator` only maps preserved rejected results to the existing `AiCreateResult.ClarificationRequired` UI-facing result.

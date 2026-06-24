@@ -126,6 +126,11 @@ sealed interface AgentRunResult {
         val failure: AgentFailure,
     ) : AgentRunResult
 
+    data class FailedAfterToolResults(
+        val toolResults: List<AgentToolResult>,
+        val failure: AgentFailure,
+    ) : AgentRunResult
+
     data class Failed(
         val failure: AgentFailure,
     ) : AgentRunResult

@@ -292,6 +292,48 @@ class AgentLoopRunnerTest {
         assertThat(gateway.requests[1].messages.last().toolCallId).isEqualTo("call-1")
     }
 
+    @Test
+    fun `runner preserves non committing tool result when post tool model turn fails`() = runTest {
+        val gateway = RecordingGateway(
+            AgentLlmResult.Message(
+                AgentMessage(
+                    role = AgentMessageRole.ASSISTANT,
+                    content = "",
+                    toolCalls = listOf(AgentToolCall("call-reject", "reject_unclear_request", "{}")),
+                ),
+            ),
+            AgentLlmResult.NetworkFailure("after reject"),
+        )
+        val rejectTool = RecordingTool(
+            AgentToolSpec("reject_unclear_request", "Reject unclear request.", buildJsonObject { put("type", "object") }),
+            AgentToolExecution.Success(
+                AgentToolResult(
+                    toolCallId = "call-reject",
+                    toolName = "reject_unclear_request",
+                    content = buildJsonObject {
+                        put("status", "rejected")
+                        put("reason", "I couldn't tell when to set the alarm.")
+                    },
+                    committed = false,
+                ),
+            ),
+        )
+
+        val result = AgentLoopRunner(gateway).run(
+            basicRequest(
+                toolRegistry = AgentToolRegistry(listOf(rejectTool)),
+                toolChoice = AgentToolChoice.RequiredAnyTool,
+            ),
+        )
+
+        assertThat(result).isInstanceOf(AgentRunResult.FailedAfterToolResults::class.java)
+        val failed = result as AgentRunResult.FailedAfterToolResults
+        assertThat(failed.toolResults.single().toolName).isEqualTo("reject_unclear_request")
+        assertThat(failed.toolResults.single().committed).isFalse()
+        assertThat(failed.failure).isEqualTo(AgentFailure.NetworkFailure("after reject"))
+        assertThat(gateway.requests[1].toolChoice).isEqualTo(AgentToolChoice.Auto)
+    }
+
     private fun basicRequest(
         toolRegistry: AgentToolRegistry = AgentToolRegistry(
             listOf(
