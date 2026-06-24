@@ -2,7 +2,10 @@ package com.cory.noter.ai
 
 import com.google.common.truth.Truth.assertThat
 import java.io.IOException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -11,7 +14,9 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Protocol
 import okhttp3.Response
+import okhttp3.ResponseBody
 import okhttp3.ResponseBody.Companion.toResponseBody
+import okio.BufferedSource
 import okio.Buffer
 import okio.ByteString.Companion.toByteString
 import org.junit.Test
@@ -83,6 +88,31 @@ class OpenRouterAsrClientTest {
         val result = client.transcribe(basicAsrRequest())
 
         assertThat(result).isEqualTo(AsrTranscriptionResult.NetworkFailure("socket timeout"))
+    }
+
+    @Test
+    fun `response body read failure maps to explicit network failure`() = runTest {
+        val client = OpenRouterAsrClient(
+            callFactory = OkHttpClient.Builder()
+                .addInterceptor(Interceptor { chain ->
+                    Response.Builder()
+                        .request(chain.request())
+                        .protocol(Protocol.HTTP_1_1)
+                        .code(200)
+                        .message("OK")
+                        .body(ThrowingResponseBody(IOException("body dropped")))
+                        .build()
+                })
+                .build(),
+        )
+
+        val result = withContext(Dispatchers.Default) {
+            withTimeout(1_000) {
+                client.transcribe(basicAsrRequest())
+            }
+        }
+
+        assertThat(result).isEqualTo(AsrTranscriptionResult.NetworkFailure("body dropped"))
     }
 
     @Test
@@ -176,6 +206,18 @@ class OpenRouterAsrClientTest {
         assertThat(callCount).isEqualTo(1)
         val body = Json.parseToJsonElement(capturedBody).jsonObject
         assertThat(body["model"]!!.jsonPrimitive.content).isEqualTo(selectedModelId)
+    }
+}
+
+private class ThrowingResponseBody(
+    private val error: IOException,
+) : ResponseBody() {
+    override fun contentType() = "application/json".toMediaType()
+
+    override fun contentLength(): Long = -1L
+
+    override fun source(): BufferedSource {
+        throw error
     }
 }
 

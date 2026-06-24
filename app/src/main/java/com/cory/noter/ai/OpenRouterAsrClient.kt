@@ -79,7 +79,7 @@ class OpenRouterAsrClient(
                         }
 
                         override fun onResponse(call: Call, response: Response) {
-                            val result = response.use { it.toResult() }
+                            val result = response.toResultSafely()
                             if (continuation.isActive) {
                                 continuation.resume(result)
                             }
@@ -155,6 +155,16 @@ class OpenRouterAsrClient(
 
     private fun invalidTranscriptResponseException(): IllegalArgumentException =
         IllegalArgumentException("OpenRouter ASR response did not contain transcript text.")
+
+    private fun Response.toResultSafely(): AsrTranscriptionResult = try {
+        use { it.toResult() }
+    } catch (error: IOException) {
+        debugLogger.warn(
+            "asr.response.readFailure type=${error.javaClass.simpleName} message=${error.message.orEmpty()}",
+            error,
+        )
+        AsrTranscriptionResult.NetworkFailure(error.message ?: "OpenRouter ASR response read failed.")
+    }
 
     private fun Response.summaryForLogs(): String =
         "code=$code message=${message.compactForLog()} requestId=${header("x-request-id").orEmpty().ifBlank { "missing" }}"

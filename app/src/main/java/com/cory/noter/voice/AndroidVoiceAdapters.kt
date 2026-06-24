@@ -97,6 +97,9 @@ class AndroidSystemSpeechRecognizer(
         }
     },
     private val resultTimeoutMillis: Long = 10_000L,
+    private val speechRecognizerFactory: (Context) -> VoiceSpeechRecognizer = { recognizerContext ->
+        AndroidVoiceSpeechRecognizer(SpeechRecognizer.createSpeechRecognizer(recognizerContext))
+    },
 ) : SystemSpeechRecognizer {
     private val applicationContext = context.applicationContext
 
@@ -106,7 +109,7 @@ class AndroidSystemSpeechRecognizer(
             return SystemSpeechStartResult.Failed("System speech recognition is unavailable.")
         }
 
-        val recognizer = SpeechRecognizer.createSpeechRecognizer(applicationContext)
+        val recognizer = speechRecognizerFactory(applicationContext)
         val session = AndroidActiveSystemSpeechRecognition(
             recognizer = recognizer,
             resultTimeoutMillis = resultTimeoutMillis,
@@ -136,14 +139,19 @@ private class AndroidActiveTemporaryAudioRecording(
 
         return try {
             recorder.stop()
+            val recordedBytes = file.readBytes()
             recorder.release()
             released = true
             VoiceRecordingStopResult.Recorded(
                 RecordedVoiceAudio(
                     handle = handle,
-                    bytes = file.readBytes(),
+                    bytes = recordedBytes,
                 ),
             )
+        } catch (error: IOException) {
+            recorder.releaseIgnoringFailure()
+            released = true
+            VoiceRecordingStopResult.Failed("Audio recording failed: ${error.message.orEmpty()}")
         } catch (error: RuntimeException) {
             recorder.releaseIgnoringFailure()
             released = true
@@ -224,8 +232,8 @@ private fun newMediaRecorder(context: Context): MediaRecorder =
         MediaRecorder()
     }
 
-private class AndroidActiveSystemSpeechRecognition(
-    private val recognizer: SpeechRecognizer,
+internal class AndroidActiveSystemSpeechRecognition(
+    private val recognizer: VoiceSpeechRecognizer,
     private val resultTimeoutMillis: Long,
 ) : ActiveSystemSpeechRecognition,
     RecognitionListener {
@@ -234,10 +242,12 @@ private class AndroidActiveSystemSpeechRecognition(
 
     override suspend fun stopAndTranscribe(): SystemSpeechResult {
         runCatching { recognizer.stopListening() }
-        val speechResult = withTimeoutOrNull(resultTimeoutMillis) { result.await() }
-            ?: SystemSpeechResult.Failed("System speech recognition timed out.")
-        destroy()
-        return speechResult
+        return try {
+            withTimeoutOrNull(resultTimeoutMillis) { result.await() }
+                ?: SystemSpeechResult.Failed("System speech recognition timed out.")
+        } finally {
+            destroy()
+        }
     }
 
     override suspend fun cancel() {
@@ -279,6 +289,42 @@ private class AndroidActiveSystemSpeechRecognition(
             recognizer.destroy()
             destroyed = true
         }
+    }
+}
+
+interface VoiceSpeechRecognizer {
+    fun setRecognitionListener(listener: RecognitionListener)
+
+    fun startListening(intent: Intent)
+
+    fun stopListening()
+
+    fun cancel()
+
+    fun destroy()
+}
+
+private class AndroidVoiceSpeechRecognizer(
+    private val recognizer: SpeechRecognizer,
+) : VoiceSpeechRecognizer {
+    override fun setRecognitionListener(listener: RecognitionListener) {
+        recognizer.setRecognitionListener(listener)
+    }
+
+    override fun startListening(intent: Intent) {
+        recognizer.startListening(intent)
+    }
+
+    override fun stopListening() {
+        recognizer.stopListening()
+    }
+
+    override fun cancel() {
+        recognizer.cancel()
+    }
+
+    override fun destroy() {
+        recognizer.destroy()
     }
 }
 

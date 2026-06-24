@@ -354,3 +354,37 @@
 - Bounded architecture/refactor review:
   - Result: pass.
   - Notes: OpenRouter ASR request mapping remains isolated in `ai/OpenRouterAsrClient.kt`; Android temp-file deletion reporting remains isolated in `voice/AndroidVoiceAdapters.kt`; `ui/voice` has no new infrastructure ownership.
+
+## Round 12: Review Phase Async I/O And Cancellation Fixes
+
+- Round contract: `.humanize/rlcr/2026-06-24_23-32-34/round-12-contract.md`
+- Review source: `.humanize/rlcr/2026-06-24_23-32-34/round-12-review-result.md`
+- BitLesson selection: `.humanize/bitlesson.md` still has no actual lessons. The selector returned placeholder format for the contract and all three fix tasks, so Round 12 proceeded with `LESSON_IDS: NONE`.
+- RED ASR/body-read and recorded-audio evidence:
+  - Log: `artifacts/2026-06-24-voice-first-ai-alarm/round12-red-asr-audio-read.log`
+  - Command: `JAVA_TOOL_OPTIONS=-Duser.home=/tmp/noter-home HOME=/tmp/noter-home GRADLE_USER_HOME=/tmp/noter-gradle-home JAVA_HOME=/home/ronghua/.cache/codex-jdks/jdk-17 ANDROID_HOME=/home/ronghua/.cache/android-sdk ./gradlew --no-daemon --console=plain testDebugUnitTest --tests com.cory.noter.ai.OpenRouterAsrClientTest --tests com.cory.noter.voice.AndroidTemporaryAudioRecorderTest`
+  - Result: expected failures because ASR response-body read failure left `transcribe()` suspended until timeout, and recorded-audio file read failure escaped `stop()` instead of returning `VoiceRecordingStopResult.Failed`.
+- GREEN ASR/body-read and recorded-audio evidence:
+  - Log: `artifacts/2026-06-24-voice-first-ai-alarm/round12-green-asr-audio-read.log`
+  - Command: same focused `OpenRouterAsrClientTest` plus `AndroidTemporaryAudioRecorderTest`.
+  - Result: passed after `OpenRouterAsrClient` mapped response body `IOException` to `AsrTranscriptionResult.NetworkFailure`, and `AndroidActiveTemporaryAudioRecording.stop()` mapped recorded file read `IOException` to `VoiceRecordingStopResult.Failed` while releasing the recorder.
+- RED speech recognizer cancellation cleanup evidence:
+  - Log: `artifacts/2026-06-24-voice-first-ai-alarm/round12-red-speech-cancel-cleanup.log`
+  - Command: same focused `AndroidTemporaryAudioRecorderTest`.
+  - Result: expected compile failure because there was no test seam for a fake speech recognizer and cancellation cleanup could not yet be proven.
+- GREEN combined async I/O evidence:
+  - Log: `artifacts/2026-06-24-voice-first-ai-alarm/round12-green-async-io.log`
+  - Command: same focused `OpenRouterAsrClientTest` plus `AndroidTemporaryAudioRecorderTest`.
+  - Result: passed after `AndroidActiveSystemSpeechRecognition.stopAndTranscribe()` destroyed the recognizer in `finally` and the new `VoiceSpeechRecognizer` seam covered cancellation while awaiting transcript results.
+- Full local gate after review fixes:
+  - Unit log: `artifacts/2026-06-24-voice-first-ai-alarm/round12-test-debug-unit-test.log`; `testDebugUnitTest` passed with `BUILD SUCCESSFUL`.
+  - Lint log: `artifacts/2026-06-24-voice-first-ai-alarm/round12-lint-debug.log`; `lintDebug` passed with `BUILD SUCCESSFUL`.
+  - Assemble log: `artifacts/2026-06-24-voice-first-ai-alarm/round12-assemble-debug.log`; `assembleDebug` passed with `BUILD SUCCESSFUL`.
+  - androidTest compile log: `artifacts/2026-06-24-voice-first-ai-alarm/round12-assemble-debug-android-test.log`; `assembleDebugAndroidTest` passed with `BUILD SUCCESSFUL`.
+- Final Round 12 checks:
+  - Diff log: `artifacts/2026-06-24-voice-first-ai-alarm/round12-git-diff-check.log`; `git diff --check` passed with no output.
+  - Legacy absence log: `artifacts/2026-06-24-voice-first-ai-alarm/round12-submit-alarm-draft-absence.log`; no production `submit_alarm_draft` hits were found.
+  - Connected-device availability log: `artifacts/2026-06-24-voice-first-ai-alarm/round12-adb-devices.log`; connected execution was unavailable because the fresh SDK-local `adb devices -l` output only listed the header.
+- Bounded architecture/refactor review:
+  - Result: pass.
+  - Notes: ASR transport and response-body failure mapping stay isolated in `ai/OpenRouterAsrClient.kt`; Android temporary audio read failure mapping and `SpeechRecognizer` resource cleanup stay isolated in `voice/AndroidVoiceAdapters.kt`; `VoiceSpeechRecognizer` is a small adapter seam for Android STT cleanup tests; `ui/voice` still has no OpenRouter, Android recorder/STT, WorkManager, Room, repository, or scheduler imports. Commit-time refactor gate is disabled in `.harness/bootstrap.toml`.
