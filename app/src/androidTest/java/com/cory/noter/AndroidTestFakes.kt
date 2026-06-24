@@ -1,7 +1,8 @@
 package com.cory.noter
 
-import com.cory.noter.ai.OpenRouterGateway
-import com.cory.noter.ai.OpenRouterResult
+import com.cory.noter.agent.AgentLlmGateway
+import com.cory.noter.agent.AgentLlmRequest
+import com.cory.noter.agent.AgentLlmResult
 import com.cory.noter.alarm.AlarmScheduler
 import com.cory.noter.alarm.ScheduleResult
 import com.cory.noter.data.alarm.AlarmDraft
@@ -103,6 +104,7 @@ class AndroidTestSettingsRepository(
     initial: AppSettings = AppSettings(
         openRouterApiKey = "",
         selectedModelId = com.cory.noter.ai.OpenRouterModel.DefaultId,
+        selectedAsrModelId = com.cory.noter.ai.AsrModel.DefaultId,
         defaultRingtoneUri = AppSettings.DefaultRingtoneUri,
     ),
 ) : SettingsRepository {
@@ -116,6 +118,10 @@ class AndroidTestSettingsRepository(
 
     override suspend fun setSelectedModel(modelId: String): Result<Unit> = runCatching {
         mutableSettings.update { it.copy(selectedModelId = modelId) }
+    }
+
+    override suspend fun setSelectedAsrModel(modelId: String): Result<Unit> = runCatching {
+        mutableSettings.update { it.copy(selectedAsrModelId = modelId) }
     }
 
     override suspend fun setDefaultRingtoneUri(ringtoneUri: String): Result<Unit> = runCatching {
@@ -138,12 +144,13 @@ class AndroidTestAlarmScheduler : AlarmScheduler {
     }
 }
 
-class AndroidTestOpenRouterGateway(
-    var nextResult: OpenRouterResult = OpenRouterResult.Success("{}"),
-) : OpenRouterGateway {
-    override suspend fun createChatCompletion(
-        apiKey: String,
-        modelId: String,
-        prompt: String,
-    ): OpenRouterResult = nextResult
+class AndroidTestAgentLlmGateway : AgentLlmGateway {
+    val requests = mutableListOf<AgentLlmRequest>()
+    val results = mutableListOf<AgentLlmResult>()
+
+    override suspend fun complete(request: AgentLlmRequest): AgentLlmResult {
+        requests += request
+        check(results.isNotEmpty()) { "No fake AgentLlmResult queued." }
+        return results.removeAt(0)
+    }
 }

@@ -3,6 +3,7 @@ package com.cory.noter.data.settings
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import com.cory.noter.ai.AsrModel
 import com.cory.noter.ai.OpenRouterModel
 import com.cory.noter.domain.settings.AppSettings
 import com.google.common.truth.Truth.assertThat
@@ -23,7 +24,17 @@ class DataStoreSettingsRepositoryTest {
 
         assertThat(settings.openRouterApiKey).isEmpty()
         assertThat(settings.selectedModelId).isEqualTo(OpenRouterModel.DefaultId)
+        assertThat(settings.selectedAsrModelId).isEqualTo(AsrModel.DefaultId)
         assertThat(settings.defaultRingtoneUri).isEqualTo(AppSettings.DefaultRingtoneUri)
+    }
+
+    @Test
+    fun `built in asr models include default and secondary options`() {
+        assertThat(AsrModel.builtInIds).containsExactly(
+            "nvidia/parakeet-tdt-0.6b-v3",
+            "mistralai/voxtral-mini-transcribe",
+        ).inOrder()
+        assertThat(AsrModel.DefaultId).isEqualTo("nvidia/parakeet-tdt-0.6b-v3")
     }
 
     @Test
@@ -47,6 +58,17 @@ class DataStoreSettingsRepositoryTest {
     }
 
     @Test
+    fun `saving selected asr model persists known built in asr model`() = runTest {
+        val repository = createRepository(backgroundScope)
+
+        val result = repository.setSelectedAsrModel("mistralai/voxtral-mini-transcribe")
+
+        assertThat(result.isSuccess).isTrue()
+        assertThat(repository.settings.first().selectedAsrModelId)
+            .isEqualTo("mistralai/voxtral-mini-transcribe")
+    }
+
+    @Test
     fun `unknown model id is rejected and does not replace prior selection`() = runTest {
         val repository = createRepository(backgroundScope)
 
@@ -55,6 +77,17 @@ class DataStoreSettingsRepositoryTest {
         assertThat(result.isFailure).isTrue()
         assertThat(result.exceptionOrNull()).isInstanceOf(IllegalArgumentException::class.java)
         assertThat(repository.settings.first().selectedModelId).isEqualTo(OpenRouterModel.DefaultId)
+    }
+
+    @Test
+    fun `unknown asr model id is rejected and does not replace prior selection`() = runTest {
+        val repository = createRepository(backgroundScope)
+
+        val result = repository.setSelectedAsrModel("unknown/asr-model")
+
+        assertThat(result.isFailure).isTrue()
+        assertThat(result.exceptionOrNull()).isInstanceOf(IllegalArgumentException::class.java)
+        assertThat(repository.settings.first().selectedAsrModelId).isEqualTo(AsrModel.DefaultId)
     }
 
     @Test
@@ -90,6 +123,26 @@ class DataStoreSettingsRepositoryTest {
     }
 
     @Test
+    fun `invalid stored asr model id fails explicitly on read`() = runTest {
+        val file = Files.createTempFile("settings-test", ".preferences_pb").toFile()
+        val dataStore = PreferenceDataStoreFactory.create(
+            scope = backgroundScope,
+            produceFile = { file },
+        )
+        dataStore.edit { preferences ->
+            preferences[stringPreferencesKey("selected_asr_model_id")] = "unknown/asr-model"
+        }
+        val repository = DataStoreSettingsRepository(dataStore)
+
+        val error = runCatching {
+            repository.settings.first()
+        }.exceptionOrNull()
+
+        assertThat(error).isInstanceOf(IllegalArgumentException::class.java)
+        assertThat(error).hasMessageThat().contains("UNKNOWN_ASR_MODEL_ID")
+    }
+
+    @Test
     fun `settings persist across repository recreation`() = runTest {
         val file = Files.createTempFile("settings-test", ".preferences_pb").toFile()
         val firstScope = CoroutineScope(StandardTestDispatcher(testScheduler))
@@ -97,6 +150,8 @@ class DataStoreSettingsRepositoryTest {
 
         assertThat(firstRepository.setOpenRouterApiKey("sk-or-v1-999").isSuccess).isTrue()
         assertThat(firstRepository.setSelectedModel("deepseek/deepseek-v3.2").isSuccess).isTrue()
+        assertThat(firstRepository.setSelectedAsrModel("mistralai/voxtral-mini-transcribe").isSuccess)
+            .isTrue()
         assertThat(
             firstRepository.setDefaultRingtoneUri("content://media/internal/audio/media/99").isSuccess,
         ).isTrue()
@@ -111,6 +166,7 @@ class DataStoreSettingsRepositoryTest {
             AppSettings(
                 openRouterApiKey = "sk-or-v1-999",
                 selectedModelId = "deepseek/deepseek-v3.2",
+                selectedAsrModelId = "mistralai/voxtral-mini-transcribe",
                 defaultRingtoneUri = "content://media/internal/audio/media/99",
             ),
         )

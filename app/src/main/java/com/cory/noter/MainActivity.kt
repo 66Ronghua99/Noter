@@ -296,6 +296,7 @@ private fun SettingsRoute(
         onApiKeyChanged = viewModel::onApiKeyChanged,
         onSaveApiKey = viewModel::saveApiKey,
         onModelSelected = viewModel::onModelSelected,
+        onAsrModelSelected = viewModel::onAsrModelSelected,
         onPickDefaultRingtone = {
             ringtonePicker.launch(
                 createRingtonePickerIntent(

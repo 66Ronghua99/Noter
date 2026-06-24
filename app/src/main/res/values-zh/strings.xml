@@ -45,6 +45,7 @@
     <string name="settings_api_key_label">API 密钥</string>
     <string name="settings_save_api_key">保存 API 密钥</string>
     <string name="settings_model">模型</string>
+    <string name="settings_asr_model">语音识别模型</string>
     <string name="settings_default_ringtone">默认铃声</string>
     <string name="settings_choose_default_ringtone">选择默认铃声</string>
     <string name="settings_permissions">权限</string>

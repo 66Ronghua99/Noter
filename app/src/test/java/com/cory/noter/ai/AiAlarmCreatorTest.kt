@@ -84,6 +84,7 @@ class AiAlarmCreatorTest {
             AppSettings(
                 openRouterApiKey = "",
                 selectedModelId = OpenRouterModel.DefaultId,
+                selectedAsrModelId = AsrModel.DefaultId,
                 defaultRingtoneUri = AppSettings.DefaultRingtoneUri,
             ),
         )
@@ -505,6 +506,7 @@ class AiAlarmCreatorTest {
     ): AppSettings = AppSettings(
         openRouterApiKey = "sk-or-v1-test",
         selectedModelId = modelId,
+        selectedAsrModelId = AsrModel.DefaultId,
         defaultRingtoneUri = AppSettings.DefaultRingtoneUri,
     )
 

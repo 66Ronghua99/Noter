@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.annotation.StringRes
 import com.cory.noter.R
+import com.cory.noter.ai.AsrModel
 import com.cory.noter.ai.OpenRouterModel
 import com.cory.noter.data.settings.SettingsRepository
 import com.cory.noter.permissions.PermissionStatusReader
@@ -26,8 +27,10 @@ data class PermissionGuidanceUiModel(
 data class SettingsUiState(
     val openRouterApiKey: String = "",
     val selectedModelId: String = OpenRouterModel.DefaultId,
+    val selectedAsrModelId: String = AsrModel.DefaultId,
     val defaultRingtoneUri: String = "",
     val modelOptions: List<String> = OpenRouterModel.builtInIds,
+    val asrModelOptions: List<String> = AsrModel.builtInIds,
     val permissionRows: List<PermissionGuidanceUiModel> = emptyList(),
     val errorMessage: UiText? = null,
 )
@@ -51,6 +54,7 @@ class SettingsViewModel(
                     current.copy(
                         openRouterApiKey = settings.openRouterApiKey,
                         selectedModelId = settings.selectedModelId,
+                        selectedAsrModelId = settings.selectedAsrModelId,
                         defaultRingtoneUri = settings.defaultRingtoneUri,
                     )
                 }
@@ -87,6 +91,15 @@ class SettingsViewModel(
     fun onModelSelected(modelId: String) {
         viewModelScope.launch {
             val result = settingsRepository.setSelectedModel(modelId)
+            mutableUiState.update {
+                it.copy(errorMessage = result.exceptionOrNull()?.message?.let(UiText::Raw))
+            }
+        }
+    }
+
+    fun onAsrModelSelected(modelId: String) {
+        viewModelScope.launch {
+            val result = settingsRepository.setSelectedAsrModel(modelId)
             mutableUiState.update {
                 it.copy(errorMessage = result.exceptionOrNull()?.message?.let(UiText::Raw))
             }

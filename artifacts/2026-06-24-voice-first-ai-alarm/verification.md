@@ -25,6 +25,8 @@
 
 - Task 1 focused unit tests: passed.
 - Task 2 focused unit tests: passed.
+- Task 3 focused unit tests: passed.
+- Debug androidTest APK compile: passed after updating stale androidTest fakes to the current agent gateway boundary.
 - Full local gate (`testDebugUnitTest`, `lintDebug`, `assembleDebug`): pending later integration task.
 - Connected Android test: pending later integration task.
 
@@ -73,3 +75,31 @@
 - Bounded architecture/refactor review:
   - Result: pass; no boundary drift found.
   - Notes: `AgentRunResult.FailedAfterToolResults` is provider-neutral agent runtime plumbing for non-committing tool results; committed create-alarm results still use `CompletedWithFinalizationFailure`; `AiAlarmCreator` only maps preserved rejected results to the existing `AiCreateResult.ClarificationRequired` UI-facing result.
+
+## Round 2: ASR Model Settings
+
+- Round contract: `.humanize/rlcr/2026-06-24_23-32-34/round-2-contract.md`
+- BitLesson selection: `.humanize/bitlesson.md` has no actual lessons. The selector returned its placeholder format for Task 3 and the small androidTest compatibility subtask, so Round 2 proceeded with `LESSON_IDS: NONE`.
+- Red evidence: `artifacts/2026-06-24-voice-first-ai-alarm/round2-red-asr-settings.log`
+  - Command: `JAVA_TOOL_OPTIONS=-Duser.home=/tmp/noter-home HOME=/tmp/noter-home GRADLE_USER_HOME=/tmp/noter-gradle-home JAVA_HOME=/home/ronghua/.cache/codex-jdks/jdk-17 ANDROID_HOME=/home/ronghua/.cache/android-sdk ./gradlew --no-daemon testDebugUnitTest --tests com.cory.noter.data.settings.DataStoreSettingsRepositoryTest --tests com.cory.noter.ui.settings.SettingsViewModelTest`
+  - Result: expected compile failure because `AsrModel`, `selectedAsrModelId`, `setSelectedAsrModel`, and settings ASR ViewModel state/actions were not implemented yet.
+- Green combined evidence: `artifacts/2026-06-24-voice-first-ai-alarm/round2-green-asr-settings-focused.log`
+  - Command: `JAVA_TOOL_OPTIONS=-Duser.home=/tmp/noter-home HOME=/tmp/noter-home GRADLE_USER_HOME=/tmp/noter-gradle-home JAVA_HOME=/home/ronghua/.cache/codex-jdks/jdk-17 ANDROID_HOME=/home/ronghua/.cache/android-sdk ./gradlew --no-daemon testDebugUnitTest --tests com.cory.noter.data.settings.DataStoreSettingsRepositoryTest --tests com.cory.noter.ui.settings.SettingsViewModelTest`
+  - Result: passed after adding the ASR model catalog, settings persistence, ViewModel state/actions, settings radio group, and localized strings.
+- Required focused command evidence:
+  - `artifacts/2026-06-24-voice-first-ai-alarm/round2-green-datastore-settings.log`
+  - `artifacts/2026-06-24-voice-first-ai-alarm/round2-green-settings-viewmodel.log`
+  - Both listed Task 3 focused commands passed.
+- Settings smoke compile evidence:
+  - Initial log: `artifacts/2026-06-24-voice-first-ai-alarm/round2-assemble-debug-android-test.log`
+  - Initial result: failed on stale androidTest fakes still referencing the deleted pre-agent `OpenRouterGateway` / `AiAlarmResponseParser` path.
+  - Fixed log: `artifacts/2026-06-24-voice-first-ai-alarm/round2-assemble-debug-android-test-fixed.log`
+  - Fixed result: `assembleDebugAndroidTest` passed after moving the androidTest fake to `AgentLlmGateway` and wiring the smoke test through `AgentLoopRunner`.
+- Diff check:
+  - Log: `artifacts/2026-06-24-voice-first-ai-alarm/round2-git-diff-check.log`
+  - Command: `git diff --check`
+  - Result: passed with no output.
+- Bounded architecture/refactor review:
+  - Result: pass after cleanup.
+  - Finding fixed: the first implementation made `domain/settings/AppSettings` import the higher-level `ai` package for `AsrModel.DefaultId`. That boundary drift was removed; `AppSettings` now remains a plain string settings value and the repository/fakes provide model defaults at their own boundary.
+  - Notes: ASR model catalog remains in `ai/AsrModel.kt` per plan; DataStore validation stays in `data/settings`; settings UI continues to talk through `SettingsViewModel`; androidTest fake compatibility was limited to the current `AgentLlmGateway` test boundary.

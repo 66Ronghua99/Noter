@@ -8,6 +8,7 @@ import com.cory.noter.agent.AgentMessageRole
 import com.cory.noter.agent.AgentToolCall
 import com.cory.noter.ai.AiAlarmCreator
 import com.cory.noter.ai.AiAlarmPromptBuilder
+import com.cory.noter.ai.AsrModel
 import com.cory.noter.alarm.AlarmSchedulingUseCase
 import com.cory.noter.alarm.FakeAlarmScheduler
 import com.cory.noter.alarm.ScheduleResult
@@ -64,6 +65,7 @@ class AiCreateViewModelTest {
             initialSettings = AppSettings(
                 openRouterApiKey = "sk-or-v1-test",
                 selectedModelId = "deepseek/deepseek-v3.2",
+                selectedAsrModelId = AsrModel.DefaultId,
                 defaultRingtoneUri = AppSettings.DefaultRingtoneUri,
             ),
         )

@@ -35,6 +35,7 @@ fun SettingsScreen(
     onApiKeyChanged: (String) -> Unit,
     onSaveApiKey: () -> Unit,
     onModelSelected: (String) -> Unit,
+    onAsrModelSelected: (String) -> Unit,
     onPickDefaultRingtone: () -> Unit,
     onPermissionAction: (String) -> Unit,
     onBack: () -> Unit,
@@ -96,6 +97,30 @@ fun SettingsScreen(
                             RadioButton(
                                 selected = state.selectedModelId == modelId,
                                 onClick = { onModelSelected(modelId) },
+                            )
+                            Text(text = modelId)
+                        }
+                    }
+                }
+            }
+
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = stringResource(R.string.settings_asr_model),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    state.asrModelOptions.forEach { modelId ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onAsrModelSelected(modelId) },
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            RadioButton(
+                                selected = state.selectedAsrModelId == modelId,
+                                onClick = { onAsrModelSelected(modelId) },
                             )
                             Text(text = modelId)
                         }

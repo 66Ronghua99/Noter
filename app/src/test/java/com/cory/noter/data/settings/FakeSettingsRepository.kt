@@ -1,5 +1,6 @@
 package com.cory.noter.data.settings
 
+import com.cory.noter.ai.AsrModel
 import com.cory.noter.ai.OpenRouterModel
 import com.cory.noter.domain.settings.AppSettings
 import kotlinx.coroutines.flow.Flow
@@ -10,6 +11,7 @@ class FakeSettingsRepository(
     initialSettings: AppSettings = AppSettings(
         openRouterApiKey = "",
         selectedModelId = OpenRouterModel.DefaultId,
+        selectedAsrModelId = AsrModel.DefaultId,
         defaultRingtoneUri = AppSettings.DefaultRingtoneUri,
     ),
 ) : SettingsRepository {
@@ -30,6 +32,17 @@ class FakeSettingsRepository(
         }
 
         state.update { it.copy(selectedModelId = modelId) }
+        return Result.success(Unit)
+    }
+
+    override suspend fun setSelectedAsrModel(modelId: String): Result<Unit> {
+        if (modelId !in AsrModel.builtInIds) {
+            return Result.failure(
+                IllegalArgumentException("UNKNOWN_ASR_MODEL_ID: $modelId"),
+            )
+        }
+
+        state.update { it.copy(selectedAsrModelId = modelId) }
         return Result.success(Unit)
     }
 

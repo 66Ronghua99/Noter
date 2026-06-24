@@ -10,5 +10,7 @@ interface SettingsRepository {
 
     suspend fun setSelectedModel(modelId: String): Result<Unit>
 
+    suspend fun setSelectedAsrModel(modelId: String): Result<Unit>
+
     suspend fun setDefaultRingtoneUri(ringtoneUri: String): Result<Unit>
 }

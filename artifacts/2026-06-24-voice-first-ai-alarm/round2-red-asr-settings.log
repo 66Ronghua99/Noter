@@ -1,0 +1,80 @@
+Script started on 2026-06-25 00:12:18+08:00 [<not executed on terminal>]
+Picked up JAVA_TOOL_OPTIONS: -Duser.home=/tmp/noter-home
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.14.3/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+
+
+[2A[1B[1m> Starting Daemon[m[17D[1B[1A> IDLE[0K[6D[1B[2ADaemon will be stopped at the end of the build 
+[1B[0K
+[2A[0K[1B> IDLE[6D[1B[2A[1m<[0;1m-------------> 0% INITIALIZING [80ms][m[38D[2B[2A[1m<[0;1m-------------> 0% INITIALIZING [180ms][m[39D[2B[2A[1m<[0;1m-------------> 0% INITIALIZING [280ms][m[39D[2B[2A[1m<[0;1m-------------> 0% INITIALIZING [380ms][m[39D[2B[2A[1m<[0;1m-------------> 0% INITIALIZING [480ms][m[39D[2B[2A[1m<[0;1m-------------> 0% INITIALIZING [580ms][m[39D[2B[2A[1m<[0;1m-------------> 0% INITIALIZING [680ms][m[39D[2B[2A[1m<[0;1m-------------> 0% INITIALIZING [780ms][m[39D[1B[1m> Evaluating settings[m[21D[1B[2A[1m<[0;1m-------------> 0% INITIALIZING [880ms][m[39D[2B[2A[1m<[0;1m-------------> 0% INITIALIZING [980ms][m[39D[2B[2A[1m<[0;1m-------------> 0% INITIALIZING [1s][m[0K[36D[2B[2A[1m<[0;1m-------------> 0% INITIALIZING [2s][m[36D[2B[2A[1m<[0;1m-------------> 0% CONFIGURING [2s][m[0K[35D[1B[1m> Loading projects[m[0K[18D[1B[1A[1m> root project[m[0K[14D[1B[1A[1m> root project > Resolve dependencies of detachedConfiguration1[m[63D[1B[1A[1m> root project > Resolve dependencies of classpath[m[0K[50D[1B[2A[1m<[0;1m-------------> 0% CONFIGURING [3s][m[35D[1B[1m> root project[m[0K[14D[1B[1A[1m> root project > Resolve files of configuration 'classpath' > Resolve files of [m[79D[1B[1A[1m> root project > Resolve files of configuration 'classpath'[m[0K[59D[1B[2A[1m<[0;32;1m======[0;39;1m-------> 50% CONFIGURING [3s][m[36D[1B[1m> :app[m[0K[6D[1B[2A[1m<[0;32;1m======[0;39;1m-------> 50% CONFIGURING [4s][m[36D[2B[2A[1m<[0;32;1m======[0;39;1m-------> 50% CONFIGURING [5s][m[36D[2B[2A[1m<[0;32;1m=============[0;39;1m> 100% CONFIGURING [6s][m[37D[1B> IDLE[6D[1B[2A[1m<[0;1m-------------> 0% EXECUTING [6s][m[0K[33D[2B[2A[1m<[0;32;1m=[0;39;1m------------> 7% EXECUTING [6s][m[33D[1B[1m> :app:checkDebugAarMetadata > Resolve dependencies of :app:debugRuntimeClasspa[m[79D[1B[2A[1m<[0;32;1m=[0;39;1m------------> 7% EXECUTING [7s][m[33D[2B[1A[1m> :app:checkDebugAarMetadata > Resolve files of configuration ':app:debugRuntim[m[79D[1B[2A[1m<[0;32;1m=[0;39;1m------------> 10% EXECUTING [7s][m[34D[1B[1m> :app:processDebugNavigationResources[m[0K[38D[1B[1A[1m> :app:processDebugNavigationResources > Resolve files of configuration ':app:d[m[79D[1B[2A[1m<[0;32;1m==[0;39;1m-----------> 17% EXECUTING [7s][m[34D[1B[1m> :app:mapDebugSourceSetPaths[m[0K[29D[1B[2A[1m<[0;32;1m===[0;39;1m----------> 28% EXECUTING [7s][m[34D[1B[1m> :app:parseDebugLocalResources[m[31D[1B[2A[1m<[0;32;1m====[0;39;1m---------> 35% EXECUTING [7s][m[34D[1B[1m> :app:processDebugMainManifest > Resolve files of configuration ':app:debugRun[m[79D[1B[2A[1m<[0;32;1m=====[0;39;1m--------> 43% EXECUTING [7s][m[34D[1B[1m> :app:processDebugResources > Resolve files of configuration ':app:debugRuntim[m[79D[1B[2A[1m<[0;32;1m======[0;39;1m-------> 46% EXECUTING [7s][m[34D[1B[1m> :app:kspDebugKotlin[m[0K[21D[1B[2A[1m<[0;32;1m======[0;39;1m-------> 48% EXECUTING [7s][m[34D[1B[1m> :app:compileDebugKotlin[m[25D[1B[2A[1m<[0;32;1m======[0;39;1m-------> 48% EXECUTING [8s][m[34D[1B[1m> :app:compileDebugKotlin > Resolve files of configuration ':app:kotlinCompiler[m[79D[1B[2A[1m<[0;32;1m========[0;39;1m-----> 61% EXECUTING [8s][m[34D[1B[1m> :app:kspDebugUnitTestKotlin > Resolve files of configuration ':app:detachedCo[m[79D[1B[1A[1m> :app:kspDebugUnitTestKotlin[m[0K[29D[1B
+[3A[1m<[0;32;1m==========[0;39;1m---> 79% EXECUTING [8s][m[34D[2B[1m> :app:processDebugUnitTestManifest[m[35D[1B[3A[1m<[0;32;1m===========[0;39;1m--> 87% EXECUTING [8s][m[34D[2B> IDLE[0K[6D[1B[3A[1m<[0;32;1m===========[0;39;1m--> 87% EXECUTING [9s][m[34D[3B[3A[1m<[0;32;1m===========[0;39;1m--> 87% EXECUTING [10s][m[35D[3B[3A[1m<[0;32;1m===========[0;39;1m--> 87% EXECUTING [11s][m[35D[3B[3A[1m<[0;32;1m===========[0;39;1m--> 87% EXECUTING [12s][m[35D[3B[3A[1m<[0;32;1m===========[0;39;1m--> 89% EXECUTING [12s][m[35D[1B> IDLE[0K[6D[2B[2A[1m> :app:compileDebugUnitTestKotlin[m[33D[2B[3A[1m<[0;32;1m===========[0;39;1m--> 89% EXECUTING [13s][m[35D[3B[3A[1m<[0;32;1m===========[0;39;1m--> 89% EXECUTING [14s][m[35D[3B[3A[1m<[0;32;1m===========[0;39;1m--> 89% EXECUTING [15s][m[35D[3B[3A[1m<[0;32;1m===========[0;39;1m--> 89% EXECUTING [16s][m[35D[3B[3A[1m<[0;32;1m===========[0;39;1m--> 89% EXECUTING [17s][m[35D[3B[3A[0K
+[31;1m> Task :app:compileDebugUnitTestKotlin[0;39m[31m FAILED[39m[0K
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/data/settings/DataStoreSettingsRepositoryTest.kt:6:26 Unresolved reference 'AsrModel'.[0K
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/data/settings/DataStoreSettingsRepositoryTest.kt:27:29 Unresolved reference 'selectedAsrModelId'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/data/settings/DataStoreSettingsRepositoryTest.kt:27:49 Unresolved reference 'isEqualTo'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/data/settings/DataStoreSettingsRepositoryTest.kt:27:59 Unresolved reference 'AsrModel'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/data/settings/DataStoreSettingsRepositoryTest.kt:33:20 Unresolved reference 'AsrModel'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/data/settings/DataStoreSettingsRepositoryTest.kt:33:41 Unresolved reference 'containsExactly'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/data/settings/DataStoreSettingsRepositoryTest.kt:37:20 Unresolved reference 'AsrModel'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/data/settings/DataStoreSettingsRepositoryTest.kt:37:40 Unresolved reference 'isEqualTo'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/data/settings/DataStoreSettingsRepositoryTest.kt:64:33 Unresolved reference 'setSelectedAsrModel'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/data/settings/DataStoreSettingsRepositoryTest.kt:66:38 Unresolved reference 'isTrue'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/data/settings/DataStoreSettingsRepositoryTest.kt:67:48 Unresolved reference 'selectedAsrModelId'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/data/settings/DataStoreSettingsRepositoryTest.kt:68:14 Unresolved reference 'isEqualTo'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/data/settings/DataStoreSettingsRepositoryTest.kt:86:33 Unresolved reference 'setSelectedAsrModel'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/data/settings/DataStoreSettingsRepositoryTest.kt:88:38 Unresolved reference 'isTrue'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/data/settings/DataStoreSettingsRepositoryTest.kt:89:46 Unresolved reference 'isInstanceOf'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/data/settings/DataStoreSettingsRepositoryTest.kt:90:48 Unresolved reference 'selectedAsrModelId'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/data/settings/DataStoreSettingsRepositoryTest.kt:90:68 Unresolved reference 'isEqualTo'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/data/settings/DataStoreSettingsRepositoryTest.kt:90:78 Unresolved reference 'AsrModel'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/data/settings/DataStoreSettingsRepositoryTest.kt:153:36 Unresolved reference 'setSelectedAsrModel'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/data/settings/DataStoreSettingsRepositoryTest.kt:154:14 Unresolved reference 'isTrue'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/data/settings/DataStoreSettingsRepositoryTest.kt:169:17 No parameter with name 'selectedAsrModelId' found.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/settings/SettingsViewModelTest.kt:3:26 Unresolved reference 'AsrModel'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/settings/SettingsViewModelTest.kt:53:44 Unresolved reference 'asrModelOptions'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/settings/SettingsViewModelTest.kt:53:61 Unresolved reference 'isEqualTo'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/settings/SettingsViewModelTest.kt:53:71 Unresolved reference 'AsrModel'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/settings/SettingsViewModelTest.kt:54:44 Unresolved reference 'selectedAsrModelId'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/settings/SettingsViewModelTest.kt:54:64 Unresolved reference 'isEqualTo'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/settings/SettingsViewModelTest.kt:54:74 Unresolved reference 'AsrModel'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/settings/SettingsViewModelTest.kt:68:19 Unresolved reference 'onAsrModelSelected'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/settings/SettingsViewModelTest.kt:68:38 Unresolved reference 'AsrModel'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/settings/SettingsViewModelTest.kt:68:38 Cannot infer type for type parameter 'V'. Specify it explicitly.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/settings/SettingsViewModelTest.kt:71:48 Unresolved reference 'selectedAsrModelId'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/settings/SettingsViewModelTest.kt:72:14 Unresolved reference 'isEqualTo'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/settings/SettingsViewModelTest.kt:72:24 Unresolved reference 'AsrModel'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/settings/SettingsViewModelTest.kt:72:24 Cannot infer type for type parameter 'V'. Specify it explicitly.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/settings/SettingsViewModelTest.kt:73:44 Unresolved reference 'selectedAsrModelId'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/settings/SettingsViewModelTest.kt:74:14 Unresolved reference 'isEqualTo'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/settings/SettingsViewModelTest.kt:74:24 Unresolved reference 'AsrModel'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/settings/SettingsViewModelTest.kt:74:24 Cannot infer type for type parameter 'V'. Specify it explicitly.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/settings/SettingsViewModelTest.kt:88:19 Unresolved reference 'onAsrModelSelected'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/settings/SettingsViewModelTest.kt:91:48 Unresolved reference 'selectedAsrModelId'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/settings/SettingsViewModelTest.kt:91:68 Unresolved reference 'isEqualTo'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/settings/SettingsViewModelTest.kt:91:78 Unresolved reference 'AsrModel'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/settings/SettingsViewModelTest.kt:92:44 Unresolved reference 'selectedAsrModelId'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/settings/SettingsViewModelTest.kt:92:64 Unresolved reference 'isEqualTo'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/settings/SettingsViewModelTest.kt:92:74 Unresolved reference 'AsrModel'.
+[0K
+[0K
+[0K
+[3A[1m<[0;31;1m============[0;39;1m-> 92% EXECUTING [17s][m[35D[1B> IDLE[6D[1B> IDLE[6D[1B[3A[0K
+[31mFAILURE: [39m[31mBuild failed with an exception.[39m[0K
+[0K
+* What went wrong:
+Execution failed for task ':app:compileDebugUnitTestKotlin'.
+[33m> [39mA failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+   [33m> [39mCompilation error. See log for more details
+
+* Try:
+[33m> [39mRun with [1m--stacktrace[m option to get the stack trace.
+[33m> [39mRun with [1m--info[m or [1m--debug[m option to get more log output.
+[33m> [39mRun with [1m--scan[m to get full insights.
+[33m> [39mGet more help at [1mhttps://help.gradle.org[m.
+
+[31;1mBUILD FAILED[0;39m in 19s
+29 actionable tasks: 2 executed, 27 up-to-date
+[0K
+[0K
+[0K
+[3A[1m<[0;1m-------------> 0% WAITING[m[26D[1B> IDLE[6D[1B> IDLE[6D[1B[3A[2K[1B[2K[1B[2K[2A[0m[?12l[?25h
+Script done on 2026-06-25 00:12:38+08:00 [COMMAND_EXIT_CODE="1"]

@@ -9,9 +9,10 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import com.cory.noter.agent.AgentLoopRunner
 import com.cory.noter.ai.AiAlarmCreator
 import com.cory.noter.ai.AiAlarmPromptBuilder
-import com.cory.noter.ai.AiAlarmResponseParser
+import com.cory.noter.ai.AsrModel
 import com.cory.noter.ai.OpenRouterModel
 import com.cory.noter.alarm.AlarmSchedulingUseCase
 import com.cory.noter.ui.ai.AiCreateScreen
@@ -48,6 +49,7 @@ class SettingsSmokeTest {
                     onApiKeyChanged = viewModel::onApiKeyChanged,
                     onSaveApiKey = viewModel::saveApiKey,
                     onModelSelected = viewModel::onModelSelected,
+                    onAsrModelSelected = viewModel::onAsrModelSelected,
                     onPickDefaultRingtone = {},
                     onPermissionAction = {},
                     onBack = {},
@@ -58,11 +60,13 @@ class SettingsSmokeTest {
         composeRule.onNodeWithText("API key").performTextInput("sk-or-v1-demo")
         composeRule.onNodeWithText("Save API key").performClick()
         composeRule.onNodeWithText(OpenRouterModel.builtInIds[1]).performClick()
+        composeRule.onNodeWithText(AsrModel.builtInIds[1]).performClick()
         composeRule.waitForIdle()
 
         val settings = runBlocking { repository.settings.first() }
         assert(settings.openRouterApiKey == "sk-or-v1-demo")
         assert(settings.selectedModelId == OpenRouterModel.builtInIds[1])
+        assert(settings.selectedAsrModelId == AsrModel.builtInIds[1])
     }
 
     @Test
@@ -73,11 +77,10 @@ class SettingsSmokeTest {
         val viewModel = AiCreateViewModel(
             creator = AiAlarmCreator(
                 settingsRepository = settingsRepository,
-                openRouterClient = AndroidTestOpenRouterGateway(),
+                agentLoopRunner = AgentLoopRunner(AndroidTestAgentLlmGateway()),
                 alarmRepository = AndroidTestAlarmRepository(clock = clock, zoneId = zoneId),
                 schedulingUseCase = AlarmSchedulingUseCase(AndroidTestAlarmScheduler()),
                 promptBuilder = AiAlarmPromptBuilder(),
-                responseParser = AiAlarmResponseParser(),
                 clock = clock,
             ),
             settingsRepository = settingsRepository,

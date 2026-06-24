@@ -45,6 +45,7 @@
     <string name="settings_api_key_label">API key</string>
     <string name="settings_save_api_key">Save API key</string>
     <string name="settings_model">Model</string>
+    <string name="settings_asr_model">Speech recognition model</string>
     <string name="settings_default_ringtone">Default ringtone</string>
     <string name="settings_choose_default_ringtone">Choose default ringtone</string>
     <string name="settings_permissions">Permissions</string>
