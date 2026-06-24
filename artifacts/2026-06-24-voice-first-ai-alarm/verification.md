@@ -521,3 +521,4 @@
   - Diff log: `artifacts/2026-06-24-voice-first-ai-alarm/finalize-git-diff-check.log`; `git diff --check` passed with no output.
   - Legacy absence log: `artifacts/2026-06-24-voice-first-ai-alarm/finalize-submit-alarm-draft-absence.log`; no production `submit_alarm_draft` hits were found.
   - Connected-device availability log: `artifacts/2026-06-24-voice-first-ai-alarm/finalize-adb-devices.log`; connected execution was unavailable because the fresh SDK-local `adb devices -l` output only listed the header.
+  - Humanize stop-gate log: `artifacts/2026-06-24-voice-first-ai-alarm/finalize-stop-gate.log`; `ALLOW: stop gate passed.`
