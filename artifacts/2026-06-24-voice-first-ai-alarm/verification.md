@@ -422,3 +422,29 @@
 - Bounded architecture/refactor review:
   - Result: pass.
   - Notes: voice capture lifecycle cleanup remains in `ui/voice/VoiceHomeViewModel.kt` and calls only the injected `VoiceCaptureController`; permission recovery is exposed as UI state and a `VoiceHomeScreen` callback, while Android app-settings intent construction stays in `MainActivity`; `ui/voice` still has no OpenRouter, Android recorder/STT, WorkManager, Room, repository, or scheduler imports. Commit-time refactor gate is disabled in `.harness/bootstrap.toml`.
+
+## Round 14: Review Phase Microphone Permission Result Fix
+
+- Round contract: `.humanize/rlcr/2026-06-24_23-32-34/round-14-contract.md`
+- Review source: `.humanize/rlcr/2026-06-24_23-32-34/round-14-review-result.md`
+- BitLesson selection: `.humanize/bitlesson.md` still has no actual lessons. The selector returned placeholder format for the fix task, so Round 14 proceeded with `LESSON_IDS: NONE`.
+- RED permission-result evidence:
+  - Log: `artifacts/2026-06-24-voice-first-ai-alarm/round14-red-microphone-permission-result.log`
+  - Command: `JAVA_TOOL_OPTIONS=-Duser.home=/tmp/noter-home HOME=/tmp/noter-home GRADLE_USER_HOME=/tmp/noter-gradle-home JAVA_HOME=/home/ronghua/.cache/codex-jdks/jdk-17 ANDROID_HOME=/home/ronghua/.cache/android-sdk ./gradlew --no-daemon --console=plain testDebugUnitTest --tests com.cory.noter.VoiceMicrophonePermissionResultTest`
+  - Result: expected compile failure because the permission-result routing helper did not exist yet.
+- GREEN focused evidence:
+  - Log: `artifacts/2026-06-24-voice-first-ai-alarm/round14-green-microphone-permission-result.log`
+  - Command: same focused `VoiceMicrophonePermissionResultTest`.
+  - Result: passed after microphone permission grant with inactive press stopped starting or releasing capture, grant with active press started capture without release, and denial still forwarded to the ViewModel permission-needed path.
+- Full local gate after review fix:
+  - Unit log: `artifacts/2026-06-24-voice-first-ai-alarm/round14-test-debug-unit-test.log`; `testDebugUnitTest` passed with `BUILD SUCCESSFUL`.
+  - Lint log: `artifacts/2026-06-24-voice-first-ai-alarm/round14-lint-debug.log`; `lintDebug` passed with `BUILD SUCCESSFUL`.
+  - Assemble log: `artifacts/2026-06-24-voice-first-ai-alarm/round14-assemble-debug.log`; `assembleDebug` passed with `BUILD SUCCESSFUL`.
+  - androidTest compile log: `artifacts/2026-06-24-voice-first-ai-alarm/round14-assemble-debug-android-test.log`; `assembleDebugAndroidTest` passed with `BUILD SUCCESSFUL`.
+- Final Round 14 checks:
+  - Diff log: `artifacts/2026-06-24-voice-first-ai-alarm/round14-git-diff-check.log`; `git diff --check` passed with no output.
+  - Legacy absence log: `artifacts/2026-06-24-voice-first-ai-alarm/round14-submit-alarm-draft-absence.log`; no production `submit_alarm_draft` hits were found.
+  - Connected-device availability log: `artifacts/2026-06-24-voice-first-ai-alarm/round14-adb-devices.log`; connected execution was unavailable because the fresh SDK-local `adb devices -l` output only listed the header.
+- Bounded architecture/refactor review:
+  - Result: pass.
+  - Notes: microphone permission result routing stays in `MainActivity` at the Android permission boundary; `resolveMicrophonePermissionResult` is a small pure helper with JVM coverage; `ui/voice` and `voice` ownership remain unchanged, and `ui/voice` still has no OpenRouter, Android recorder/STT, WorkManager, Room, repository, or scheduler imports. Commit-time refactor gate is disabled in `.harness/bootstrap.toml`.

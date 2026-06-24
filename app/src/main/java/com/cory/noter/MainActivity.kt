@@ -156,9 +156,12 @@ private fun VoiceHomeRoute(
     val microphonePermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
     ) { granted ->
-        viewModel.onRecordPressed()
-        if (granted && !recordPressActive) {
-            viewModel.onRecordReleased()
+        when (resolveMicrophonePermissionResult(granted, recordPressActive)) {
+            VoiceMicrophonePermissionAction.StartCapture,
+            VoiceMicrophonePermissionAction.ShowPermissionNeeded,
+            -> viewModel.onRecordPressed()
+
+            VoiceMicrophonePermissionAction.WaitForNewPress -> Unit
         }
     }
 
@@ -192,6 +195,21 @@ private fun VoiceHomeRoute(
         onOpenAlarmList = onOpenAlarmList,
         onOpenSettings = onOpenSettings,
     )
+}
+
+internal enum class VoiceMicrophonePermissionAction {
+    StartCapture,
+    ShowPermissionNeeded,
+    WaitForNewPress,
+}
+
+internal fun resolveMicrophonePermissionResult(
+    granted: Boolean,
+    recordPressActive: Boolean,
+): VoiceMicrophonePermissionAction = when {
+    !granted -> VoiceMicrophonePermissionAction.ShowPermissionNeeded
+    recordPressActive -> VoiceMicrophonePermissionAction.StartCapture
+    else -> VoiceMicrophonePermissionAction.WaitForNewPress
 }
 
 @Composable
