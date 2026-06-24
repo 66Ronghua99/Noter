@@ -1,12 +1,17 @@
 package com.cory.noter
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.Modifier
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.platform.testTag
+import com.cory.noter.ui.NoterApp
 import com.cory.noter.ui.text.UiText
 import com.cory.noter.ui.voice.VoiceHomeScreen
 import com.cory.noter.ui.voice.VoiceHomeStatus
@@ -19,6 +24,72 @@ import org.junit.Test
 class VoiceHomeSmokeTest {
     @get:Rule
     val composeRule = createComposeRule()
+
+    @Test
+    fun noter_app_default_start_destination_is_voice_home() {
+        composeRule.setContent {
+            MaterialTheme {
+                TestNoterApp()
+            }
+        }
+
+        composeRule.onNodeWithTag(VoiceHomeTestTags.RecordButton)
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun noter_app_voice_home_list_action_reaches_alarm_list() {
+        composeRule.setContent {
+            MaterialTheme {
+                TestNoterApp()
+            }
+        }
+
+        composeRule.onNodeWithTag(VoiceHomeTestTags.ListAction)
+            .assertIsDisplayed()
+            .performClick()
+
+        composeRule.onNodeWithTag(AppRouteTestTags.AlarmList)
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun noter_app_voice_home_settings_action_reaches_settings() {
+        composeRule.setContent {
+            MaterialTheme {
+                TestNoterApp()
+            }
+        }
+
+        composeRule.onNodeWithTag(VoiceHomeTestTags.SettingsAction)
+            .assertIsDisplayed()
+            .performClick()
+
+        composeRule.onNodeWithTag(AppRouteTestTags.Settings)
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun noter_app_voice_home_text_fallback_reaches_ai_create() {
+        composeRule.setContent {
+            MaterialTheme {
+                TestNoterApp(
+                    voiceState = VoiceHomeUiState(
+                        status = VoiceHomeStatus.Idle,
+                        errorMessage = UiText.Raw("Speech recognition failed."),
+                        showTextFallbackAction = true,
+                    ),
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag(VoiceHomeTestTags.TextFallbackAction)
+            .assertIsDisplayed()
+            .performClick()
+
+        composeRule.onNodeWithTag(AppRouteTestTags.AiCreate)
+            .assertIsDisplayed()
+    }
 
     @Test
     fun voice_home_idle_surface_exposes_record_list_and_settings_actions() {
@@ -142,5 +213,44 @@ class VoiceHomeSmokeTest {
 
         assertEquals(1, retries)
         assertEquals(1, textFallbacks)
+    }
+
+    @Composable
+    private fun TestNoterApp(
+        voiceState: VoiceHomeUiState = VoiceHomeUiState(status = VoiceHomeStatus.Idle),
+    ) {
+        NoterApp(
+            voiceHomeScreen = { onOpenAlarmList, onOpenSettings, onOpenTextInput ->
+                VoiceHomeScreen(
+                    state = voiceState,
+                    onRecordPressed = {},
+                    onRecordReleased = {},
+                    onRecordCancelled = {},
+                    onRetry = {},
+                    onOpenTextInput = onOpenTextInput,
+                    onOpenAlarmList = onOpenAlarmList,
+                    onOpenSettings = onOpenSettings,
+                )
+            },
+            alarmListScreen = { _, _, _, _ ->
+                Box(modifier = Modifier.testTag(AppRouteTestTags.AlarmList))
+            },
+            alarmEditorScreen = { _, _ ->
+                Box(modifier = Modifier.testTag(AppRouteTestTags.Editor))
+            },
+            aiCreateScreen = { _, _ ->
+                Box(modifier = Modifier.testTag(AppRouteTestTags.AiCreate))
+            },
+            settingsScreen = {
+                Box(modifier = Modifier.testTag(AppRouteTestTags.Settings))
+            },
+        )
+    }
+
+    private object AppRouteTestTags {
+        const val AlarmList = "NoterAppAlarmListRoute"
+        const val Editor = "NoterAppEditorRoute"
+        const val AiCreate = "NoterAppAiCreateRoute"
+        const val Settings = "NoterAppSettingsRoute"
     }
 }

@@ -9,6 +9,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 
 object Routes {
+    const val VOICE_HOME = "voice"
     const val LIST = "alarms"
     const val EDIT_NEW = "alarms/new"
     const val EDIT_EXISTING = "alarms/{alarmId}/edit"
@@ -21,6 +22,11 @@ object Routes {
 
 @Composable
 fun NoterApp(
+    voiceHomeScreen: @Composable (
+        onOpenAlarmList: () -> Unit,
+        onOpenSettings: () -> Unit,
+        onOpenTextInput: () -> Unit,
+    ) -> Unit,
     alarmListScreen: @Composable (
         onOpenManualCreate: () -> Unit,
         onOpenAiCreate: () -> Unit,
@@ -31,7 +37,7 @@ fun NoterApp(
     aiCreateScreen: @Composable (onBack: () -> Unit, onOpenManualCreate: () -> Unit) -> Unit,
     settingsScreen: @Composable (onBack: () -> Unit) -> Unit,
     modifier: Modifier = Modifier,
-    startDestination: String = Routes.LIST,
+    startDestination: String = Routes.VOICE_HOME,
 ) {
     val navController = rememberNavController()
 
@@ -40,6 +46,13 @@ fun NoterApp(
         startDestination = startDestination,
         modifier = modifier,
     ) {
+        composable(route = Routes.VOICE_HOME) {
+            voiceHomeScreen(
+                { navController.navigate(Routes.LIST) },
+                { navController.navigate(Routes.SETTINGS) },
+                { navController.navigate(Routes.AI_CREATE) },
+            )
+        }
         composable(route = Routes.LIST) {
             alarmListScreen(
                 { navController.navigate(Routes.EDIT_NEW) },

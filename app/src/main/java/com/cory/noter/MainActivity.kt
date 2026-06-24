@@ -19,6 +19,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -36,6 +39,8 @@ import com.cory.noter.ui.editor.AlarmEditorScreen
 import com.cory.noter.ui.editor.AlarmEditorViewModel
 import com.cory.noter.ui.settings.SettingsScreen
 import com.cory.noter.ui.settings.SettingsViewModel
+import com.cory.noter.ui.voice.VoiceHomeScreen
+import com.cory.noter.ui.voice.VoiceHomeViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -86,6 +91,14 @@ private fun NoterRoot(
     onOpenExactAlarmSettings: () -> Unit,
 ) {
     NoterApp(
+        voiceHomeScreen = { onOpenAlarmList, onOpenSettings, onOpenTextInput ->
+            VoiceHomeRoute(
+                appContainer = appContainer,
+                onOpenAlarmList = onOpenAlarmList,
+                onOpenSettings = onOpenSettings,
+                onOpenTextInput = onOpenTextInput,
+            )
+        },
         alarmListScreen = { onOpenManualCreate, onOpenAiCreate, onEditAlarm, onOpenSettings ->
             AlarmListRoute(
                 appContainer = appContainer,
@@ -119,6 +132,57 @@ private fun NoterRoot(
                 onBack = onBack,
             )
         },
+    )
+}
+
+@Composable
+private fun VoiceHomeRoute(
+    appContainer: AppContainer,
+    onOpenAlarmList: () -> Unit,
+    onOpenSettings: () -> Unit,
+    onOpenTextInput: () -> Unit,
+) {
+    val viewModel: VoiceHomeViewModel = viewModel(
+        factory = factoryOf {
+            VoiceHomeViewModel(
+                microphonePermissionChecker = appContainer.microphonePermissionChecker,
+                captureController = appContainer.voiceCaptureController,
+            )
+        },
+    )
+    val state by viewModel.uiState.collectAsState()
+    var recordPressActive by remember { mutableStateOf(false) }
+    val microphonePermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        viewModel.onRecordPressed()
+        if (granted && !recordPressActive) {
+            viewModel.onRecordReleased()
+        }
+    }
+
+    VoiceHomeScreen(
+        state = state,
+        onRecordPressed = {
+            recordPressActive = true
+            if (appContainer.microphonePermissionChecker.isGranted()) {
+                viewModel.onRecordPressed()
+            } else {
+                microphonePermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+            }
+        },
+        onRecordReleased = {
+            recordPressActive = false
+            viewModel.onRecordReleased()
+        },
+        onRecordCancelled = {
+            recordPressActive = false
+            viewModel.onRecordCancelled()
+        },
+        onRetry = viewModel::onRetry,
+        onOpenTextInput = onOpenTextInput,
+        onOpenAlarmList = onOpenAlarmList,
+        onOpenSettings = onOpenSettings,
     )
 }
 
@@ -354,5 +418,6 @@ private fun extractPickedRingtoneUri(data: Intent?): Uri? = when {
 
 private fun <VM : ViewModel> factoryOf(create: () -> VM): ViewModelProvider.Factory =
     object : ViewModelProvider.Factory {
+        @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T = create() as T
     }

@@ -1,7 +1,15 @@
 package com.cory.noter.di
 
 import androidx.test.core.app.ApplicationProvider
+import com.cory.noter.ai.OpenRouterAsrClient
 import com.cory.noter.ai.WorkManagerAiCreateBackgroundScheduler
+import com.cory.noter.voice.AndroidMicrophonePermissionChecker
+import com.cory.noter.voice.AndroidSystemSpeechRecognizer
+import com.cory.noter.voice.AndroidTemporaryAudioRecorder
+import com.cory.noter.voice.BackgroundVoiceAiCreateEnqueuer
+import com.cory.noter.voice.FileTemporaryAudioCleanup
+import com.cory.noter.voice.OpenRouterVoiceAsrTranscriber
+import com.cory.noter.voice.VoiceCaptureCoordinator
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -24,6 +32,8 @@ class AppContainerTest {
         val secondAgentLoopRunner = container.agentLoopRunner
         val firstReconciliation = container.startupReconciliation
         val secondReconciliation = container.startupReconciliation
+        val firstVoiceCaptureController = container.voiceCaptureController
+        val secondVoiceCaptureController = container.voiceCaptureController
 
         assertThat(firstAlarmRepository === secondAlarmRepository).isTrue()
         assertThat(firstSettingsRepository === secondSettingsRepository).isTrue()
@@ -38,6 +48,23 @@ class AppContainerTest {
         assertThat(container.aiCreateBackgroundScheduler)
             .isInstanceOf(WorkManagerAiCreateBackgroundScheduler::class.java)
         assertThat(container.alarmRingingCoordinator === container.alarmRingingCoordinator).isTrue()
+        assertThat(firstVoiceCaptureController === secondVoiceCaptureController).isTrue()
+        assertThat(container.microphonePermissionChecker)
+            .isInstanceOf(AndroidMicrophonePermissionChecker::class.java)
+        assertThat(container.temporaryAudioRecorder)
+            .isInstanceOf(AndroidTemporaryAudioRecorder::class.java)
+        assertThat(container.systemSpeechRecognizer)
+            .isInstanceOf(AndroidSystemSpeechRecognizer::class.java)
+        assertThat(container.openRouterAsrClient)
+            .isInstanceOf(OpenRouterAsrClient::class.java)
+        assertThat(container.remoteAsrTranscriber)
+            .isInstanceOf(OpenRouterVoiceAsrTranscriber::class.java)
+        assertThat(container.temporaryAudioCleanup)
+            .isInstanceOf(FileTemporaryAudioCleanup::class.java)
+        assertThat(container.voiceAiCreateEnqueuer)
+            .isInstanceOf(BackgroundVoiceAiCreateEnqueuer::class.java)
+        assertThat(firstVoiceCaptureController)
+            .isInstanceOf(VoiceCaptureCoordinator::class.java)
 
         val creatorRunnerField = container.aiAlarmCreator.javaClass.getDeclaredField("agentLoopRunner")
         creatorRunnerField.isAccessible = true

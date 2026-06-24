@@ -14,6 +14,7 @@ import com.cory.noter.ai.AiCreateBackgroundScheduler
 import com.cory.noter.ai.AiCreateResultNotifier
 import com.cory.noter.ai.WorkManagerAiCreateBackgroundScheduler
 import com.cory.noter.ai.OpenRouterAgentClient
+import com.cory.noter.ai.OpenRouterAsrClient
 import com.cory.noter.alarm.AlarmRingingCoordinator
 import com.cory.noter.alarm.AlarmScheduler
 import com.cory.noter.alarm.AlarmSchedulingUseCase
@@ -27,6 +28,20 @@ import com.cory.noter.data.settings.SettingsRepository
 import com.cory.noter.notifications.AndroidAiCreateResultNotifier
 import com.cory.noter.permissions.AndroidPermissionStatusReader
 import com.cory.noter.permissions.PermissionStatusReader
+import com.cory.noter.voice.AndroidMicrophonePermissionChecker
+import com.cory.noter.voice.AndroidSystemSpeechRecognizer
+import com.cory.noter.voice.AndroidTemporaryAudioRecorder
+import com.cory.noter.voice.BackgroundVoiceAiCreateEnqueuer
+import com.cory.noter.voice.FileTemporaryAudioCleanup
+import com.cory.noter.voice.MicrophonePermissionChecker
+import com.cory.noter.voice.OpenRouterVoiceAsrTranscriber
+import com.cory.noter.voice.RemoteAsrTranscriber
+import com.cory.noter.voice.SystemSpeechRecognizer
+import com.cory.noter.voice.TemporaryAudioCleanup
+import com.cory.noter.voice.TemporaryAudioRecorder
+import com.cory.noter.voice.VoiceAiCreateEnqueuer
+import com.cory.noter.voice.VoiceCaptureController
+import com.cory.noter.voice.VoiceCaptureCoordinator
 
 class AppContainer(
     context: Context,
@@ -101,6 +116,49 @@ class AppContainer(
 
     val aiCreateBackgroundScheduler: AiCreateBackgroundScheduler by lazy {
         WorkManagerAiCreateBackgroundScheduler(applicationContext)
+    }
+
+    val microphonePermissionChecker: MicrophonePermissionChecker by lazy {
+        AndroidMicrophonePermissionChecker(applicationContext)
+    }
+
+    val temporaryAudioRecorder: TemporaryAudioRecorder by lazy {
+        AndroidTemporaryAudioRecorder(applicationContext)
+    }
+
+    val systemSpeechRecognizer: SystemSpeechRecognizer by lazy {
+        AndroidSystemSpeechRecognizer(applicationContext)
+    }
+
+    val openRouterAsrClient: OpenRouterAsrClient by lazy {
+        OpenRouterAsrClient(
+            debugLogger = AndroidOpenRouterDebugLogger(
+                enabled = applicationContext.isDebuggableApplication(),
+            ),
+        )
+    }
+
+    val remoteAsrTranscriber: RemoteAsrTranscriber by lazy {
+        OpenRouterVoiceAsrTranscriber(openRouterAsrClient)
+    }
+
+    val temporaryAudioCleanup: TemporaryAudioCleanup by lazy {
+        FileTemporaryAudioCleanup()
+    }
+
+    val voiceAiCreateEnqueuer: VoiceAiCreateEnqueuer by lazy {
+        BackgroundVoiceAiCreateEnqueuer(aiCreateBackgroundScheduler)
+    }
+
+    val voiceCaptureController: VoiceCaptureController by lazy {
+        VoiceCaptureCoordinator(
+            settingsRepository = settingsRepository,
+            temporaryAudioRecorder = temporaryAudioRecorder,
+            systemSpeechRecognizer = systemSpeechRecognizer,
+            remoteAsrTranscriber = remoteAsrTranscriber,
+            temporaryAudioCleanup = temporaryAudioCleanup,
+            aiCreateEnqueuer = voiceAiCreateEnqueuer,
+        )
     }
 
     val alarmRingingCoordinator: AlarmRingingCoordinator by lazy {

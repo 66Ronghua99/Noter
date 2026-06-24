@@ -28,8 +28,9 @@
 - Task 3 focused unit tests: passed.
 - Task 4 focused unit tests: passed.
 - Task 5 focused unit tests: passed after the Round 5 recorder setup failure fix.
-- Task 6 focused unit tests: passed after the Round 7 quick-release review fix; Task 6 remains pending Codex stop-gate review.
-- Debug androidTest APK compile: passed after adding the Round 6 voice home smoke coverage.
+- Task 6 focused unit tests: Codex-verified after the Round 7 quick-release review fix.
+- Task 7 focused navigation/app wiring checks: passed locally; pending Codex stop-gate review.
+- Debug androidTest APK compile: passed after adding the Round 8 app-level voice home navigation smoke coverage.
 - Full local gate (`testDebugUnitTest`, `lintDebug`, `assembleDebug`): pending later integration task.
 - Connected Android test: pending later integration task.
 
@@ -224,3 +225,32 @@
 - Bounded architecture/refactor review:
   - Result: pass.
   - Notes: `ui/voice/VoiceHomeViewModel.kt` still depends only on `MicrophonePermissionChecker`, `VoiceCaptureController`, provider-neutral voice results, and resource-backed `UiText` (`app/src/main/java/com/cory/noter/ui/voice/VoiceHomeViewModel.kt:7`). The pending terminal action is local UI interaction state (`app/src/main/java/com/cory/noter/ui/voice/VoiceHomeViewModel.kt:39`) and does not move recorder, STT, OpenRouter, WorkManager, Room, or scheduling ownership into `ui/voice`. The provider-neutral capture lifecycle remains in `voice/VoiceCaptureCoordinator.kt` behind `VoiceCaptureController` (`app/src/main/java/com/cory/noter/voice/VoiceCaptureCoordinator.kt:11`). Commit-time refactor gate is disabled in `.harness/bootstrap.toml`.
+- Codex Round 7 stop-gate review:
+  - Review result: `.humanize/rlcr/2026-06-24_23-32-34/round-7-review-result.md`
+  - Result: Task 6 quick-release fix Codex-verified.
+  - Finding: Task 7 navigation/default app wiring and Task 8 final integration evidence remain required original-plan work.
+
+## Round 8: Task 7 Navigation And App Wiring
+
+- Round contract: `.humanize/rlcr/2026-06-24_23-32-34/round-8-contract.md`
+- Review source: `.humanize/rlcr/2026-06-24_23-32-34/round-7-review-result.md`
+- BitLesson selection: `.humanize/bitlesson.md` has no actual lessons. The selector returned its placeholder format for the contract, navigation smoke tests, and AppContainer graph test, so Round 8 proceeded with `LESSON_IDS: NONE`.
+- Red navigation evidence: `artifacts/2026-06-24-voice-first-ai-alarm/round8-red-navigation.log`
+  - Command: `JAVA_TOOL_OPTIONS=-Duser.home=/tmp/noter-home HOME=/tmp/noter-home GRADLE_USER_HOME=/tmp/noter-gradle-home JAVA_HOME=/home/ronghua/.cache/codex-jdks/jdk-17 ANDROID_HOME=/home/ronghua/.cache/android-sdk ./gradlew --no-daemon --console=plain assembleDebugAndroidTest`
+  - Result: expected compile failure because `NoterApp` did not expose a `voiceHomeScreen` app route seam and still had no `VOICE_HOME` default route.
+- Red AppContainer evidence: `artifacts/2026-06-24-voice-first-ai-alarm/round8-red-app-container.log`
+  - Command: `JAVA_TOOL_OPTIONS=-Duser.home=/tmp/noter-home HOME=/tmp/noter-home GRADLE_USER_HOME=/tmp/noter-gradle-home JAVA_HOME=/home/ronghua/.cache/codex-jdks/jdk-17 ANDROID_HOME=/home/ronghua/.cache/android-sdk ./gradlew --no-daemon --console=plain testDebugUnitTest --tests com.cory.noter.di.AppContainerTest`
+  - Result: expected compile failure because production voice provider properties were not exposed from `AppContainer`.
+- Green AppContainer evidence: `artifacts/2026-06-24-voice-first-ai-alarm/round8-green-app-container.log`
+  - Command: `JAVA_TOOL_OPTIONS=-Duser.home=/tmp/noter-home HOME=/tmp/noter-home GRADLE_USER_HOME=/tmp/noter-gradle-home JAVA_HOME=/home/ronghua/.cache/codex-jdks/jdk-17 ANDROID_HOME=/home/ronghua/.cache/android-sdk ./gradlew --no-daemon --console=plain testDebugUnitTest --tests com.cory.noter.di.AppContainerTest`
+  - Result: passed after adding the voice provider graph to `AppContainer`.
+- androidTest compile evidence: `artifacts/2026-06-24-voice-first-ai-alarm/round8-green-assemble-debug-android-test.log`
+  - Command: `JAVA_TOOL_OPTIONS=-Duser.home=/tmp/noter-home HOME=/tmp/noter-home GRADLE_USER_HOME=/tmp/noter-gradle-home JAVA_HOME=/home/ronghua/.cache/codex-jdks/jdk-17 ANDROID_HOME=/home/ronghua/.cache/android-sdk ./gradlew --no-daemon --console=plain assembleDebugAndroidTest`
+  - Result: passed after adding `Routes.VOICE_HOME`, making it the default `NoterApp` start destination, adding the app-level `voiceHomeScreen` route seam, wiring `VoiceHomeRoute` in `MainActivity`, and adding app-level voice navigation smoke coverage.
+- Diff check:
+  - Log: `artifacts/2026-06-24-voice-first-ai-alarm/round8-git-diff-check.log`
+  - Command: `git diff --check`
+  - Result: passed with no output.
+- Bounded architecture/refactor review:
+  - Result: pass.
+  - Notes: `NoterApp` owns route constants and navigation transitions (`app/src/main/java/com/cory/noter/ui/NoterApp.kt:11`); `MainActivity` owns Android microphone permission launch and production route composition (`app/src/main/java/com/cory/noter/MainActivity.kt:139`); `AppContainer` owns construction of Android recorder/STT/OpenRouter ASR/cleanup/background enqueue/coordinator providers (`app/src/main/java/com/cory/noter/di/AppContainer.kt:121`). `ui/voice` remains presentation/ViewModel-only and still does not import Android recorder/STT, OpenRouter, WorkManager, Room, or scheduler classes.
