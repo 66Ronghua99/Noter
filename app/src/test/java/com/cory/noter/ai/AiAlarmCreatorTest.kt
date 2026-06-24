@@ -7,6 +7,7 @@ import com.cory.noter.agent.AgentLoopRunner
 import com.cory.noter.agent.AgentMessage
 import com.cory.noter.agent.AgentMessageRole
 import com.cory.noter.agent.AgentToolCall
+import com.cory.noter.agent.AgentToolChoice
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.cory.noter.alarm.AlarmSchedulingUseCase
@@ -256,10 +257,60 @@ class AiAlarmCreatorTest {
             .isEqualTo("deepseek/deepseek-v3.2")
         assertThat(fakeAgentGateway.requests[0].messages.single().content)
             .contains("Current local date: 2026-04-23")
-        assertThat(fakeAgentGateway.requests.first().tools.single().name)
-            .isEqualTo("create_alarm")
-        assertThat(fakeAgentGateway.requests.first().tools.single().name)
-            .isNotEqualTo("submit_alarm_draft")
+        assertThat(fakeAgentGateway.requests.first().tools.map { it.name })
+            .containsExactly("create_alarm", "reject_unclear_request")
+            .inOrder()
+        assertThat(fakeAgentGateway.requests.first().tools.map { it.name })
+            .doesNotContain("submit_alarm_draft")
+    }
+
+    @Test
+    fun `text ai creation starts with required any tool policy and both tools registered`() = runTest {
+        settingsRepository.set(validSettings())
+        fakeAgentGateway.results += AgentLlmResult.NetworkFailure("stop after first request")
+
+        val result = creator.createFromText("maybe remind me sometime")
+
+        assertThat(result).isEqualTo(AiCreateResult.NetworkFailure("stop after first request"))
+        val request = fakeAgentGateway.requests.single()
+        assertThat(request.toolChoice).isEqualTo(AgentToolChoice.RequiredAnyTool)
+        assertThat(request.tools.map { it.name })
+            .containsExactly("create_alarm", "reject_unclear_request")
+            .inOrder()
+    }
+
+    @Test
+    fun `reject unclear request returns clarification without creating or scheduling alarm`() = runTest {
+        settingsRepository.set(validSettings())
+        fakeAgentGateway.results += AgentLlmResult.Message(
+            AgentMessage(
+                role = AgentMessageRole.ASSISTANT,
+                content = "",
+                toolCalls = listOf(
+                    AgentToolCall(
+                        id = "call-reject",
+                        name = "reject_unclear_request",
+                        arguments = """
+                            {
+                              "reason": "I couldn't tell when to set the alarm.",
+                              "retryHint": "Try saying a day and time."
+                            }
+                        """.trimIndent(),
+                    ),
+                ),
+            ),
+        )
+        fakeAgentGateway.results += AgentLlmResult.Message(
+            AgentMessage(AgentMessageRole.ASSISTANT, "Please try again with a day and time."),
+        )
+
+        val result = creator.createFromText("remind me sometime")
+
+        assertThat(result).isEqualTo(
+            AiCreateResult.ClarificationRequired("I couldn't tell when to set the alarm."),
+        )
+        assertThat(repository.alarms.first()).isEmpty()
+        assertThat(fakeScheduler.scheduledAlarms).isEmpty()
     }
 
     @Test

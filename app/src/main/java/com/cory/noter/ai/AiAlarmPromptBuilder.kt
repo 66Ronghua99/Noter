@@ -25,8 +25,9 @@ class AiAlarmPromptBuilder {
             For repeating alarms, omit date or set it only when useful for diagnostics; the app ignores date for scheduling repeat rules.
             For weekly_interval alarms, include repeatRule.startDate as yyyy-MM-dd, repeatRule.intervalWeeks as a positive integer, and repeatRule.daysOfWeek as the active weekdays.
             For weekly_interval alarms, include repeatRule.endDate as yyyy-MM-dd when the user gives an end date; if the user does not mention an end date, set repeatRule.endDate to one year after repeatRule.startDate.
-            If the request is ambiguous, set "needsClarification" to true and explain the missing detail in "clarificationReason".
-            Call create_alarm with the alarm arguments. Do not answer with prose before the tool call.
+            Call create_alarm with the alarm arguments when the request has enough alarm details.
+            Call reject_unclear_request when the request is unclear, incomplete, not an alarm request, or likely came from a poor voice transcript.
+            Do not answer with prose before the tool call.
         """.trimIndent()
     }
 }

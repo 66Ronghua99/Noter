@@ -9,6 +9,7 @@ import com.cory.noter.agent.AgentRunResult
 import com.cory.noter.agent.AgentToolChoice
 import com.cory.noter.agent.AgentToolRegistry
 import com.cory.noter.agent.AgentToolResult
+import com.cory.noter.agent.tools.RejectUnclearRequestTool
 import com.cory.noter.agent.tools.alarm.CreateAlarmTool
 import com.cory.noter.agent.tools.alarm.CreateAlarmToolContext
 import com.cory.noter.alarm.AlarmSchedulingUseCase
@@ -67,6 +68,7 @@ class AiAlarmCreator(
                     schedulingUseCase = schedulingUseCase,
                     clock = clock,
                 ),
+                RejectUnclearRequestTool(),
             ),
         )
 
@@ -81,7 +83,7 @@ class AiAlarmCreator(
                     ),
                 ),
                 toolRegistry = toolRegistry,
-                toolChoice = AgentToolChoice.Required("create_alarm"),
+                toolChoice = AgentToolChoice.RequiredAnyTool,
             ),
         )
 
@@ -100,6 +102,16 @@ class AiAlarmCreator(
     private suspend fun AgentToolResult.toAiCreateResult(): AiCreateResult {
         val status = content.requiredString("status")
             ?: return AiCreateResult.InvalidResponse("Agent tool result did not include a valid status.")
+
+        if (status == "rejected") {
+            if (committed) {
+                return AiCreateResult.InvalidResponse("Reject tool result must not be committed.")
+            }
+            val reason = content.requiredString("reason")
+                ?: return AiCreateResult.InvalidResponse("Agent reject result did not include a valid reason.")
+            return AiCreateResult.ClarificationRequired(reason)
+        }
+
         val alarmId = content.requiredLong("alarmId")
             ?: return AiCreateResult.InvalidResponse("Agent tool result referenced a missing alarm.")
         val alarm = alarmRepository.get(alarmId)

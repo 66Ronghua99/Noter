@@ -24,5 +24,31 @@
 ## Current Gate Status
 
 - Task 1 focused unit tests: passed.
+- Task 2 focused unit tests: passed.
 - Full local gate (`testDebugUnitTest`, `lintDebug`, `assembleDebug`): pending later integration task.
 - Connected Android test: pending later integration task.
+
+## Task 2: Permanent `reject_unclear_request` Tool
+
+- Humanize loop note: the current active loop started at base commit `61bc10d`. The tracked plan file is intentionally not modified during this loop because the Humanize stop gate enforces tracked plan immutability.
+- BitLesson selection: `.humanize/bitlesson.md` has no actual lessons. The selector returned its placeholder format again, so Task 2 proceeded with `LESSON_IDS: NONE`.
+- Red evidence: `artifacts/2026-06-24-voice-first-ai-alarm/task2-red-reject-tool.log`
+  - Command: `JAVA_HOME=/home/ronghua/.cache/codex-jdks/jdk-17 ANDROID_HOME=/home/ronghua/.cache/android-sdk ./gradlew --no-daemon testDebugUnitTest --tests com.cory.noter.agent.tools.RejectUnclearRequestToolTest --tests com.cory.noter.ai.AiAlarmCreatorTest`
+  - Result: expected compile failure because `RejectUnclearRequestTool` did not exist and `AiAlarmCreator` had not registered or mapped it yet.
+- Green evidence: `artifacts/2026-06-24-voice-first-ai-alarm/task2-green-focused-tests.log`
+  - Command: `JAVA_HOME=/home/ronghua/.cache/codex-jdks/jdk-17 ANDROID_HOME=/home/ronghua/.cache/android-sdk ./gradlew --no-daemon testDebugUnitTest --tests com.cory.noter.agent.tools.RejectUnclearRequestToolTest --tests com.cory.noter.ai.AiAlarmCreatorTest`
+  - Result: passed after adding `RejectUnclearRequestTool`, registering both tools, changing text AI creation to `RequiredAnyTool`, and mapping reject tool results to `AiCreateResult.ClarificationRequired`.
+- Focused command evidence:
+  - `artifacts/2026-06-24-voice-first-ai-alarm/task2-green-reject-tool.log`
+  - `artifacts/2026-06-24-voice-first-ai-alarm/task2-green-ai-alarm-creator.log`
+  - Both listed Task 2 focused commands passed.
+- Existing agent/tool regression evidence:
+  - `artifacts/2026-06-24-voice-first-ai-alarm/task2-green-agent-tool-regression.log`
+  - Command covered `AgentLoopRunnerTest`, `OpenRouterAgentClientTest`, `CreateAlarmToolTest`, and `CreateAlarmArgumentsParserTest`.
+  - Result: passed.
+- Diff check:
+  - Command: `git diff --check`
+  - Result: passed with no output.
+- Bounded architecture/refactor review:
+  - Result: pass; no boundary drift found.
+  - Notes: `RejectUnclearRequestTool` is provider-neutral and has no repository or scheduler dependency; `AiAlarmCreator` remains the UI-facing adapter that registers tools and maps tool results; prompt wording remains in `AiAlarmPromptBuilder`; alarm writes and scheduling still flow only through `CreateAlarmTool`.
