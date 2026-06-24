@@ -1,0 +1,60 @@
+Script started on 2026-06-25 00:39:03+08:00 [<not executed on terminal>]
+Picked up JAVA_TOOL_OPTIONS: -Duser.home=/tmp/noter-home
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.14.3/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+
+
+> Starting Daemon> IDLEDaemon will be stopped at the end of the build
+
+> IDLE<-------------> 0% INITIALIZING [76ms]<-------------> 0% INITIALIZING [176ms]<-------------> 0% INITIALIZING [276ms]<-------------> 0% INITIALIZING [376ms]<-------------> 0% INITIALIZING [476ms]<-------------> 0% INITIALIZING [576ms]<-------------> 0% INITIALIZING [676ms]<-------------> 0% INITIALIZING [776ms]> Evaluating settings<-------------> 0% INITIALIZING [877ms]<-------------> 0% INITIALIZING [976ms]<-------------> 0% INITIALIZING [1s]<-------------> 0% CONFIGURING [1s]> IDLE<-------------> 0% CONFIGURING [2s]> root project> root project > Resolve dependencies of detachedConfiguration1> root project > Resolve dependencies of classpath> root project > Resolve files of configuration 'classpath'> root project > Resolve files of configuration 'classpath' > Resolve files of > root project > Resolve files of configuration 'classpath'> root project<======-------> 50% CONFIGURING [3s]> :app<======-------> 50% CONFIGURING [4s]<======-------> 50% CONFIGURING [5s]<======-------> 50% CONFIGURING [6s]<======-------> 50% CONFIGURING [7s]<=============> 100% CONFIGURING [7s]> IDLE<=============> 100% CONFIGURING [8s]<=------------> 7% EXECUTING [8s]> :app:checkDebugAarMetadata> :app:checkDebugAarMetadata > Resolve dependencies of :app:debugRuntimeClasspa> :app:checkDebugAarMetadata > Resolve files of configuration ':app:debugRuntim<=------------> 10% EXECUTING [8s]> :app:processDebugNavigationResources > Resolve files of configuration ':app:d<===----------> 25% EXECUTING [8s]> :app:packageDebugResources<====---------> 35% EXECUTING [8s]> :app:processDebugMainManifest > Resolve files of configuration ':app:debugRun<=====--------> 43% EXECUTING [8s]> :app:processDebugResources > Resolve dependencies of :app:debugCompileClasspa<======-------> 46% EXECUTING [8s]> :app:kspDebugKotlin > Resolve files of configuration ':app:kspDebugKotlinProc<======-------> 46% EXECUTING [9s]> :app:kspDebugKotlin > Resolve files of configuration ':app:detachedConfigurat<======-------> 48% EXECUTING [9s]> :app:compileDebugKotlin > Resolve files of configuration ':app:detachedConfig<========-----> 61% EXECUTING [9s]> :app:kspDebugUnitTestKotlin > Resolve dependencies of :app:detachedConfigurat> :app:kspDebugUnitTestKotlin > Resolve files of configuration ':app:detachedCo> :app:kspDebugUnitTestKotlin<==========---> 79% EXECUTING [9s]<===========--> 87% EXECUTING [9s]<===========--> 87% EXECUTING [10s]<===========--> 87% EXECUTING [11s]<===========--> 87% EXECUTING [12s]<===========--> 87% EXECUTING [13s]<===========--> 87% EXECUTING [14s]<===========--> 89% EXECUTING [14s]> :app:compileDebugUnitTestKotlin> :app:compileDebugUnitTestKotlin > Resolve files of configuration ':app:detach> :app:compileDebugUnitTestKotlin<===========--> 89% EXECUTING [15s]<===========--> 89% EXECUTING [16s]<===========--> 89% EXECUTING [17s]<===========--> 89% EXECUTING [18s]<===========--> 89% EXECUTING [19s]<===========--> 89% EXECUTING [20s]
+> Task :app:compileDebugUnitTestKotlin FAILED
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ai/OpenRouterAsrClientTest.kt:26:22 Unresolved reference 'OpenRouterAsrClient'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ai/OpenRouterAsrClientTest.kt:46:13 Unresolved reference 'OpenRouterAsrRequest'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ai/OpenRouterAsrClientTest.kt:53:28 Unresolved reference 'isEqualTo'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ai/OpenRouterAsrClientTest.kt:53:38 Unresolved reference 'AsrTranscriptionResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ai/OpenRouterAsrClientTest.kt:65:29 Unresolved reference 'transcribe'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ai/OpenRouterAsrClientTest.kt:67:28 Unresolved reference 'isEqualTo'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ai/OpenRouterAsrClientTest.kt:67:38 Unresolved reference 'AsrTranscriptionResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ai/OpenRouterAsrClientTest.kt:72:22 Unresolved reference 'OpenRouterAsrClient'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ai/OpenRouterAsrClientTest.kt:82:28 Unresolved reference 'isEqualTo'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ai/OpenRouterAsrClientTest.kt:82:38 Unresolved reference 'AsrTranscriptionResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ai/OpenRouterAsrClientTest.kt:99:29 Unresolved reference 'transcribe'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ai/OpenRouterAsrClientTest.kt:101:28 Unresolved reference 'isEqualTo'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ai/OpenRouterAsrClientTest.kt:101:38 Unresolved reference 'AsrTranscriptionResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ai/OpenRouterAsrClientTest.kt:118:29 Unresolved reference 'transcribe'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ai/OpenRouterAsrClientTest.kt:120:28 Unresolved reference 'isEqualTo'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ai/OpenRouterAsrClientTest.kt:120:38 Unresolved reference 'AsrTranscriptionResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ai/OpenRouterAsrClientTest.kt:127:29 Unresolved reference 'transcribe'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ai/OpenRouterAsrClientTest.kt:129:28 Unresolved reference 'isEqualTo'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ai/OpenRouterAsrClientTest.kt:130:13 Unresolved reference 'AsrTranscriptionResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ai/OpenRouterAsrClientTest.kt:138:29 Unresolved reference 'transcribe'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ai/OpenRouterAsrClientTest.kt:140:28 Unresolved reference 'isEqualTo'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ai/OpenRouterAsrClientTest.kt:141:13 Unresolved reference 'AsrTranscriptionResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ai/OpenRouterAsrClientTest.kt:150:22 Unresolved reference 'OpenRouterAsrClient'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ai/OpenRouterAsrClientTest.kt:172:28 Unresolved reference 'isEqualTo'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ai/OpenRouterAsrClientTest.kt:172:38 Unresolved reference 'AsrTranscriptionResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ai/OpenRouterAsrClientTest.kt:181:4 Unresolved reference 'OpenRouterAsrRequest'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ai/OpenRouterAsrClientTest.kt:181:27 Unresolved reference 'OpenRouterAsrRequest'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ai/OpenRouterAsrClientTest.kt:191:4 Unresolved reference 'OpenRouterAsrClient'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ai/OpenRouterAsrClientTest.kt:191:26 Unresolved reference 'OpenRouterAsrClient'.
+
+
+<============-> 92% EXECUTING [20s]> IDLE
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileDebugUnitTestKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+   > Compilation error. See log for more details
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 23s
+29 actionable tasks: 2 executed, 27 up-to-date
+
+
+<============-> 92% EXECUTING [20s]> IDLE<-------------> 0% WAITING
+Script done on 2026-06-25 00:39:28+08:00 [COMMAND_EXIT_CODE="1"]

@@ -26,6 +26,7 @@
 - Task 1 focused unit tests: passed.
 - Task 2 focused unit tests: passed.
 - Task 3 focused unit tests: passed.
+- Task 4 focused unit tests: passed.
 - Debug androidTest APK compile: passed after updating stale androidTest fakes to the current agent gateway boundary.
 - Full local gate (`testDebugUnitTest`, `lintDebug`, `assembleDebug`): pending later integration task.
 - Connected Android test: pending later integration task.
@@ -103,3 +104,21 @@
   - Result: pass after cleanup.
   - Finding fixed: the first implementation made `domain/settings/AppSettings` import the higher-level `ai` package for `AsrModel.DefaultId`. That boundary drift was removed; `AppSettings` now remains a plain string settings value and the repository/fakes provide model defaults at their own boundary.
   - Notes: ASR model catalog remains in `ai/AsrModel.kt` per plan; DataStore validation stays in `data/settings`; settings UI continues to talk through `SettingsViewModel`; androidTest fake compatibility was limited to the current `AgentLlmGateway` test boundary.
+
+## Round 3: OpenRouter ASR Adapter
+
+- Round contract: `.humanize/rlcr/2026-06-24_23-32-34/round-3-contract.md`
+- BitLesson selection: `.humanize/bitlesson.md` has no actual lessons. The selector returned its placeholder format, so Round 3 proceeded with `LESSON_IDS: NONE`.
+- Red evidence: `artifacts/2026-06-24-voice-first-ai-alarm/round3-red-openrouter-asr-client.log`
+  - Command: `JAVA_TOOL_OPTIONS=-Duser.home=/tmp/noter-home HOME=/tmp/noter-home GRADLE_USER_HOME=/tmp/noter-gradle-home JAVA_HOME=/home/ronghua/.cache/codex-jdks/jdk-17 ANDROID_HOME=/home/ronghua/.cache/android-sdk ./gradlew --no-daemon testDebugUnitTest --tests com.cory.noter.ai.OpenRouterAsrClientTest`
+  - Result: expected compile failure because `OpenRouterAsrClient`, `OpenRouterAsrRequest`, and `AsrTranscriptionResult` did not exist yet.
+- Green evidence: `artifacts/2026-06-24-voice-first-ai-alarm/round3-green-openrouter-asr-client.log`
+  - Command: `JAVA_TOOL_OPTIONS=-Duser.home=/tmp/noter-home HOME=/tmp/noter-home GRADLE_USER_HOME=/tmp/noter-gradle-home JAVA_HOME=/home/ronghua/.cache/codex-jdks/jdk-17 ANDROID_HOME=/home/ronghua/.cache/android-sdk ./gradlew --no-daemon testDebugUnitTest --tests com.cory.noter.ai.OpenRouterAsrClientTest`
+  - Result: passed after adding `OpenRouterAsrClient`, explicit ASR result categories, `/api/v1/audio/transcriptions` request mapping, base64 audio payload serialization, transcript parsing, and explicit network/rate-limit/remote/malformed/blank failure handling.
+- Diff check:
+  - Log: `artifacts/2026-06-24-voice-first-ai-alarm/round3-git-diff-check.log`
+  - Command: `git diff --check`
+  - Result: passed with no output.
+- Bounded architecture/refactor review:
+  - Result: pass.
+  - Notes: OpenRouter-specific ASR request/response JSON remains inside `OpenRouterAsrClient`; shared OpenRouter transport constants stay in `OpenRouterHttp`; the result type exposes explicit failure categories without adding voice-capture or UI orchestration scope; the client has no fallback or retry path that could silently switch ASR models.
