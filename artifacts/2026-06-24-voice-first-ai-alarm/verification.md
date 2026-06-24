@@ -388,3 +388,37 @@
 - Bounded architecture/refactor review:
   - Result: pass.
   - Notes: ASR transport and response-body failure mapping stay isolated in `ai/OpenRouterAsrClient.kt`; Android temporary audio read failure mapping and `SpeechRecognizer` resource cleanup stay isolated in `voice/AndroidVoiceAdapters.kt`; `VoiceSpeechRecognizer` is a small adapter seam for Android STT cleanup tests; `ui/voice` still has no OpenRouter, Android recorder/STT, WorkManager, Room, repository, or scheduler imports. Commit-time refactor gate is disabled in `.harness/bootstrap.toml`.
+
+## Round 13: Review Phase Lifecycle And Permission Recovery Fixes
+
+- Round contract: `.humanize/rlcr/2026-06-24_23-32-34/round-13-contract.md`
+- Review source: `.humanize/rlcr/2026-06-24_23-32-34/round-13-review-result.md`
+- BitLesson selection: `.humanize/bitlesson.md` still has no actual lessons. The selector returned placeholder format for both fix tasks, so Round 13 proceeded with `LESSON_IDS: NONE`.
+- RED permission recovery evidence:
+  - Log: `artifacts/2026-06-24-voice-first-ai-alarm/round13-red-voice-home-viewmodel.log`
+  - Command: `JAVA_TOOL_OPTIONS=-Duser.home=/tmp/noter-home HOME=/tmp/noter-home GRADLE_USER_HOME=/tmp/noter-gradle-home JAVA_HOME=/home/ronghua/.cache/codex-jdks/jdk-17 ANDROID_HOME=/home/ronghua/.cache/android-sdk ./gradlew --no-daemon --console=plain testDebugUnitTest --tests com.cory.noter.ui.voice.VoiceHomeViewModelTest`
+  - Result: expected compile failure because `VoiceHomeUiState` did not yet expose `showPermissionRecoveryAction`.
+- RED lifecycle cleanup evidence:
+  - Log: `artifacts/2026-06-24-voice-first-ai-alarm/round13-red-voice-clear-cancel.log`
+  - Command: same focused `VoiceHomeViewModelTest`.
+  - Result: expected failures proving `ViewModelStore.clear()` did not call `captureController.cancel()` while capture was active or while capture start was still in flight.
+- GREEN focused evidence:
+  - Log: `artifacts/2026-06-24-voice-first-ai-alarm/round13-green-voice-home-viewmodel.log`
+  - Command: same focused `VoiceHomeViewModelTest`.
+  - Result: passed after `VoiceHomeViewModel` exposed a permission recovery action and cancelled active/starting capture from `onCleared()`.
+- UI compile evidence:
+  - Log: `artifacts/2026-06-24-voice-first-ai-alarm/round13-assemble-debug-android-test-focused.log`
+  - Command: `JAVA_TOOL_OPTIONS=-Duser.home=/tmp/noter-home HOME=/tmp/noter-home GRADLE_USER_HOME=/tmp/noter-gradle-home JAVA_HOME=/home/ronghua/.cache/codex-jdks/jdk-17 ANDROID_HOME=/home/ronghua/.cache/android-sdk ./gradlew --no-daemon --console=plain assembleDebugAndroidTest`
+  - Result: passed after `VoiceHomeScreen` rendered the permission recovery action and `MainActivity` wired it to Android app details settings.
+- Full local gate after review fixes:
+  - Unit log: `artifacts/2026-06-24-voice-first-ai-alarm/round13-test-debug-unit-test.log`; `testDebugUnitTest` passed with `BUILD SUCCESSFUL`.
+  - Lint log: `artifacts/2026-06-24-voice-first-ai-alarm/round13-lint-debug.log`; `lintDebug` passed with `BUILD SUCCESSFUL`.
+  - Assemble log: `artifacts/2026-06-24-voice-first-ai-alarm/round13-assemble-debug.log`; `assembleDebug` passed with `BUILD SUCCESSFUL`.
+  - androidTest compile log: `artifacts/2026-06-24-voice-first-ai-alarm/round13-assemble-debug-android-test.log`; `assembleDebugAndroidTest` passed with `BUILD SUCCESSFUL`.
+- Final Round 13 checks:
+  - Diff log: `artifacts/2026-06-24-voice-first-ai-alarm/round13-git-diff-check.log`; `git diff --check` passed with no output.
+  - Legacy absence log: `artifacts/2026-06-24-voice-first-ai-alarm/round13-submit-alarm-draft-absence.log`; no production `submit_alarm_draft` hits were found.
+  - Connected-device availability log: `artifacts/2026-06-24-voice-first-ai-alarm/round13-adb-devices.log`; connected execution was unavailable because the fresh SDK-local `adb devices -l` output only listed the header.
+- Bounded architecture/refactor review:
+  - Result: pass.
+  - Notes: voice capture lifecycle cleanup remains in `ui/voice/VoiceHomeViewModel.kt` and calls only the injected `VoiceCaptureController`; permission recovery is exposed as UI state and a `VoiceHomeScreen` callback, while Android app-settings intent construction stays in `MainActivity`; `ui/voice` still has no OpenRouter, Android recorder/STT, WorkManager, Room, repository, or scheduler imports. Commit-time refactor gate is disabled in `.harness/bootstrap.toml`.

@@ -50,6 +50,7 @@
     <string name="voice_home_processing_button">Processing</string>
     <string name="voice_home_cancel">Cancel</string>
     <string name="voice_home_retry">Try again</string>
+    <string name="voice_home_permission_action">Open microphone settings</string>
     <string name="voice_home_text_fallback">Type instead</string>
     <string name="voice_home_open_list">Alarms</string>
     <string name="voice_home_already_recording">Recording is already in progress.</string>

@@ -142,6 +142,7 @@ private fun VoiceHomeRoute(
     onOpenSettings: () -> Unit,
     onOpenTextInput: () -> Unit,
 ) {
+    val context = LocalContext.current
     val viewModel: VoiceHomeViewModel = viewModel(
         factory = factoryOf {
             VoiceHomeViewModel(
@@ -180,6 +181,13 @@ private fun VoiceHomeRoute(
             viewModel.onRecordCancelled()
         },
         onRetry = viewModel::onRetry,
+        onOpenPermissionSettings = {
+            context.startActivity(
+                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = Uri.parse("package:${context.packageName}")
+                },
+            )
+        },
         onOpenTextInput = onOpenTextInput,
         onOpenAlarmList = onOpenAlarmList,
         onOpenSettings = onOpenSettings,

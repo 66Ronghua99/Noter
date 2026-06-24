@@ -50,6 +50,7 @@
     <string name="voice_home_processing_button">处理中</string>
     <string name="voice_home_cancel">取消</string>
     <string name="voice_home_retry">再试一次</string>
+    <string name="voice_home_permission_action">打开麦克风设置</string>
     <string name="voice_home_text_fallback">改为输入</string>
     <string name="voice_home_open_list">闹钟</string>
     <string name="voice_home_already_recording">正在录音。</string>

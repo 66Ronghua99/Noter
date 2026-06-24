@@ -97,6 +97,7 @@ class VoiceHomeSmokeTest {
         var released = 0
         var openedList = 0
         var openedSettings = 0
+        var openedPermissionSettings = 0
 
         composeRule.setContent {
             MaterialTheme {
@@ -106,6 +107,7 @@ class VoiceHomeSmokeTest {
                     onRecordReleased = { released += 1 },
                     onRecordCancelled = {},
                     onRetry = {},
+                    onOpenPermissionSettings = { openedPermissionSettings += 1 },
                     onOpenTextInput = {},
                     onOpenAlarmList = { openedList += 1 },
                     onOpenSettings = { openedSettings += 1 },
@@ -126,6 +128,7 @@ class VoiceHomeSmokeTest {
         assertEquals(1, released)
         assertEquals(1, openedList)
         assertEquals(1, openedSettings)
+        assertEquals(0, openedPermissionSettings)
     }
 
     @Test
@@ -142,6 +145,7 @@ class VoiceHomeSmokeTest {
                     onRecordReleased = { released += 1 },
                     onRecordCancelled = { cancelled += 1 },
                     onRetry = {},
+                    onOpenPermissionSettings = {},
                     onOpenTextInput = {},
                     onOpenAlarmList = {},
                     onOpenSettings = {},
@@ -173,6 +177,7 @@ class VoiceHomeSmokeTest {
                     onRecordReleased = {},
                     onRecordCancelled = { cancelled += 1 },
                     onRetry = {},
+                    onOpenPermissionSettings = {},
                     onOpenTextInput = {},
                     onOpenAlarmList = {},
                     onOpenSettings = {},
@@ -200,6 +205,7 @@ class VoiceHomeSmokeTest {
                     onRecordReleased = {},
                     onRecordCancelled = {},
                     onRetry = {},
+                    onOpenPermissionSettings = {},
                     onOpenTextInput = {},
                     onOpenAlarmList = {},
                     onOpenSettings = {},
@@ -216,6 +222,7 @@ class VoiceHomeSmokeTest {
     fun voice_home_failure_surface_exposes_retry_and_text_fallback_actions() {
         var retries = 0
         var textFallbacks = 0
+        var permissionRecoveries = 0
 
         composeRule.setContent {
             MaterialTheme {
@@ -230,6 +237,7 @@ class VoiceHomeSmokeTest {
                     onRecordReleased = {},
                     onRecordCancelled = {},
                     onRetry = { retries += 1 },
+                    onOpenPermissionSettings = { permissionRecoveries += 1 },
                     onOpenTextInput = { textFallbacks += 1 },
                     onOpenAlarmList = {},
                     onOpenSettings = {},
@@ -246,6 +254,39 @@ class VoiceHomeSmokeTest {
 
         assertEquals(1, retries)
         assertEquals(1, textFallbacks)
+        assertEquals(0, permissionRecoveries)
+    }
+
+    @Test
+    fun voice_home_permission_surface_exposes_permission_recovery_action() {
+        var permissionRecoveries = 0
+
+        composeRule.setContent {
+            MaterialTheme {
+                VoiceHomeScreen(
+                    state = VoiceHomeUiState(
+                        status = VoiceHomeStatus.PermissionNeeded,
+                        errorMessage = UiText.Raw("Microphone permission is needed."),
+                        showPermissionRecoveryAction = true,
+                        showTextFallbackAction = true,
+                    ),
+                    onRecordPressed = {},
+                    onRecordReleased = {},
+                    onRecordCancelled = {},
+                    onRetry = {},
+                    onOpenPermissionSettings = { permissionRecoveries += 1 },
+                    onOpenTextInput = {},
+                    onOpenAlarmList = {},
+                    onOpenSettings = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag(VoiceHomeTestTags.PermissionRecoveryAction)
+            .assertIsDisplayed()
+            .performClick()
+
+        assertEquals(1, permissionRecoveries)
     }
 
     @Composable
@@ -260,6 +301,7 @@ class VoiceHomeSmokeTest {
                     onRecordReleased = {},
                     onRecordCancelled = {},
                     onRetry = {},
+                    onOpenPermissionSettings = {},
                     onOpenTextInput = onOpenTextInput,
                     onOpenAlarmList = onOpenAlarmList,
                     onOpenSettings = onOpenSettings,

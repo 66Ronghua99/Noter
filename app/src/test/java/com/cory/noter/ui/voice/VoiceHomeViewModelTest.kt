@@ -1,5 +1,6 @@
 package com.cory.noter.ui.voice
 
+import androidx.lifecycle.ViewModelStore
 import com.cory.noter.R
 import com.cory.noter.ai.AsrModel
 import com.cory.noter.data.settings.FakeSettingsRepository
@@ -50,6 +51,7 @@ class VoiceHomeViewModelTest {
         assertThat(viewModel.uiState.value.noticeMessage).isNull()
         assertThat(viewModel.uiState.value.errorMessage).isNull()
         assertThat(viewModel.uiState.value.showRetryAction).isFalse()
+        assertThat(viewModel.uiState.value.showPermissionRecoveryAction).isFalse()
         assertThat(viewModel.uiState.value.showTextFallbackAction).isFalse()
     }
 
@@ -68,8 +70,24 @@ class VoiceHomeViewModelTest {
         assertThat(viewModel.uiState.value.errorMessage)
             .isEqualTo(UiText.Resource(R.string.voice_home_permission_needed))
         assertThat(viewModel.uiState.value.showRetryAction).isFalse()
+        assertThat(viewModel.uiState.value.showPermissionRecoveryAction).isTrue()
         assertThat(viewModel.uiState.value.showTextFallbackAction).isTrue()
         assertThat(controller.startCalls).isEqualTo(0)
+    }
+
+    @Test
+    fun `permission denial exposes permission recovery action`() = runTest {
+        val viewModel = VoiceHomeViewModel(
+            microphonePermissionChecker = MicrophonePermissionChecker { false },
+            captureController = RecordingVoiceCaptureController(),
+        )
+
+        viewModel.onRecordPressed()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.status).isEqualTo(VoiceHomeStatus.PermissionNeeded)
+        assertThat(viewModel.uiState.value.showPermissionRecoveryAction).isTrue()
+        assertThat(viewModel.uiState.value.showTextFallbackAction).isTrue()
     }
 
     @Test
@@ -90,6 +108,43 @@ class VoiceHomeViewModelTest {
         assertThat(viewModel.uiState.value.status).isEqualTo(VoiceHomeStatus.PermissionNeeded)
         assertThat(viewModel.uiState.value.errorMessage)
             .isEqualTo(UiText.Resource(R.string.voice_home_permission_needed))
+    }
+
+    @Test
+    fun `clearing while recording cancels active capture`() = runTest {
+        val controller = RecordingVoiceCaptureController()
+        val viewModel = VoiceHomeViewModel(
+            microphonePermissionChecker = MicrophonePermissionChecker { true },
+            captureController = controller,
+        )
+        val store = ViewModelStore()
+        store.put("voice", viewModel)
+
+        viewModel.onRecordPressed()
+        advanceUntilIdle()
+        store.clear()
+
+        assertThat(controller.startCalls).isEqualTo(1)
+        assertThat(controller.cancelCalls).isEqualTo(1)
+        assertThat(controller.releaseCalls).isEqualTo(0)
+    }
+
+    @Test
+    fun `clearing while capture start is in flight cancels capture`() = runTest {
+        val controller = SuspendableVoiceCaptureController()
+        val viewModel = VoiceHomeViewModel(
+            microphonePermissionChecker = MicrophonePermissionChecker { true },
+            captureController = controller,
+        )
+        val store = ViewModelStore()
+        store.put("voice", viewModel)
+
+        viewModel.onRecordPressed()
+        store.clear()
+
+        assertThat(controller.startCalls).isEqualTo(1)
+        assertThat(controller.cancelCalls).isEqualTo(1)
+        assertThat(controller.releaseCalls).isEqualTo(0)
     }
 
     @Test

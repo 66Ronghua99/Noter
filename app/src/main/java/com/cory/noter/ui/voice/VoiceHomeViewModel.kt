@@ -13,12 +13,14 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 data class VoiceHomeUiState(
     val status: VoiceHomeStatus = VoiceHomeStatus.Idle,
     val noticeMessage: UiText? = null,
     val errorMessage: UiText? = null,
     val showRetryAction: Boolean = false,
+    val showPermissionRecoveryAction: Boolean = false,
     val showTextFallbackAction: Boolean = false,
     val lastResult: VoiceCaptureResult? = null,
 )
@@ -47,6 +49,7 @@ class VoiceHomeViewModel(
                     noticeMessage = null,
                     errorMessage = UiText.Resource(R.string.voice_home_permission_needed),
                     showRetryAction = false,
+                    showPermissionRecoveryAction = true,
                     showTextFallbackAction = true,
                     lastResult = null,
                 )
@@ -68,6 +71,7 @@ class VoiceHomeViewModel(
                 noticeMessage = null,
                 errorMessage = null,
                 showRetryAction = false,
+                showPermissionRecoveryAction = false,
                 showTextFallbackAction = false,
                 lastResult = null,
             )
@@ -131,10 +135,22 @@ class VoiceHomeViewModel(
                 noticeMessage = null,
                 errorMessage = null,
                 showRetryAction = false,
+                showPermissionRecoveryAction = false,
                 showTextFallbackAction = false,
                 lastResult = null,
             )
         }
+    }
+
+    override fun onCleared() {
+        if (startInFlight || uiState.value.status == VoiceHomeStatus.Recording ||
+            uiState.value.status == VoiceHomeStatus.Processing
+        ) {
+            runBlocking {
+                captureController.cancel()
+            }
+        }
+        super.onCleared()
     }
 
     private suspend fun releaseCapture() {
@@ -157,6 +173,7 @@ class VoiceHomeViewModel(
         noticeMessage = UiText.Resource(R.string.voice_home_processing_notice),
         errorMessage = null,
         showRetryAction = false,
+        showPermissionRecoveryAction = false,
         showTextFallbackAction = false,
     )
 
@@ -165,6 +182,7 @@ class VoiceHomeViewModel(
         noticeMessage = null,
         errorMessage = null,
         showRetryAction = false,
+        showPermissionRecoveryAction = false,
         showTextFallbackAction = false,
     )
 
@@ -177,6 +195,7 @@ class VoiceHomeViewModel(
             noticeMessage = null,
             errorMessage = null,
             showRetryAction = false,
+            showPermissionRecoveryAction = false,
             showTextFallbackAction = false,
             lastResult = this,
         )
@@ -186,6 +205,7 @@ class VoiceHomeViewModel(
             noticeMessage = null,
             errorMessage = null,
             showRetryAction = false,
+            showPermissionRecoveryAction = false,
             showTextFallbackAction = false,
             lastResult = this,
         )
@@ -195,6 +215,7 @@ class VoiceHomeViewModel(
             noticeMessage = UiText.Resource(R.string.voice_home_processing_notice),
             errorMessage = null,
             showRetryAction = false,
+            showPermissionRecoveryAction = false,
             showTextFallbackAction = false,
             lastResult = this,
         )
@@ -205,6 +226,7 @@ class VoiceHomeViewModel(
             errorMessage = failure.toUiText(),
             showRetryAction = failure !is VoiceCaptureFailure.MissingApiKey &&
                 failure !is VoiceCaptureFailure.UnsupportedAsrModel,
+            showPermissionRecoveryAction = false,
             showTextFallbackAction = true,
             lastResult = this,
         )

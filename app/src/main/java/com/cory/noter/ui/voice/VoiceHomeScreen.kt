@@ -40,6 +40,7 @@ object VoiceHomeTestTags {
     const val Error = "VoiceHomeError"
     const val CancelAction = "VoiceHomeCancelAction"
     const val RetryAction = "VoiceHomeRetryAction"
+    const val PermissionRecoveryAction = "VoiceHomePermissionRecoveryAction"
     const val TextFallbackAction = "VoiceHomeTextFallbackAction"
     const val ListAction = "VoiceHomeListAction"
     const val SettingsAction = "VoiceHomeSettingsAction"
@@ -53,6 +54,7 @@ fun VoiceHomeScreen(
     onRecordReleased: () -> Unit,
     onRecordCancelled: () -> Unit,
     onRetry: () -> Unit,
+    onOpenPermissionSettings: () -> Unit,
     onOpenTextInput: () -> Unit,
     onOpenAlarmList: () -> Unit,
     onOpenSettings: () -> Unit,
@@ -115,6 +117,7 @@ fun VoiceHomeScreen(
             VoiceHomeActions(
                 state = state,
                 onRetry = onRetry,
+                onOpenPermissionSettings = onOpenPermissionSettings,
                 onOpenTextInput = onOpenTextInput,
             )
         }
@@ -236,6 +239,7 @@ internal fun handleRecordPressCompletion(
 private fun VoiceHomeActions(
     state: VoiceHomeUiState,
     onRetry: () -> Unit,
+    onOpenPermissionSettings: () -> Unit,
     onOpenTextInput: () -> Unit,
 ) {
     Row(
@@ -249,6 +253,14 @@ private fun VoiceHomeActions(
                 onClick = onRetry,
             ) {
                 Text(text = stringResource(R.string.voice_home_retry))
+            }
+        }
+        if (state.showPermissionRecoveryAction) {
+            Button(
+                modifier = Modifier.testTag(VoiceHomeTestTags.PermissionRecoveryAction),
+                onClick = onOpenPermissionSettings,
+            ) {
+                Text(text = stringResource(R.string.voice_home_permission_action))
             }
         }
         if (state.showTextFallbackAction) {
