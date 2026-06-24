@@ -448,3 +448,29 @@
 - Bounded architecture/refactor review:
   - Result: pass.
   - Notes: microphone permission result routing stays in `MainActivity` at the Android permission boundary; `resolveMicrophonePermissionResult` is a small pure helper with JVM coverage; `ui/voice` and `voice` ownership remain unchanged, and `ui/voice` still has no OpenRouter, Android recorder/STT, WorkManager, Room, repository, or scheduler imports. Commit-time refactor gate is disabled in `.harness/bootstrap.toml`.
+
+## Round 15: Review Phase SpeechRecognizer Package Visibility Fix
+
+- Round contract: `.humanize/rlcr/2026-06-24_23-32-34/round-15-contract.md`
+- Review source: `.humanize/rlcr/2026-06-24_23-32-34/round-15-review-result.md`
+- BitLesson selection: `.humanize/bitlesson.md` still has no actual lessons. The selector returned placeholder format for the fix task, so Round 15 proceeded with `LESSON_IDS: NONE`.
+- RED manifest visibility evidence:
+  - Log: `artifacts/2026-06-24-voice-first-ai-alarm/round15-red-manifest-visibility.log`
+  - Command: `JAVA_TOOL_OPTIONS=-Duser.home=/tmp/noter-home HOME=/tmp/noter-home GRADLE_USER_HOME=/tmp/noter-gradle-home JAVA_HOME=/home/ronghua/.cache/codex-jdks/jdk-17 ANDROID_HOME=/home/ronghua/.cache/android-sdk ./gradlew --no-daemon --console=plain testDebugUnitTest --tests com.cory.noter.AndroidManifestPermissionTest`
+  - Result: expected failure because `AndroidManifest.xml` did not declare a `<queries>` intent action for `android.speech.RecognitionService`.
+- GREEN focused evidence:
+  - Log: `artifacts/2026-06-24-voice-first-ai-alarm/round15-green-manifest-visibility.log`
+  - Command: same focused `AndroidManifestPermissionTest`.
+  - Result: passed after `AndroidManifest.xml` declared the speech recognition service query.
+- Full local gate after review fix:
+  - Unit log: `artifacts/2026-06-24-voice-first-ai-alarm/round15-test-debug-unit-test.log`; `testDebugUnitTest` passed with `BUILD SUCCESSFUL`.
+  - Lint log: `artifacts/2026-06-24-voice-first-ai-alarm/round15-lint-debug.log`; `lintDebug` passed with `BUILD SUCCESSFUL`.
+  - Assemble log: `artifacts/2026-06-24-voice-first-ai-alarm/round15-assemble-debug.log`; `assembleDebug` passed with `BUILD SUCCESSFUL`.
+  - androidTest compile log: `artifacts/2026-06-24-voice-first-ai-alarm/round15-assemble-debug-android-test.log`; `assembleDebugAndroidTest` passed with `BUILD SUCCESSFUL`.
+- Final Round 15 checks:
+  - Diff log: `artifacts/2026-06-24-voice-first-ai-alarm/round15-git-diff-check.log`; `git diff --check` passed with no output.
+  - Legacy absence log: `artifacts/2026-06-24-voice-first-ai-alarm/round15-submit-alarm-draft-absence.log`; no production `submit_alarm_draft` hits were found.
+  - Connected-device availability log: `artifacts/2026-06-24-voice-first-ai-alarm/round15-adb-devices.log`; connected execution was unavailable because the fresh SDK-local `adb devices -l` output only listed the header.
+- Bounded architecture/refactor review:
+  - Result: pass.
+  - Notes: Android package visibility remains declared in the app manifest, the regression stays in the existing manifest test, and no voice/UI/AI ownership boundary changed. Commit-time refactor gate is disabled in `.harness/bootstrap.toml`.
