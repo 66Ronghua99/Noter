@@ -36,6 +36,8 @@ class VoiceHomeViewModel(
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(VoiceHomeUiState())
     val uiState: StateFlow<VoiceHomeUiState> = mutableUiState.asStateFlow()
+    private var startInFlight = false
+    private var pendingTerminalAction: PendingTerminalAction? = null
 
     fun onRecordPressed() {
         if (!microphonePermissionChecker.isGranted()) {
@@ -52,10 +54,40 @@ class VoiceHomeViewModel(
             return
         }
 
+        if (startInFlight || uiState.value.status == VoiceHomeStatus.Recording ||
+            uiState.value.status == VoiceHomeStatus.Processing
+        ) {
+            return
+        }
+
+        startInFlight = true
+        pendingTerminalAction = null
+        mutableUiState.update {
+            it.copy(
+                status = VoiceHomeStatus.Recording,
+                noticeMessage = null,
+                errorMessage = null,
+                showRetryAction = false,
+                showTextFallbackAction = false,
+                lastResult = null,
+            )
+        }
+
         viewModelScope.launch {
             val result = captureController.start()
-            mutableUiState.update {
-                result.toUiState(current = it, recordingStatus = VoiceHomeStatus.Recording)
+            val terminalAction = pendingTerminalAction
+            startInFlight = false
+            pendingTerminalAction = null
+
+            if (result == VoiceCaptureResult.RecordingStarted && terminalAction != null) {
+                when (terminalAction) {
+                    PendingTerminalAction.Release -> releaseCapture()
+                    PendingTerminalAction.Cancel -> cancelCapture()
+                }
+            } else {
+                mutableUiState.update {
+                    result.toUiState(current = it, recordingStatus = VoiceHomeStatus.Recording)
+                }
             }
         }
     }
@@ -65,20 +97,14 @@ class VoiceHomeViewModel(
             return
         }
 
-        mutableUiState.update {
-            it.copy(
-                status = VoiceHomeStatus.Processing,
-                noticeMessage = UiText.Resource(R.string.voice_home_processing_notice),
-                errorMessage = null,
-                showRetryAction = false,
-                showTextFallbackAction = false,
-            )
+        if (startInFlight) {
+            pendingTerminalAction = PendingTerminalAction.Release
+            mutableUiState.update { it.toProcessingState() }
+            return
         }
+
         viewModelScope.launch {
-            val result = captureController.release()
-            mutableUiState.update {
-                result.toUiState(current = it, recordingStatus = VoiceHomeStatus.Idle)
-            }
+            releaseCapture()
         }
     }
 
@@ -87,11 +113,14 @@ class VoiceHomeViewModel(
             return
         }
 
+        if (startInFlight) {
+            pendingTerminalAction = PendingTerminalAction.Cancel
+            mutableUiState.update { it.toIdleAfterCancelState() }
+            return
+        }
+
         viewModelScope.launch {
-            val result = captureController.cancel()
-            mutableUiState.update {
-                result.toUiState(current = it, recordingStatus = VoiceHomeStatus.Idle)
-            }
+            cancelCapture()
         }
     }
 
@@ -107,6 +136,37 @@ class VoiceHomeViewModel(
             )
         }
     }
+
+    private suspend fun releaseCapture() {
+        mutableUiState.update { it.toProcessingState() }
+        val result = captureController.release()
+        mutableUiState.update {
+            result.toUiState(current = it, recordingStatus = VoiceHomeStatus.Idle)
+        }
+    }
+
+    private suspend fun cancelCapture() {
+        val result = captureController.cancel()
+        mutableUiState.update {
+            result.toUiState(current = it, recordingStatus = VoiceHomeStatus.Idle)
+        }
+    }
+
+    private fun VoiceHomeUiState.toProcessingState(): VoiceHomeUiState = copy(
+        status = VoiceHomeStatus.Processing,
+        noticeMessage = UiText.Resource(R.string.voice_home_processing_notice),
+        errorMessage = null,
+        showRetryAction = false,
+        showTextFallbackAction = false,
+    )
+
+    private fun VoiceHomeUiState.toIdleAfterCancelState(): VoiceHomeUiState = copy(
+        status = VoiceHomeStatus.Idle,
+        noticeMessage = null,
+        errorMessage = null,
+        showRetryAction = false,
+        showTextFallbackAction = false,
+    )
 
     private fun VoiceCaptureResult.toUiState(
         current: VoiceHomeUiState,
@@ -160,5 +220,10 @@ class VoiceHomeViewModel(
         }
         is VoiceCaptureFailure.RecordingFailed -> UiText.Resource(R.string.voice_home_recording_failed, listOf(reason))
         is VoiceCaptureFailure.AsrFailed -> UiText.Resource(R.string.voice_home_asr_failed, listOf(reason))
+    }
+
+    private enum class PendingTerminalAction {
+        Release,
+        Cancel,
     }
 }

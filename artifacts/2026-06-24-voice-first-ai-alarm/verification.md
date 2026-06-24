@@ -28,7 +28,7 @@
 - Task 3 focused unit tests: passed.
 - Task 4 focused unit tests: passed.
 - Task 5 focused unit tests: passed after the Round 5 recorder setup failure fix.
-- Task 6 focused unit tests: passed.
+- Task 6 focused unit tests: passed after the Round 7 quick-release review fix; Task 6 remains pending Codex stop-gate review.
 - Debug androidTest APK compile: passed after adding the Round 6 voice home smoke coverage.
 - Full local gate (`testDebugUnitTest`, `lintDebug`, `assembleDebug`): pending later integration task.
 - Connected Android test: pending later integration task.
@@ -195,3 +195,32 @@
 - Bounded architecture/refactor review:
   - Result: pass.
   - Notes: `ui/voice/VoiceHomeViewModel.kt` depends only on `MicrophonePermissionChecker`, `VoiceCaptureController`, provider-neutral voice results, and resource-backed `UiText`; it does not import OpenRouter, Room, WorkManager, Android recorder/STT adapters, or scheduling classes. `ui/voice/VoiceHomeScreen.kt` is a presentation-only composable with injected callbacks and stable tags. `NoterApp`, `MainActivity`, and `AppContainer` route/default/provider wiring remain untouched for Task 7.
+- Codex Round 6 stop-gate review:
+  - Review result: `.humanize/rlcr/2026-06-24_23-32-34/round-6-review-result.md`
+  - Result: review fix required.
+  - Finding: a quick release can arrive before the asynchronous `VoiceHomeViewModel.onRecordPressed()` start coroutine updates state to `Recording`; `onRecordReleased()` then returns without calling `captureController.release()`, leaving capture active after the user has released.
+
+## Round 7: Task 6 Quick-Release Review Fix
+
+- Round contract: `.humanize/rlcr/2026-06-24_23-32-34/round-7-contract.md`
+- Review source: `.humanize/rlcr/2026-06-24_23-32-34/round-6-review-result.md`
+- BitLesson selection: `.humanize/bitlesson.md` has no actual lessons. The selector returned its placeholder format again, so Round 7 proceeded with `LESSON_IDS: NONE`.
+- Red quick-release evidence: `artifacts/2026-06-24-voice-first-ai-alarm/round7-red-quick-release.log`
+  - Command: `JAVA_TOOL_OPTIONS=-Duser.home=/tmp/noter-home HOME=/tmp/noter-home GRADLE_USER_HOME=/tmp/noter-gradle-home JAVA_HOME=/home/ronghua/.cache/codex-jdks/jdk-17 ANDROID_HOME=/home/ronghua/.cache/android-sdk ./gradlew --no-daemon --console=plain testDebugUnitTest --tests com.cory.noter.ui.voice.VoiceHomeViewModelTest`
+  - Result: expected failures proving granted press did not enter recording state before capture start completed, duplicate pending presses could start another capture, and early release/cancel before start completion were not honored.
+- Green ViewModel evidence: `artifacts/2026-06-24-voice-first-ai-alarm/round7-green-voice-home-viewmodel.log`
+  - Command: `JAVA_TOOL_OPTIONS=-Duser.home=/tmp/noter-home HOME=/tmp/noter-home GRADLE_USER_HOME=/tmp/noter-gradle-home JAVA_HOME=/home/ronghua/.cache/codex-jdks/jdk-17 ANDROID_HOME=/home/ronghua/.cache/android-sdk ./gradlew --no-daemon --console=plain testDebugUnitTest --tests com.cory.noter.ui.voice.VoiceHomeViewModelTest`
+  - Result: passed after `VoiceHomeViewModel` began setting `Recording` interaction state immediately on granted press, ignored duplicate presses while start/record/process was active, and stored early release/cancel as a pending terminal action that runs after `captureController.start()` succeeds.
+- Focused Task 6 green evidence: `artifacts/2026-06-24-voice-first-ai-alarm/round7-green-task6-focused.log`
+  - Command: `JAVA_TOOL_OPTIONS=-Duser.home=/tmp/noter-home HOME=/tmp/noter-home GRADLE_USER_HOME=/tmp/noter-gradle-home JAVA_HOME=/home/ronghua/.cache/codex-jdks/jdk-17 ANDROID_HOME=/home/ronghua/.cache/android-sdk ./gradlew --no-daemon --console=plain testDebugUnitTest --tests com.cory.noter.voice.AndroidTemporaryAudioRecorderTest --tests com.cory.noter.ui.voice.VoiceHomeViewModelTest --tests com.cory.noter.AndroidManifestPermissionTest`
+  - Result: passed.
+- androidTest compile evidence: `artifacts/2026-06-24-voice-first-ai-alarm/round7-green-assemble-debug-android-test.log`
+  - Command: `JAVA_TOOL_OPTIONS=-Duser.home=/tmp/noter-home HOME=/tmp/noter-home GRADLE_USER_HOME=/tmp/noter-gradle-home JAVA_HOME=/home/ronghua/.cache/codex-jdks/jdk-17 ANDROID_HOME=/home/ronghua/.cache/android-sdk ./gradlew --no-daemon --console=plain assembleDebugAndroidTest`
+  - Result: passed.
+- Diff check:
+  - Log: `artifacts/2026-06-24-voice-first-ai-alarm/round7-git-diff-check.log`
+  - Command: `git diff --check`
+  - Result: passed with no output.
+- Bounded architecture/refactor review:
+  - Result: pass.
+  - Notes: `ui/voice/VoiceHomeViewModel.kt` still depends only on `MicrophonePermissionChecker`, `VoiceCaptureController`, provider-neutral voice results, and resource-backed `UiText` (`app/src/main/java/com/cory/noter/ui/voice/VoiceHomeViewModel.kt:7`). The pending terminal action is local UI interaction state (`app/src/main/java/com/cory/noter/ui/voice/VoiceHomeViewModel.kt:39`) and does not move recorder, STT, OpenRouter, WorkManager, Room, or scheduling ownership into `ui/voice`. The provider-neutral capture lifecycle remains in `voice/VoiceCaptureCoordinator.kt` behind `VoiceCaptureController` (`app/src/main/java/com/cory/noter/voice/VoiceCaptureCoordinator.kt:11`). Commit-time refactor gate is disabled in `.harness/bootstrap.toml`.

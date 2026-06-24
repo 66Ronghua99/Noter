@@ -27,6 +27,7 @@ import com.cory.noter.voice.VoiceCaptureResult
 import com.cory.noter.voice.VoiceRecordingStartResult
 import com.cory.noter.voice.VoiceRecordingStopResult
 import com.google.common.truth.Truth.assertThat
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -89,6 +90,77 @@ class VoiceHomeViewModelTest {
         assertThat(viewModel.uiState.value.status).isEqualTo(VoiceHomeStatus.PermissionNeeded)
         assertThat(viewModel.uiState.value.errorMessage)
             .isEqualTo(UiText.Resource(R.string.voice_home_permission_needed))
+    }
+
+    @Test
+    fun `granted press enters recording interaction state before capture start completes`() = runTest {
+        val controller = SuspendableVoiceCaptureController()
+        val viewModel = VoiceHomeViewModel(
+            microphonePermissionChecker = MicrophonePermissionChecker { true },
+            captureController = controller,
+        )
+
+        viewModel.onRecordPressed()
+
+        assertThat(controller.startCalls).isEqualTo(1)
+        assertThat(viewModel.uiState.value.status).isEqualTo(VoiceHomeStatus.Recording)
+    }
+
+    @Test
+    fun `duplicate press while start is pending does not start another capture`() = runTest {
+        val controller = SuspendableVoiceCaptureController()
+        val viewModel = VoiceHomeViewModel(
+            microphonePermissionChecker = MicrophonePermissionChecker { true },
+            captureController = controller,
+        )
+
+        viewModel.onRecordPressed()
+        viewModel.onRecordPressed()
+
+        assertThat(controller.startCalls).isEqualTo(1)
+    }
+
+    @Test
+    fun `release before capture start completes is honored after start succeeds`() = runTest {
+        val controller = SuspendableVoiceCaptureController(
+            releaseResult = VoiceCaptureResult.Enqueued("wake me at eight"),
+        )
+        val viewModel = VoiceHomeViewModel(
+            microphonePermissionChecker = MicrophonePermissionChecker { true },
+            captureController = controller,
+        )
+
+        viewModel.onRecordPressed()
+        viewModel.onRecordReleased()
+        controller.completeStart(VoiceCaptureResult.RecordingStarted)
+        advanceUntilIdle()
+
+        assertThat(controller.startCalls).isEqualTo(1)
+        assertThat(controller.releaseCalls).isEqualTo(1)
+        assertThat(controller.cancelCalls).isEqualTo(0)
+        assertThat(viewModel.uiState.value.status).isEqualTo(VoiceHomeStatus.Idle)
+        assertThat(viewModel.uiState.value.lastResult)
+            .isEqualTo(VoiceCaptureResult.Enqueued("wake me at eight"))
+    }
+
+    @Test
+    fun `cancel before capture start completes is honored after start succeeds`() = runTest {
+        val controller = SuspendableVoiceCaptureController()
+        val viewModel = VoiceHomeViewModel(
+            microphonePermissionChecker = MicrophonePermissionChecker { true },
+            captureController = controller,
+        )
+
+        viewModel.onRecordPressed()
+        viewModel.onRecordCancelled()
+        controller.completeStart(VoiceCaptureResult.RecordingStarted)
+        advanceUntilIdle()
+
+        assertThat(controller.startCalls).isEqualTo(1)
+        assertThat(controller.cancelCalls).isEqualTo(1)
+        assertThat(controller.releaseCalls).isEqualTo(0)
+        assertThat(viewModel.uiState.value.status).isEqualTo(VoiceHomeStatus.Idle)
+        assertThat(viewModel.uiState.value.lastResult).isEqualTo(VoiceCaptureResult.Cancelled)
     }
 
     @Test
@@ -460,6 +532,35 @@ class VoiceHomeViewModelTest {
         override suspend fun cancel(): VoiceCaptureResult {
             cancelCalls += 1
             return cancelResult
+        }
+    }
+
+    private class SuspendableVoiceCaptureController(
+        private val releaseResult: VoiceCaptureResult = VoiceCaptureResult.Cancelled,
+        private val cancelResult: VoiceCaptureResult = VoiceCaptureResult.Cancelled,
+    ) : VoiceCaptureController {
+        private val startResult = CompletableDeferred<VoiceCaptureResult>()
+        var startCalls = 0
+        var releaseCalls = 0
+        var cancelCalls = 0
+
+        override suspend fun start(): VoiceCaptureResult {
+            startCalls += 1
+            return startResult.await()
+        }
+
+        override suspend fun release(): VoiceCaptureResult {
+            releaseCalls += 1
+            return releaseResult
+        }
+
+        override suspend fun cancel(): VoiceCaptureResult {
+            cancelCalls += 1
+            return cancelResult
+        }
+
+        fun completeStart(result: VoiceCaptureResult) {
+            startResult.complete(result)
         }
     }
 
