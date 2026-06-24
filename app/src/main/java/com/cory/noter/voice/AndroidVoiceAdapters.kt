@@ -14,6 +14,7 @@ import android.speech.SpeechRecognizer
 import androidx.core.content.ContextCompat
 import com.cory.noter.ai.AiCreateBackgroundScheduler
 import java.io.File
+import java.io.IOException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -43,18 +44,23 @@ class FileTemporaryAudioCleanup : TemporaryAudioCleanup {
     }
 }
 
-class AndroidTemporaryAudioRecorder(
+class AndroidTemporaryAudioRecorder internal constructor(
     context: Context,
     private val tempFileFactory: () -> File = {
         File.createTempFile("noter-voice-", ".m4a", context.cacheDir)
+    },
+    private val mediaRecorderFactory: (Context) -> VoiceMediaRecorder = { recorderContext ->
+        AndroidVoiceMediaRecorder(newMediaRecorder(recorderContext))
     },
 ) : TemporaryAudioRecorder {
     private val applicationContext = context.applicationContext
 
     override suspend fun start(): VoiceRecordingStartResult {
-        val file = tempFileFactory()
-        val recorder = newMediaRecorder(applicationContext)
+        var file: File? = null
+        var recorder: VoiceMediaRecorder? = null
         return try {
+            file = tempFileFactory()
+            recorder = mediaRecorderFactory(applicationContext)
             recorder.setAudioSource(MediaRecorder.AudioSource.MIC)
             recorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
             recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
@@ -67,20 +73,16 @@ class AndroidTemporaryAudioRecorder(
                     file = file,
                 ),
             )
+        } catch (error: IOException) {
+            recorder.releaseIgnoringFailure()
+            file?.delete()
+            VoiceRecordingStartResult.Failed("Audio recording failed: ${error.message.orEmpty()}")
         } catch (error: RuntimeException) {
             recorder.releaseIgnoringFailure()
-            file.delete()
+            file?.delete()
             VoiceRecordingStartResult.Failed("Audio recording failed: ${error.message.orEmpty()}")
         }
     }
-
-    private fun newMediaRecorder(context: Context): MediaRecorder =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            MediaRecorder(context)
-        } else {
-            @Suppress("DEPRECATION")
-            MediaRecorder()
-        }
 }
 
 class AndroidSystemSpeechRecognizer(
@@ -118,7 +120,7 @@ class AndroidSystemSpeechRecognizer(
 }
 
 private class AndroidActiveTemporaryAudioRecording(
-    private val recorder: MediaRecorder,
+    private val recorder: VoiceMediaRecorder,
     private val file: File,
 ) : ActiveTemporaryAudioRecording {
     override val handle: TemporaryAudioHandle = TemporaryAudioHandle(file.absolutePath)
@@ -155,6 +157,69 @@ private class AndroidActiveTemporaryAudioRecording(
         return VoiceRecordingStopResult.Cancelled
     }
 }
+
+internal interface VoiceMediaRecorder {
+    fun setAudioSource(source: Int)
+
+    fun setOutputFormat(format: Int)
+
+    fun setAudioEncoder(encoder: Int)
+
+    fun setOutputFile(path: String)
+
+    @Throws(IOException::class)
+    fun prepare()
+
+    fun start()
+
+    fun stop()
+
+    fun release()
+}
+
+private class AndroidVoiceMediaRecorder(
+    private val recorder: MediaRecorder,
+) : VoiceMediaRecorder {
+    override fun setAudioSource(source: Int) {
+        recorder.setAudioSource(source)
+    }
+
+    override fun setOutputFormat(format: Int) {
+        recorder.setOutputFormat(format)
+    }
+
+    override fun setAudioEncoder(encoder: Int) {
+        recorder.setAudioEncoder(encoder)
+    }
+
+    override fun setOutputFile(path: String) {
+        recorder.setOutputFile(path)
+    }
+
+    override fun prepare() {
+        recorder.prepare()
+    }
+
+    override fun start() {
+        recorder.start()
+    }
+
+    override fun stop() {
+        recorder.stop()
+    }
+
+    override fun release() {
+        recorder.release()
+    }
+}
+
+private fun newMediaRecorder(context: Context): MediaRecorder =
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        MediaRecorder(context)
+    } else {
+        @Suppress("DEPRECATION")
+        MediaRecorder()
+    }
 
 private class AndroidActiveSystemSpeechRecognition(
     private val recognizer: SpeechRecognizer,
@@ -214,6 +279,6 @@ private class AndroidActiveSystemSpeechRecognition(
     }
 }
 
-private fun MediaRecorder.releaseIgnoringFailure() {
-    runCatching { release() }
+private fun VoiceMediaRecorder?.releaseIgnoringFailure() {
+    runCatching { this?.release() }
 }

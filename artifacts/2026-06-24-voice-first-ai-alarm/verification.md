@@ -27,7 +27,7 @@
 - Task 2 focused unit tests: passed.
 - Task 3 focused unit tests: passed.
 - Task 4 focused unit tests: passed.
-- Task 5 focused unit tests: passed.
+- Task 5 focused unit tests: passed after the Round 5 recorder setup failure fix.
 - Debug androidTest APK compile: passed after updating stale androidTest fakes to the current agent gateway boundary.
 - Full local gate (`testDebugUnitTest`, `lintDebug`, `assembleDebug`): pending later integration task.
 - Connected Android test: pending later integration task.
@@ -141,3 +141,25 @@
 - Bounded architecture/refactor review:
   - Result: pass.
   - Notes: provider-neutral voice capture contracts and lifecycle orchestration live in `voice/VoiceCaptureCoordinator.kt`; Android `MediaRecorder`, `SpeechRecognizer`, microphone permission, file cleanup, and background enqueue adapters are isolated in `voice/AndroidVoiceAdapters.kt`; OpenRouter ASR mapping is isolated in `voice/OpenRouterVoiceAsrTranscriber.kt`; `ui/voice/VoiceHomeViewModel.kt` only coordinates permission state and the injected `VoiceCaptureController`; no Task 6 UI, Task 7 navigation, or Task 8 integration scope was added.
+
+## Round 5: Android Recorder Setup Failure Fix
+
+- Round contract: `.humanize/rlcr/2026-06-24_23-32-34/round-5-contract.md`
+- Review source: `.humanize/rlcr/2026-06-24_23-32-34/round-4-review-result.md`
+- BitLesson selection: `.humanize/bitlesson.md` has no actual lessons. The selector returned its placeholder format again, so Round 5 proceeded with `LESSON_IDS: NONE`.
+- Red evidence: `artifacts/2026-06-24-voice-first-ai-alarm/round5-red-android-recorder-setup.log`
+  - Command: `JAVA_TOOL_OPTIONS=-Duser.home=/tmp/noter-home HOME=/tmp/noter-home GRADLE_USER_HOME=/tmp/noter-gradle-home JAVA_HOME=/home/ronghua/.cache/codex-jdks/jdk-17 ANDROID_HOME=/home/ronghua/.cache/android-sdk ./gradlew --no-daemon --console=plain testDebugUnitTest --tests com.cory.noter.voice.AndroidTemporaryAudioRecorderTest`
+  - Result: expected compile failure because the injectable `VoiceMediaRecorder` seam and `mediaRecorderFactory` constructor parameter did not exist yet.
+- Green regression evidence: `artifacts/2026-06-24-voice-first-ai-alarm/round5-green-android-recorder-setup.log`
+  - Command: `JAVA_TOOL_OPTIONS=-Duser.home=/tmp/noter-home HOME=/tmp/noter-home GRADLE_USER_HOME=/tmp/noter-gradle-home JAVA_HOME=/home/ronghua/.cache/codex-jdks/jdk-17 ANDROID_HOME=/home/ronghua/.cache/android-sdk ./gradlew --no-daemon --console=plain testDebugUnitTest --tests com.cory.noter.voice.AndroidTemporaryAudioRecorderTest`
+  - Result: passed after `AndroidTemporaryAudioRecorder.start()` mapped `IOException` setup failures to `VoiceRecordingStartResult.Failed`, released the allocated recorder, and deleted the allocated temp file.
+- Focused Task 5 green evidence: `artifacts/2026-06-24-voice-first-ai-alarm/round5-green-task5-focused.log`
+  - Command: `JAVA_TOOL_OPTIONS=-Duser.home=/tmp/noter-home HOME=/tmp/noter-home GRADLE_USER_HOME=/tmp/noter-gradle-home JAVA_HOME=/home/ronghua/.cache/codex-jdks/jdk-17 ANDROID_HOME=/home/ronghua/.cache/android-sdk ./gradlew --no-daemon --console=plain testDebugUnitTest --tests com.cory.noter.voice.AndroidTemporaryAudioRecorderTest --tests com.cory.noter.ui.voice.VoiceHomeViewModelTest --tests com.cory.noter.AndroidManifestPermissionTest`
+  - Result: passed.
+- Diff check:
+  - Log: `artifacts/2026-06-24-voice-first-ai-alarm/round5-git-diff-check.log`
+  - Command: `git diff --check`
+  - Result: passed with no output.
+- Bounded architecture/refactor review:
+  - Result: pass.
+  - Notes: the new `VoiceMediaRecorder` seam is module-internal and only used by the Android recorder adapter test; UI and coordinator tests still depend on the provider-neutral voice boundary, not Android recorder details.
