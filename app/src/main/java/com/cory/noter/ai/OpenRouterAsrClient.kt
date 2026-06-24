@@ -102,7 +102,10 @@ class OpenRouterAsrClient(
 
     private fun OpenRouterAsrRequest.toPayload(): AsrTranscriptionRequest = AsrTranscriptionRequest(
         model = modelId,
-        audio = audioBytes.toByteString().base64(),
+        inputAudio = AsrInputAudio(
+            data = audioBytes.toByteString().base64(),
+            format = "m4a",
+        ),
     )
 
     private fun Response.toResult(): AsrTranscriptionResult {
@@ -166,6 +169,12 @@ class OpenRouterAsrClient(
 @Serializable
 private data class AsrTranscriptionRequest(
     val model: String,
-    @SerialName("audio")
-    val audio: String,
+    @SerialName("input_audio")
+    val inputAudio: AsrInputAudio,
+)
+
+@Serializable
+private data class AsrInputAudio(
+    val data: String,
+    val format: String,
 )

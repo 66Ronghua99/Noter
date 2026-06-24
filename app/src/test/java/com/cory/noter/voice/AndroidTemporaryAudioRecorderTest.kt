@@ -4,6 +4,8 @@ import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
 import java.io.File
 import java.io.IOException
+import kotlin.io.path.createTempDirectory
+import kotlin.io.path.deleteIfExists
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -27,6 +29,25 @@ class AndroidTemporaryAudioRecorderTest {
         assertThat((result as VoiceRecordingStartResult.Failed).reason).contains("prepare failed")
         assertThat(mediaRecorder.released).isTrue()
         assertThat(tempFile.exists()).isFalse()
+    }
+
+    @Test
+    fun `cleanup reports failure when existing temp file delete returns false`() = runTest {
+        val directory = createTempDirectory(prefix = "noter-test-voice-cleanup-").toFile()
+        val child = File(directory, "still-present.txt")
+        child.writeText("not deleted")
+        val cleanup = FileTemporaryAudioCleanup()
+
+        val result = runCatching {
+            cleanup.cleanup(TemporaryAudioHandle(directory.absolutePath))
+        }
+
+        assertThat(result.exceptionOrNull()).isInstanceOf(IOException::class.java)
+        assertThat(result.exceptionOrNull()!!.message).contains(directory.absolutePath)
+        assertThat(directory.exists()).isTrue()
+
+        child.toPath().deleteIfExists()
+        directory.toPath().deleteIfExists()
     }
 
     private class FailingVoiceMediaRecorder : VoiceMediaRecorder {

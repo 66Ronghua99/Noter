@@ -32,7 +32,8 @@
 - Task 7 focused navigation/app wiring checks: Codex-verified after the Round 8 stop-gate review.
 - Debug androidTest APK compile: passed after adding the Round 8 app-level voice home navigation smoke coverage.
 - Review Phase Round 10 fixes: focused RED/GREEN evidence recorded for canceled press gestures and cleanup failures not masking voice results.
-- Full local gate (`testDebugUnitTest`, `lintDebug`, `assembleDebug`): passed in Round 10 after the review fixes.
+- Review Phase Round 11 fixes: focused RED/GREEN evidence recorded for OpenRouter ASR `input_audio` request shape and false-return temp-file delete reporting.
+- Full local gate (`testDebugUnitTest`, `lintDebug`, `assembleDebug`): passed in Round 11 after the review fixes.
 - Connected Android test: unavailable in Round 9 because `/home/ronghua/.cache/android-sdk/platform-tools/adb devices -l` showed no attached devices; proof is recorded in `round9-adb-devices.log`.
 
 ## Task 2: Permanent `reject_unclear_request` Tool
@@ -327,3 +328,29 @@
 - Bounded architecture/refactor review:
   - Result: pass.
   - Notes: canceled-press handling remains in `ui/voice/VoiceHomeScreen.kt`; the small `handleRecordPressCompletion` helper is used by production gesture code and has JVM regression coverage. Cleanup failure handling remains in `voice/VoiceCaptureCoordinator.kt`; it logs ordinary cleanup failures with `java.util.logging`, preserves coroutine cancellation, and does not move Android recorder/STT, OpenRouter, WorkManager, Room, repository, or scheduler ownership into `ui/voice`.
+
+## Round 11: Review Phase ASR Shape And Cleanup Observability Fixes
+
+- Round contract: `.humanize/rlcr/2026-06-24_23-32-34/round-11-contract.md`
+- Review source: `.humanize/rlcr/2026-06-24_23-32-34/round-11-review-result.md`
+- BitLesson selection: `.humanize/bitlesson.md` still has no actual lessons. The selector returned the placeholder format for the contract and both fix tasks, so Round 11 proceeded with `LESSON_IDS: NONE`.
+- OpenRouter reference: official OpenRouter transcription API docs show `/api/v1/audio/transcriptions` expects `input_audio` with base64 `data` and `format`, plus `model`.
+- RED evidence:
+  - Log: `artifacts/2026-06-24-voice-first-ai-alarm/round11-red-asr-cleanup.log`
+  - Command: `JAVA_TOOL_OPTIONS=-Duser.home=/tmp/noter-home HOME=/tmp/noter-home GRADLE_USER_HOME=/tmp/noter-gradle-home JAVA_HOME=/home/ronghua/.cache/codex-jdks/jdk-17 ANDROID_HOME=/home/ronghua/.cache/android-sdk ./gradlew --no-daemon --console=plain testDebugUnitTest --tests com.cory.noter.ai.OpenRouterAsrClientTest --tests com.cory.noter.voice.AndroidTemporaryAudioRecorderTest`
+  - Result: expected failures because the ASR body still used top-level `audio`, and `FileTemporaryAudioCleanup` did not report an existing-file delete failure.
+- GREEN focused evidence:
+  - Log: `artifacts/2026-06-24-voice-first-ai-alarm/round11-green-asr-cleanup.log`
+  - Command: same focused `OpenRouterAsrClientTest` plus `AndroidTemporaryAudioRecorderTest`.
+  - Result: passed after the ASR body changed to `input_audio.data` / `input_audio.format` and `FileTemporaryAudioCleanup` threw `IOException` for failed existing-file deletion.
+- Full local gate after review fixes:
+  - Unit log: `artifacts/2026-06-24-voice-first-ai-alarm/round11-test-debug-unit-test.log`; `testDebugUnitTest` passed with `BUILD SUCCESSFUL in 24s`.
+  - Lint log: `artifacts/2026-06-24-voice-first-ai-alarm/round11-lint-debug.log`; `lintDebug` passed with `BUILD SUCCESSFUL in 38s`.
+  - Assemble log: `artifacts/2026-06-24-voice-first-ai-alarm/round11-assemble-debug.log`; `assembleDebug` passed with `BUILD SUCCESSFUL in 17s`.
+  - androidTest compile log: `artifacts/2026-06-24-voice-first-ai-alarm/round11-assemble-debug-android-test.log`; `assembleDebugAndroidTest` passed with `BUILD SUCCESSFUL in 16s`.
+- Final Round 11 checks:
+  - Diff log: `artifacts/2026-06-24-voice-first-ai-alarm/round11-git-diff-check.log`; `git diff --check` passed with no output.
+  - Legacy absence log: `artifacts/2026-06-24-voice-first-ai-alarm/round11-submit-alarm-draft-absence.log`; no production `submit_alarm_draft` hits were found.
+- Bounded architecture/refactor review:
+  - Result: pass.
+  - Notes: OpenRouter ASR request mapping remains isolated in `ai/OpenRouterAsrClient.kt`; Android temp-file deletion reporting remains isolated in `voice/AndroidVoiceAdapters.kt`; `ui/voice` has no new infrastructure ownership.

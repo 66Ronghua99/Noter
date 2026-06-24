@@ -55,7 +55,10 @@ class OpenRouterAsrClientTest {
         assertThat(capturedAuthorization).isEqualTo("Bearer sk-or-v1-test")
         val body = Json.parseToJsonElement(capturedBody).jsonObject
         assertThat(body["model"]!!.jsonPrimitive.content).isEqualTo(AsrModel.builtInIds[1])
-        assertThat(body["audio"]!!.jsonPrimitive.content).isEqualTo(audioBytes.toByteString().base64())
+        val inputAudio = body["input_audio"]!!.jsonObject
+        assertThat(inputAudio["data"]!!.jsonPrimitive.content).isEqualTo(audioBytes.toByteString().base64())
+        assertThat(inputAudio["format"]!!.jsonPrimitive.content).isEqualTo("m4a")
+        assertThat(body).doesNotContainKey("audio")
     }
 
     @Test

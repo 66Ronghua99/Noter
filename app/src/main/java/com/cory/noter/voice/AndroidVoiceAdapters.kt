@@ -40,7 +40,10 @@ class BackgroundVoiceAiCreateEnqueuer(
 
 class FileTemporaryAudioCleanup : TemporaryAudioCleanup {
     override suspend fun cleanup(handle: TemporaryAudioHandle) {
-        File(handle.id).delete()
+        val file = File(handle.id)
+        if (file.exists() && !file.delete()) {
+            throw IOException("Failed to delete temporary voice audio: ${file.absolutePath}")
+        }
     }
 }
 
