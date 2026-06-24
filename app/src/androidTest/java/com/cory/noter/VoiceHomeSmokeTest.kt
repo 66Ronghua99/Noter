@@ -2,6 +2,10 @@ package com.cory.noter
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.layout.Box
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.assertIsDisplayed
@@ -163,6 +167,48 @@ class VoiceHomeSmokeTest {
         assertEquals(1, pressed)
         assertEquals(0, released)
         assertEquals(1, cancelled)
+    }
+
+    @Test
+    fun voice_home_active_record_press_survives_recording_recomposition() {
+        var pressed = 0
+        var released = 0
+        var cancelled = 0
+
+        composeRule.setContent {
+            MaterialTheme {
+                var state by remember { mutableStateOf(VoiceHomeUiState(status = VoiceHomeStatus.Idle)) }
+                VoiceHomeScreen(
+                    state = state,
+                    onRecordPressed = {
+                        pressed += 1
+                        state = VoiceHomeUiState(status = VoiceHomeStatus.Recording)
+                    },
+                    onRecordReleased = { released += 1 },
+                    onRecordCancelled = { cancelled += 1 },
+                    onRetry = {},
+                    onOpenPermissionSettings = {},
+                    onOpenTextInput = {},
+                    onOpenAlarmList = {},
+                    onOpenSettings = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag(VoiceHomeTestTags.RecordButton)
+            .assertIsDisplayed()
+            .performTouchInput {
+                down(center)
+            }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag(VoiceHomeTestTags.RecordButton)
+            .performTouchInput {
+                up()
+            }
+
+        assertEquals(1, pressed)
+        assertEquals(1, released)
+        assertEquals(0, cancelled)
     }
 
     @Test

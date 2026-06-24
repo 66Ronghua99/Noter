@@ -33,4 +33,20 @@ class VoiceRecordPressGestureTest {
         assertThat(releases).isEqualTo(0)
         assertThat(cancellations).isEqualTo(1)
     }
+
+    @Test
+    fun `record pointer input key ignores callback identity changes`() {
+        val firstKey = voiceRecordPointerInputKey(
+            onRecordPressed = {},
+            onRecordReleased = {},
+            onRecordCancelled = {},
+        )
+        val secondKey = voiceRecordPointerInputKey(
+            onRecordPressed = {},
+            onRecordReleased = {},
+            onRecordCancelled = {},
+        )
+
+        assertThat(secondKey).isSameInstanceAs(firstKey)
+    }
 }

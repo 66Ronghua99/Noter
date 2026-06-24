@@ -20,6 +20,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
@@ -173,6 +175,9 @@ private fun VoiceRecordButton(
     onRecordReleased: () -> Unit,
     onRecordCancelled: () -> Unit,
 ) {
+    val currentOnRecordPressed by rememberUpdatedState(onRecordPressed)
+    val currentOnRecordReleased by rememberUpdatedState(onRecordReleased)
+    val currentOnRecordCancelled by rememberUpdatedState(onRecordCancelled)
     val containerColor = when (status) {
         VoiceHomeStatus.Recording -> MaterialTheme.colorScheme.tertiaryContainer
         VoiceHomeStatus.Processing -> MaterialTheme.colorScheme.secondaryContainer
@@ -189,14 +194,20 @@ private fun VoiceRecordButton(
             .size(196.dp)
             .testTag(VoiceHomeTestTags.RecordButton)
             .semantics { role = Role.Button }
-            .pointerInput(onRecordPressed, onRecordReleased, onRecordCancelled) {
+            .pointerInput(
+                voiceRecordPointerInputKey(
+                    onRecordPressed = onRecordPressed,
+                    onRecordReleased = onRecordReleased,
+                    onRecordCancelled = onRecordCancelled,
+                ),
+            ) {
                 detectTapGestures(
                     onPress = {
-                        onRecordPressed()
+                        currentOnRecordPressed()
                         handleRecordPressCompletion(
                             wasReleased = tryAwaitRelease(),
-                            onRecordReleased = onRecordReleased,
-                            onRecordCancelled = onRecordCancelled,
+                            onRecordReleased = currentOnRecordReleased,
+                            onRecordCancelled = currentOnRecordCancelled,
                         )
                     },
                 )
@@ -222,6 +233,15 @@ private fun VoiceRecordButton(
         }
     }
 }
+
+@Suppress("UNUSED_PARAMETER")
+internal fun voiceRecordPointerInputKey(
+    onRecordPressed: () -> Unit,
+    onRecordReleased: () -> Unit,
+    onRecordCancelled: () -> Unit,
+): Any = VoiceRecordPointerInputKey
+
+private object VoiceRecordPointerInputKey
 
 internal fun handleRecordPressCompletion(
     wasReleased: Boolean,

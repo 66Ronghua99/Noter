@@ -474,3 +474,33 @@
 - Bounded architecture/refactor review:
   - Result: pass.
   - Notes: Android package visibility remains declared in the app manifest, the regression stays in the existing manifest test, and no voice/UI/AI ownership boundary changed. Commit-time refactor gate is disabled in `.harness/bootstrap.toml`.
+
+## Round 16: Review Phase Active Press Recomposition Fix
+
+- Round contract: `.humanize/rlcr/2026-06-24_23-32-34/round-16-contract.md`
+- Review source: `.humanize/rlcr/2026-06-24_23-32-34/round-16-review-result.md`
+- BitLesson selection: `.humanize/bitlesson.md` still has no actual lessons. The selector returned placeholder format for the fix task, so Round 16 proceeded with `LESSON_IDS: NONE`.
+- RED gesture evidence:
+  - Log: `artifacts/2026-06-24-voice-first-ai-alarm/round16-red-voice-record-gesture.log`
+  - Command: `JAVA_TOOL_OPTIONS=-Duser.home=/tmp/noter-home HOME=/tmp/noter-home GRADLE_USER_HOME=/tmp/noter-gradle-home JAVA_HOME=/home/ronghua/.cache/codex-jdks/jdk-17 ANDROID_HOME=/home/ronghua/.cache/android-sdk ./gradlew --no-daemon --console=plain testDebugUnitTest --tests com.cory.noter.ui.voice.VoiceRecordPressGestureTest`
+  - Result: expected compile failure because the stable record-pointer-input key seam did not exist yet.
+- GREEN focused evidence:
+  - Log: `artifacts/2026-06-24-voice-first-ai-alarm/round16-green-voice-record-gesture.log`
+  - Command: same focused `VoiceRecordPressGestureTest`.
+  - Result: passed after `VoiceRecordButton` stopped keying pointer input on callback identity and read latest callbacks with `rememberUpdatedState`.
+- UI compile evidence:
+  - Log: `artifacts/2026-06-24-voice-first-ai-alarm/round16-assemble-debug-android-test-focused.log`
+  - Command: `JAVA_TOOL_OPTIONS=-Duser.home=/tmp/noter-home HOME=/tmp/noter-home GRADLE_USER_HOME=/tmp/noter-gradle-home JAVA_HOME=/home/ronghua/.cache/codex-jdks/jdk-17 ANDROID_HOME=/home/ronghua/.cache/android-sdk ./gradlew --no-daemon --console=plain assembleDebugAndroidTest`
+  - Result: passed after adding the voice-home smoke scenario for press-triggered recording recomposition.
+- Full local gate after review fix:
+  - Unit log: `artifacts/2026-06-24-voice-first-ai-alarm/round16-test-debug-unit-test.log`; `testDebugUnitTest` passed with `BUILD SUCCESSFUL`.
+  - Lint log: `artifacts/2026-06-24-voice-first-ai-alarm/round16-lint-debug.log`; `lintDebug` passed with `BUILD SUCCESSFUL`.
+  - Assemble log: `artifacts/2026-06-24-voice-first-ai-alarm/round16-assemble-debug.log`; `assembleDebug` passed with `BUILD SUCCESSFUL`.
+  - androidTest compile log: `artifacts/2026-06-24-voice-first-ai-alarm/round16-assemble-debug-android-test.log`; `assembleDebugAndroidTest` passed with `BUILD SUCCESSFUL`.
+- Final Round 16 checks:
+  - Diff log: `artifacts/2026-06-24-voice-first-ai-alarm/round16-git-diff-check.log`; `git diff --check` passed with no output.
+  - Legacy absence log: `artifacts/2026-06-24-voice-first-ai-alarm/round16-submit-alarm-draft-absence.log`; no production `submit_alarm_draft` hits were found.
+  - Connected-device availability log: `artifacts/2026-06-24-voice-first-ai-alarm/round16-adb-devices.log`; connected execution was unavailable because the fresh SDK-local `adb devices -l` output only listed the header.
+- Bounded architecture/refactor review:
+  - Result: pass.
+  - Notes: Press gesture stability remains isolated in `ui/voice/VoiceHomeScreen.kt`; the new key helper is a small UI test seam; `ui/voice` still depends only on injected voice callbacks and has no OpenRouter, Android recorder/STT, WorkManager, Room, repository, or scheduler imports. Commit-time refactor gate is disabled in `.harness/bootstrap.toml`.
