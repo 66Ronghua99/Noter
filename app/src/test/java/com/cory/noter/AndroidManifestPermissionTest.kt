@@ -8,6 +8,19 @@ import javax.xml.parsers.DocumentBuilderFactory
 class AndroidManifestPermissionTest {
     @Test
     fun `manifest requests internet permission for OpenRouter calls`() {
+        val requestedPermissions = requestedManifestPermissions()
+
+        assertThat(requestedPermissions).contains("android.permission.INTERNET")
+    }
+
+    @Test
+    fun `manifest requests record audio permission for voice capture`() {
+        val requestedPermissions = requestedManifestPermissions()
+
+        assertThat(requestedPermissions).contains("android.permission.RECORD_AUDIO")
+    }
+
+    private fun requestedManifestPermissions(): List<String> {
         val manifest = listOf(
             File("src/main/AndroidManifest.xml"),
             File("app/src/main/AndroidManifest.xml"),
@@ -19,7 +32,6 @@ class AndroidManifestPermissionTest {
         val requestedPermissions = (0 until usesPermissions.length).map { index ->
             usesPermissions.item(index).attributes.getNamedItem("android:name").nodeValue
         }
-
-        assertThat(requestedPermissions).contains("android.permission.INTERNET")
+        return requestedPermissions
     }
 }

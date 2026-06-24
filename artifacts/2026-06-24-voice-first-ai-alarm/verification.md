@@ -27,6 +27,7 @@
 - Task 2 focused unit tests: passed.
 - Task 3 focused unit tests: passed.
 - Task 4 focused unit tests: passed.
+- Task 5 focused unit tests: passed.
 - Debug androidTest APK compile: passed after updating stale androidTest fakes to the current agent gateway boundary.
 - Full local gate (`testDebugUnitTest`, `lintDebug`, `assembleDebug`): pending later integration task.
 - Connected Android test: pending later integration task.
@@ -122,3 +123,21 @@
 - Bounded architecture/refactor review:
   - Result: pass.
   - Notes: OpenRouter-specific ASR request/response JSON remains inside `OpenRouterAsrClient`; shared OpenRouter transport constants stay in `OpenRouterHttp`; the result type exposes explicit failure categories without adding voice-capture or UI orchestration scope; the client has no fallback or retry path that could silently switch ASR models.
+
+## Round 4: Voice Capture And Transcription Boundary
+
+- Round contract: `.humanize/rlcr/2026-06-24_23-32-34/round-4-contract.md`
+- BitLesson selection: `.humanize/bitlesson.md` has no actual lessons. The selector returned its placeholder format again, so Round 4 proceeded with `LESSON_IDS: NONE`.
+- Red evidence: `artifacts/2026-06-24-voice-first-ai-alarm/round4-red-voice-boundary.log`
+  - Command: `JAVA_TOOL_OPTIONS=-Duser.home=/tmp/noter-home HOME=/tmp/noter-home GRADLE_USER_HOME=/tmp/noter-gradle-home JAVA_HOME=/home/ronghua/.cache/codex-jdks/jdk-17 ANDROID_HOME=/home/ronghua/.cache/android-sdk ./gradlew --no-daemon --console=plain testDebugUnitTest --tests com.cory.noter.ui.voice.VoiceHomeViewModelTest --tests com.cory.noter.AndroidManifestPermissionTest`
+  - Result: expected compile failure because the voice boundary, voice ViewModel, and `RECORD_AUDIO` manifest proof were not implemented yet.
+- Green combined evidence: `artifacts/2026-06-24-voice-first-ai-alarm/round4-green-voice-boundary.log`
+  - Command: `JAVA_TOOL_OPTIONS=-Duser.home=/tmp/noter-home HOME=/tmp/noter-home GRADLE_USER_HOME=/tmp/noter-gradle-home JAVA_HOME=/home/ronghua/.cache/codex-jdks/jdk-17 ANDROID_HOME=/home/ronghua/.cache/android-sdk ./gradlew --no-daemon --console=plain testDebugUnitTest --tests com.cory.noter.ui.voice.VoiceHomeViewModelTest --tests com.cory.noter.AndroidManifestPermissionTest`
+  - Result: passed after adding the voice capture coordinator, voice boundary interfaces, Android recording/system STT/OpenRouter ASR adapters, background enqueue adapter, microphone permission ViewModel boundary, and `android.permission.RECORD_AUDIO`.
+- Required focused command evidence:
+  - `artifacts/2026-06-24-voice-first-ai-alarm/round4-green-voice-home-viewmodel.log`
+  - `artifacts/2026-06-24-voice-first-ai-alarm/round4-green-manifest-permission.log`
+  - Both listed Task 5 focused commands passed.
+- Bounded architecture/refactor review:
+  - Result: pass.
+  - Notes: provider-neutral voice capture contracts and lifecycle orchestration live in `voice/VoiceCaptureCoordinator.kt`; Android `MediaRecorder`, `SpeechRecognizer`, microphone permission, file cleanup, and background enqueue adapters are isolated in `voice/AndroidVoiceAdapters.kt`; OpenRouter ASR mapping is isolated in `voice/OpenRouterVoiceAsrTranscriber.kt`; `ui/voice/VoiceHomeViewModel.kt` only coordinates permission state and the injected `VoiceCaptureController`; no Task 6 UI, Task 7 navigation, or Task 8 integration scope was added.

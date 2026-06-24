@@ -1,0 +1,213 @@
+Picked up JAVA_TOOL_OPTIONS: -Duser.home=/tmp/noter-home
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.14.3/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:processDebugNavigationResources UP-TO-DATE
+> Task :app:compileDebugNavigationResources UP-TO-DATE
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+> Task :app:processDebugResources UP-TO-DATE
+> Task :app:kspDebugKotlin UP-TO-DATE
+> Task :app:compileDebugKotlin UP-TO-DATE
+> Task :app:javaPreCompileDebug UP-TO-DATE
+> Task :app:compileDebugJavaWithJavac NO-SOURCE
+> Task :app:bundleDebugClassesToRuntimeJar UP-TO-DATE
+> Task :app:bundleDebugClassesToCompileJar UP-TO-DATE
+> Task :app:preDebugUnitTestBuild UP-TO-DATE
+> Task :app:javaPreCompileDebugUnitTest UP-TO-DATE
+> Task :app:mergeDebugShaders UP-TO-DATE
+> Task :app:compileDebugShaders NO-SOURCE
+> Task :app:generateDebugAssets UP-TO-DATE
+> Task :app:mergeDebugAssets UP-TO-DATE
+> Task :app:packageDebugUnitTestForUnitTest UP-TO-DATE
+> Task :app:processDebugUnitTestManifest UP-TO-DATE
+> Task :app:generateDebugUnitTestConfig UP-TO-DATE
+> Task :app:processDebugJavaRes UP-TO-DATE
+> Task :app:kspDebugUnitTestKotlin
+
+> Task :app:compileDebugUnitTestKotlin
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:7:23 Unresolved reference 'voice'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:8:23 Unresolved reference 'voice'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:9:23 Unresolved reference 'voice'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:10:23 Unresolved reference 'voice'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:11:23 Unresolved reference 'voice'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:12:23 Unresolved reference 'voice'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:13:23 Unresolved reference 'voice'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:14:23 Unresolved reference 'voice'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:15:23 Unresolved reference 'voice'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:16:23 Unresolved reference 'voice'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:17:23 Unresolved reference 'voice'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:18:23 Unresolved reference 'voice'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:19:23 Unresolved reference 'voice'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:20:23 Unresolved reference 'voice'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:21:23 Unresolved reference 'voice'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:22:23 Unresolved reference 'voice'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:23:23 Unresolved reference 'voice'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:24:23 Unresolved reference 'voice'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:25:23 Unresolved reference 'voice'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:26:23 Unresolved reference 'voice'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:40:25 Unresolved reference 'VoiceHomeViewModel'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:41:43 Unresolved reference 'MicrophonePermissionChecker'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:48:52 Unresolved reference 'isEqualTo'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:48:62 Unresolved reference 'VoiceHomeStatus'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:55:29 Unresolved reference 'VoiceCaptureResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:57:25 Unresolved reference 'VoiceHomeViewModel'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:58:43 Unresolved reference 'MicrophonePermissionChecker'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:70:52 Unresolved reference 'isEqualTo'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:70:62 Unresolved reference 'VoiceHomeStatus'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:72:14 Unresolved reference 'isEqualTo'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:72:24 Unresolved reference 'VoiceCaptureResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:79:26 Unresolved reference 'SystemSpeechResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:88:32 Unresolved reference 'start'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:88:41 Unresolved reference 'isEqualTo'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:88:51 Unresolved reference 'VoiceCaptureResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:89:32 Unresolved reference 'cancel'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:89:42 Unresolved reference 'isEqualTo'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:89:52 Unresolved reference 'VoiceCaptureResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:90:46 Unresolved reference 'release'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:95:14 Unresolved reference 'isEqualTo'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:95:24 Unresolved reference 'VoiceCaptureResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:95:50 Unresolved reference 'VoiceCaptureFailure'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:102:26 Unresolved reference 'SystemSpeechResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:115:32 Unresolved reference 'start'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:115:41 Unresolved reference 'isEqualTo'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:115:51 Unresolved reference 'VoiceCaptureResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:116:34 Unresolved reference 'release'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:118:28 Unresolved reference 'isEqualTo'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:118:38 Unresolved reference 'VoiceCaptureResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:121:60 Unresolved reference 'TemporaryAudioHandle'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:131:30 Unresolved reference 'SystemSpeechResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:138:32 Unresolved reference 'start'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:138:41 Unresolved reference 'isEqualTo'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:138:51 Unresolved reference 'VoiceCaptureResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:139:34 Unresolved reference 'release'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:141:28 Unresolved reference 'isEqualTo'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:141:38 Unresolved reference 'VoiceCaptureResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:141:64 Unresolved reference 'VoiceCaptureFailure'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:144:60 Unresolved reference 'TemporaryAudioHandle'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:151:26 Unresolved reference 'VoiceAsrResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:157:30 Unresolved reference 'SystemSpeechResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:163:32 Unresolved reference 'start'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:163:41 Unresolved reference 'isEqualTo'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:163:51 Unresolved reference 'VoiceCaptureResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:164:34 Unresolved reference 'release'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:166:28 Unresolved reference 'isEqualTo'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:166:38 Unresolved reference 'VoiceCaptureResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:168:42 Cannot infer type for type parameter 'T'. Specify it explicitly.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:169:28 Unresolved reference 'apiKey'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:169:36 Unresolved reference 'isEqualTo'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:170:28 Unresolved reference 'modelId'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:170:37 Unresolved reference 'isEqualTo'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:171:28 Unresolved reference 'audio'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:171:41 Unresolved reference 'isEqualTo'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:183:30 Unresolved reference 'SystemSpeechResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:188:32 Unresolved reference 'start'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:188:41 Unresolved reference 'isEqualTo'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:188:51 Unresolved reference 'VoiceCaptureResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:189:34 Unresolved reference 'release'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:191:28 Unresolved reference 'isEqualTo'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:191:38 Unresolved reference 'VoiceCaptureResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:191:64 Unresolved reference 'VoiceCaptureFailure'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:203:30 Unresolved reference 'SystemSpeechResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:208:32 Unresolved reference 'start'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:208:41 Unresolved reference 'isEqualTo'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:208:51 Unresolved reference 'VoiceCaptureResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:209:34 Unresolved reference 'release'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:212:14 Unresolved reference 'isEqualTo'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:212:24 Unresolved reference 'VoiceCaptureResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:212:50 Unresolved reference 'VoiceCaptureFailure'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:222:30 Unresolved reference 'SystemSpeechResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:225:30 Unresolved reference 'VoiceAsrResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:231:32 Unresolved reference 'start'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:231:41 Unresolved reference 'isEqualTo'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:231:51 Unresolved reference 'VoiceCaptureResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:232:34 Unresolved reference 'release'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:235:14 Unresolved reference 'isEqualTo'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:235:24 Unresolved reference 'VoiceCaptureResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:235:50 Unresolved reference 'VoiceCaptureFailure'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:237:60 Unresolved reference 'TemporaryAudioHandle'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:249:8 Unresolved reference 'VoiceCaptureCoordinator'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:249:34 Unresolved reference 'VoiceCaptureCoordinator'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:259:34 Unresolved reference 'VoiceCaptureResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:259:55 Unresolved reference 'VoiceCaptureResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:260:36 Unresolved reference 'VoiceCaptureResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:260:57 Unresolved reference 'VoiceCaptureResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:261:35 Unresolved reference 'VoiceCaptureResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:261:56 Unresolved reference 'VoiceCaptureResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:262:9 Unresolved reference 'VoiceCaptureController'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:267:9 'start' overrides nothing.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:267:39 Unresolved reference 'VoiceCaptureResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:272:9 'release' overrides nothing.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:272:41 Unresolved reference 'VoiceCaptureResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:277:9 'cancel' overrides nothing.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:277:40 Unresolved reference 'VoiceCaptureResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:285:9 Unresolved reference 'TemporaryAudioRecorder'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:289:9 'start' overrides nothing.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:289:39 Unresolved reference 'VoiceRecordingStartResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:291:20 Unresolved reference 'VoiceRecordingStartResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:297:9 Unresolved reference 'ActiveTemporaryAudioRecording'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:298:9 'handle' overrides nothing.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:298:30 Unresolved reference 'TemporaryAudioHandle'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:298:53 Unresolved reference 'TemporaryAudioHandle'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:302:9 'stop' overrides nothing.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:302:38 Unresolved reference 'VoiceRecordingStopResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:304:20 Unresolved reference 'VoiceRecordingStopResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:305:17 Unresolved reference 'RecordedVoiceAudio'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:312:9 'cancel' overrides nothing.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:312:40 Unresolved reference 'VoiceRecordingStopResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:314:20 Unresolved reference 'VoiceRecordingStopResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:319:34 Unresolved reference 'SystemSpeechStartResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:320:33 Unresolved reference 'SystemSpeechResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:320:54 Unresolved reference 'SystemSpeechResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:321:9 Unresolved reference 'SystemSpeechRecognizer'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:322:9 'start' overrides nothing.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:322:39 Unresolved reference 'SystemSpeechStartResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:323:28 Unresolved reference 'SystemSpeechStartResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:327:33 Unresolved reference 'SystemSpeechResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:328:9 Unresolved reference 'ActiveSystemSpeechRecognition'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:331:9 'stopAndTranscribe' overrides nothing.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:331:51 Unresolved reference 'SystemSpeechResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:333:9 'cancel' overrides nothing.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:339:33 Unresolved reference 'VoiceAsrResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:339:50 Unresolved reference 'VoiceAsrResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:340:9 Unresolved reference 'RemoteAsrTranscriber'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:341:38 Unresolved reference 'VoiceAsrRequest'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:343:9 'transcribe' overrides nothing.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:343:50 Unresolved reference 'VoiceAsrRequest'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:343:68 Unresolved reference 'VoiceAsrResult'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:349:52 Unresolved reference 'TemporaryAudioCleanup'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:350:44 Unresolved reference 'TemporaryAudioHandle'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:352:9 'cleanup' overrides nothing.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:352:46 Unresolved reference 'TemporaryAudioHandle'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:357:52 Unresolved reference 'VoiceAiCreateEnqueuer'.
+e: file:///home/ronghua/codes/Noter/app/src/test/java/com/cory/noter/ui/voice/VoiceHomeViewModelTest.kt:360:9 'enqueue' overrides nothing.
+
+> Task :app:compileDebugUnitTestKotlin FAILED
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileDebugUnitTestKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+   > Compilation error. See log for more details
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 21s
+29 actionable tasks: 2 executed, 27 up-to-date
