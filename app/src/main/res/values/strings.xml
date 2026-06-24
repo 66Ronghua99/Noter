@@ -40,6 +40,26 @@
     <string name="ai_create_remote_failure_error">OpenRouter error %1$d: %2$s</string>
     <string name="ai_create_missing_permission_error">Alarm saved but scheduling needs permission: %1$s</string>
 
+    <string name="voice_home_title">Voice alarm</string>
+    <string name="voice_home_idle_prompt">Hold the button and say the alarm.</string>
+    <string name="voice_home_recording_prompt">Listening now.</string>
+    <string name="voice_home_processing_notice">Noter is processing your alarm.</string>
+    <string name="voice_home_permission_needed">Microphone permission is needed to record alarms.</string>
+    <string name="voice_home_hold_button">Hold to speak</string>
+    <string name="voice_home_recording_button">Release when done</string>
+    <string name="voice_home_processing_button">Processing</string>
+    <string name="voice_home_cancel">Cancel</string>
+    <string name="voice_home_retry">Try again</string>
+    <string name="voice_home_text_fallback">Type instead</string>
+    <string name="voice_home_open_list">Alarms</string>
+    <string name="voice_home_already_recording">Recording is already in progress.</string>
+    <string name="voice_home_no_active_recording">No active recording is available.</string>
+    <string name="voice_home_blank_transcript">Speech recognition did not catch an alarm request.</string>
+    <string name="voice_home_missing_api_key">Add an OpenRouter API key in Settings before using voice fallback.</string>
+    <string name="voice_home_unsupported_asr_model">Choose a supported speech recognition model. Current: %1$s</string>
+    <string name="voice_home_recording_failed">Recording failed: %1$s</string>
+    <string name="voice_home_asr_failed">Speech recognition failed: %1$s</string>
+
     <string name="settings_title">Settings</string>
     <string name="settings_openrouter_api_key">OpenRouter API key</string>
     <string name="settings_api_key_label">API key</string>

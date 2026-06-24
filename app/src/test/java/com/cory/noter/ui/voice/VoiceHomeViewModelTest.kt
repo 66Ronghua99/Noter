@@ -1,9 +1,11 @@
 package com.cory.noter.ui.voice
 
+import com.cory.noter.R
 import com.cory.noter.ai.AsrModel
 import com.cory.noter.data.settings.FakeSettingsRepository
 import com.cory.noter.domain.settings.AppSettings
 import com.cory.noter.ui.MainDispatcherRule
+import com.cory.noter.ui.text.UiText
 import com.cory.noter.voice.ActiveSystemSpeechRecognition
 import com.cory.noter.voice.ActiveTemporaryAudioRecording
 import com.cory.noter.voice.MicrophonePermissionChecker
@@ -37,6 +39,20 @@ class VoiceHomeViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     @Test
+    fun `idle state hides notices failures and fallback actions`() {
+        val viewModel = VoiceHomeViewModel(
+            microphonePermissionChecker = MicrophonePermissionChecker { true },
+            captureController = RecordingVoiceCaptureController(),
+        )
+
+        assertThat(viewModel.uiState.value.status).isEqualTo(VoiceHomeStatus.Idle)
+        assertThat(viewModel.uiState.value.noticeMessage).isNull()
+        assertThat(viewModel.uiState.value.errorMessage).isNull()
+        assertThat(viewModel.uiState.value.showRetryAction).isFalse()
+        assertThat(viewModel.uiState.value.showTextFallbackAction).isFalse()
+    }
+
+    @Test
     fun `press with denied microphone permission exposes permission needed and does not start capture`() = runTest {
         val controller = RecordingVoiceCaptureController()
         val viewModel = VoiceHomeViewModel(
@@ -48,7 +64,31 @@ class VoiceHomeViewModelTest {
         advanceUntilIdle()
 
         assertThat(viewModel.uiState.value.status).isEqualTo(VoiceHomeStatus.PermissionNeeded)
+        assertThat(viewModel.uiState.value.errorMessage)
+            .isEqualTo(UiText.Resource(R.string.voice_home_permission_needed))
+        assertThat(viewModel.uiState.value.showRetryAction).isFalse()
+        assertThat(viewModel.uiState.value.showTextFallbackAction).isTrue()
         assertThat(controller.startCalls).isEqualTo(0)
+    }
+
+    @Test
+    fun `release after denied microphone permission does not call capture release`() = runTest {
+        val controller = RecordingVoiceCaptureController()
+        val viewModel = VoiceHomeViewModel(
+            microphonePermissionChecker = MicrophonePermissionChecker { false },
+            captureController = controller,
+        )
+
+        viewModel.onRecordPressed()
+        advanceUntilIdle()
+        viewModel.onRecordReleased()
+        advanceUntilIdle()
+
+        assertThat(controller.startCalls).isEqualTo(0)
+        assertThat(controller.releaseCalls).isEqualTo(0)
+        assertThat(viewModel.uiState.value.status).isEqualTo(VoiceHomeStatus.PermissionNeeded)
+        assertThat(viewModel.uiState.value.errorMessage)
+            .isEqualTo(UiText.Resource(R.string.voice_home_permission_needed))
     }
 
     @Test
@@ -70,8 +110,143 @@ class VoiceHomeViewModelTest {
         assertThat(controller.releaseCalls).isEqualTo(1)
         assertThat(controller.cancelCalls).isEqualTo(0)
         assertThat(viewModel.uiState.value.status).isEqualTo(VoiceHomeStatus.Idle)
+        assertThat(viewModel.uiState.value.noticeMessage)
+            .isEqualTo(UiText.Resource(R.string.voice_home_processing_notice))
+        assertThat(viewModel.uiState.value.errorMessage).isNull()
+        assertThat(viewModel.uiState.value.showRetryAction).isFalse()
+        assertThat(viewModel.uiState.value.showTextFallbackAction).isFalse()
         assertThat(viewModel.uiState.value.lastResult)
             .isEqualTo(VoiceCaptureResult.Enqueued("wake me at eight"))
+    }
+
+    @Test
+    fun `cancel from recording returns idle without enqueue actions`() = runTest {
+        val controller = RecordingVoiceCaptureController()
+        val viewModel = VoiceHomeViewModel(
+            microphonePermissionChecker = MicrophonePermissionChecker { true },
+            captureController = controller,
+        )
+
+        viewModel.onRecordPressed()
+        advanceUntilIdle()
+        viewModel.onRecordCancelled()
+        advanceUntilIdle()
+
+        assertThat(controller.startCalls).isEqualTo(1)
+        assertThat(controller.cancelCalls).isEqualTo(1)
+        assertThat(controller.releaseCalls).isEqualTo(0)
+        assertThat(viewModel.uiState.value.status).isEqualTo(VoiceHomeStatus.Idle)
+        assertThat(viewModel.uiState.value.noticeMessage).isNull()
+        assertThat(viewModel.uiState.value.errorMessage).isNull()
+        assertThat(viewModel.uiState.value.showRetryAction).isFalse()
+        assertThat(viewModel.uiState.value.showTextFallbackAction).isFalse()
+    }
+
+    @Test
+    fun `system stt success exposes transient processing notice without transcript text`() = runTest {
+        val viewModel = VoiceHomeViewModel(
+            microphonePermissionChecker = MicrophonePermissionChecker { true },
+            captureController = newCoordinator(
+                systemSpeechRecognizer = FakeSystemSpeechRecognizer(
+                    stopResult = SystemSpeechResult.Transcript("wake me at eight"),
+                ),
+            ),
+        )
+
+        viewModel.onRecordPressed()
+        advanceUntilIdle()
+        viewModel.onRecordReleased()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.status).isEqualTo(VoiceHomeStatus.Idle)
+        assertThat(viewModel.uiState.value.noticeMessage)
+            .isEqualTo(UiText.Resource(R.string.voice_home_processing_notice))
+        assertThat(viewModel.uiState.value.errorMessage).isNull()
+        assertThat(viewModel.uiState.value.showRetryAction).isFalse()
+        assertThat(viewModel.uiState.value.showTextFallbackAction).isFalse()
+        assertThat(viewModel.uiState.value.lastResult)
+            .isEqualTo(VoiceCaptureResult.Enqueued("wake me at eight"))
+    }
+
+    @Test
+    fun `asr fallback success exposes transient processing notice`() = runTest {
+        val viewModel = VoiceHomeViewModel(
+            microphonePermissionChecker = MicrophonePermissionChecker { true },
+            captureController = newCoordinator(
+                systemSpeechRecognizer = FakeSystemSpeechRecognizer(
+                    stopResult = SystemSpeechResult.Failed("system stt unavailable"),
+                ),
+                remoteAsr = RecordingRemoteAsrTranscriber(
+                    nextResult = VoiceAsrResult.Transcript("set an alarm for nine"),
+                ),
+            ),
+        )
+
+        viewModel.onRecordPressed()
+        advanceUntilIdle()
+        viewModel.onRecordReleased()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.status).isEqualTo(VoiceHomeStatus.Idle)
+        assertThat(viewModel.uiState.value.noticeMessage)
+            .isEqualTo(UiText.Resource(R.string.voice_home_processing_notice))
+        assertThat(viewModel.uiState.value.errorMessage).isNull()
+        assertThat(viewModel.uiState.value.showRetryAction).isFalse()
+        assertThat(viewModel.uiState.value.showTextFallbackAction).isFalse()
+        assertThat(viewModel.uiState.value.lastResult)
+            .isEqualTo(VoiceCaptureResult.Enqueued("set an alarm for nine"))
+    }
+
+    @Test
+    fun `asr failure exposes retry and text fallback actions`() = runTest {
+        val viewModel = VoiceHomeViewModel(
+            microphonePermissionChecker = MicrophonePermissionChecker { true },
+            captureController = newCoordinator(
+                systemSpeechRecognizer = FakeSystemSpeechRecognizer(
+                    stopResult = SystemSpeechResult.Failed("system stt unavailable"),
+                ),
+                remoteAsr = RecordingRemoteAsrTranscriber(
+                    nextResult = VoiceAsrResult.Failed("remote asr failed"),
+                ),
+            ),
+        )
+
+        viewModel.onRecordPressed()
+        advanceUntilIdle()
+        viewModel.onRecordReleased()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.status).isEqualTo(VoiceHomeStatus.Idle)
+        assertThat(viewModel.uiState.value.noticeMessage).isNull()
+        assertThat(viewModel.uiState.value.errorMessage)
+            .isEqualTo(UiText.Resource(R.string.voice_home_asr_failed, listOf("remote asr failed")))
+        assertThat(viewModel.uiState.value.showRetryAction).isTrue()
+        assertThat(viewModel.uiState.value.showTextFallbackAction).isTrue()
+        assertThat(viewModel.uiState.value.lastResult)
+            .isEqualTo(VoiceCaptureResult.Failed(VoiceCaptureFailure.AsrFailed("remote asr failed")))
+    }
+
+    @Test
+    fun `retry clears failure surface and returns to idle`() = runTest {
+        val viewModel = VoiceHomeViewModel(
+            microphonePermissionChecker = MicrophonePermissionChecker { true },
+            captureController = RecordingVoiceCaptureController(
+                releaseResult = VoiceCaptureResult.Failed(VoiceCaptureFailure.AsrFailed("remote asr failed")),
+            ),
+        )
+
+        viewModel.onRecordPressed()
+        advanceUntilIdle()
+        viewModel.onRecordReleased()
+        advanceUntilIdle()
+        viewModel.onRetry()
+
+        assertThat(viewModel.uiState.value.status).isEqualTo(VoiceHomeStatus.Idle)
+        assertThat(viewModel.uiState.value.noticeMessage).isNull()
+        assertThat(viewModel.uiState.value.errorMessage).isNull()
+        assertThat(viewModel.uiState.value.showRetryAction).isFalse()
+        assertThat(viewModel.uiState.value.showTextFallbackAction).isFalse()
+        assertThat(viewModel.uiState.value.lastResult).isNull()
     }
 
     @Test

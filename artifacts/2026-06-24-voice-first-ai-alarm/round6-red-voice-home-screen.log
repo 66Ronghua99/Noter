@@ -1,0 +1,91 @@
+Picked up JAVA_TOOL_OPTIONS: -Duser.home=/tmp/noter-home
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.14.3/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:processDebugNavigationResources UP-TO-DATE
+> Task :app:compileDebugNavigationResources UP-TO-DATE
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+> Task :app:processDebugResources UP-TO-DATE
+> Task :app:kspDebugKotlin UP-TO-DATE
+> Task :app:compileDebugKotlin UP-TO-DATE
+> Task :app:javaPreCompileDebug UP-TO-DATE
+> Task :app:compileDebugJavaWithJavac NO-SOURCE
+> Task :app:bundleDebugClassesToCompileJar UP-TO-DATE
+> Task :app:preDebugAndroidTestBuild SKIPPED
+> Task :app:checkDebugAndroidTestAarMetadata UP-TO-DATE
+> Task :app:processDebugAndroidTestNavigationResources UP-TO-DATE
+> Task :app:compileDebugAndroidTestNavigationResources UP-TO-DATE
+> Task :app:generateDebugAndroidTestResValues UP-TO-DATE
+> Task :app:mapDebugAndroidTestSourceSetPaths UP-TO-DATE
+> Task :app:generateDebugAndroidTestResources UP-TO-DATE
+> Task :app:mergeDebugAndroidTestResources UP-TO-DATE
+> Task :app:processDebugAndroidTestManifest UP-TO-DATE
+> Task :app:processDebugAndroidTestResources UP-TO-DATE
+> Task :app:javaPreCompileDebugAndroidTest UP-TO-DATE
+> Task :app:mergeDebugAndroidTestShaders UP-TO-DATE
+> Task :app:compileDebugAndroidTestShaders NO-SOURCE
+> Task :app:generateDebugAndroidTestAssets UP-TO-DATE
+> Task :app:mergeDebugAndroidTestAssets UP-TO-DATE
+> Task :app:compressDebugAndroidTestAssets UP-TO-DATE
+> Task :app:desugarDebugAndroidTestFileDependencies UP-TO-DATE
+> Task :app:checkDebugAndroidTestDuplicateClasses UP-TO-DATE
+> Task :app:mergeExtDexDebugAndroidTest UP-TO-DATE
+> Task :app:mergeLibDexDebugAndroidTest UP-TO-DATE
+> Task :app:mergeDebugAndroidTestJniLibFolders UP-TO-DATE
+> Task :app:mergeDebugJniLibFolders UP-TO-DATE
+> Task :app:mergeDebugNativeLibs UP-TO-DATE
+> Task :app:mergeDebugAndroidTestNativeLibs NO-SOURCE
+> Task :app:stripDebugAndroidTestDebugSymbols NO-SOURCE
+> Task :app:validateSigningDebugAndroidTest UP-TO-DATE
+> Task :app:writeDebugAndroidTestSigningConfigVersions UP-TO-DATE
+> Task :app:kspDebugAndroidTestKotlin
+
+> Task :app:compileDebugAndroidTestKotlin
+e: file:///home/ronghua/codes/Noter/app/src/androidTest/java/com/cory/noter/VoiceHomeSmokeTest.kt:11:32 Unresolved reference 'VoiceHomeScreen'.
+e: file:///home/ronghua/codes/Noter/app/src/androidTest/java/com/cory/noter/VoiceHomeSmokeTest.kt:13:32 Unresolved reference 'VoiceHomeTestTags'.
+e: file:///home/ronghua/codes/Noter/app/src/androidTest/java/com/cory/noter/VoiceHomeSmokeTest.kt:31:17 Unresolved reference 'VoiceHomeScreen'.
+e: file:///home/ronghua/codes/Noter/app/src/androidTest/java/com/cory/noter/VoiceHomeSmokeTest.kt:44:35 Unresolved reference 'VoiceHomeTestTags'.
+e: file:///home/ronghua/codes/Noter/app/src/androidTest/java/com/cory/noter/VoiceHomeSmokeTest.kt:50:35 Unresolved reference 'VoiceHomeTestTags'.
+e: file:///home/ronghua/codes/Noter/app/src/androidTest/java/com/cory/noter/VoiceHomeSmokeTest.kt:51:35 Unresolved reference 'VoiceHomeTestTags'.
+e: file:///home/ronghua/codes/Noter/app/src/androidTest/java/com/cory/noter/VoiceHomeSmokeTest.kt:65:17 Unresolved reference 'VoiceHomeScreen'.
+e: file:///home/ronghua/codes/Noter/app/src/androidTest/java/com/cory/noter/VoiceHomeSmokeTest.kt:78:35 Unresolved reference 'VoiceHomeTestTags'.
+e: file:///home/ronghua/codes/Noter/app/src/androidTest/java/com/cory/noter/VoiceHomeSmokeTest.kt:89:17 Unresolved reference 'VoiceHomeScreen'.
+e: file:///home/ronghua/codes/Noter/app/src/androidTest/java/com/cory/noter/VoiceHomeSmokeTest.kt:92:25 No parameter with name 'noticeMessage' found.
+e: file:///home/ronghua/codes/Noter/app/src/androidTest/java/com/cory/noter/VoiceHomeSmokeTest.kt:105:35 Unresolved reference 'VoiceHomeTestTags'.
+e: file:///home/ronghua/codes/Noter/app/src/androidTest/java/com/cory/noter/VoiceHomeSmokeTest.kt:117:17 Unresolved reference 'VoiceHomeScreen'.
+e: file:///home/ronghua/codes/Noter/app/src/androidTest/java/com/cory/noter/VoiceHomeSmokeTest.kt:120:25 No parameter with name 'errorMessage' found.
+e: file:///home/ronghua/codes/Noter/app/src/androidTest/java/com/cory/noter/VoiceHomeSmokeTest.kt:121:25 No parameter with name 'showRetryAction' found.
+e: file:///home/ronghua/codes/Noter/app/src/androidTest/java/com/cory/noter/VoiceHomeSmokeTest.kt:122:25 No parameter with name 'showTextFallbackAction' found.
+e: file:///home/ronghua/codes/Noter/app/src/androidTest/java/com/cory/noter/VoiceHomeSmokeTest.kt:135:35 Unresolved reference 'VoiceHomeTestTags'.
+e: file:///home/ronghua/codes/Noter/app/src/androidTest/java/com/cory/noter/VoiceHomeSmokeTest.kt:138:35 Unresolved reference 'VoiceHomeTestTags'.
+
+> Task :app:compileDebugAndroidTestKotlin FAILED
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileDebugAndroidTestKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+   > Compilation error. See log for more details
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 21s
+43 actionable tasks: 2 executed, 41 up-to-date

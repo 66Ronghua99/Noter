@@ -28,7 +28,8 @@
 - Task 3 focused unit tests: passed.
 - Task 4 focused unit tests: passed.
 - Task 5 focused unit tests: passed after the Round 5 recorder setup failure fix.
-- Debug androidTest APK compile: passed after updating stale androidTest fakes to the current agent gateway boundary.
+- Task 6 focused unit tests: passed.
+- Debug androidTest APK compile: passed after adding the Round 6 voice home smoke coverage.
 - Full local gate (`testDebugUnitTest`, `lintDebug`, `assembleDebug`): pending later integration task.
 - Connected Android test: pending later integration task.
 
@@ -163,3 +164,34 @@
 - Bounded architecture/refactor review:
   - Result: pass.
   - Notes: the new `VoiceMediaRecorder` seam is module-internal and only used by the Android recorder adapter test; UI and coordinator tests still depend on the provider-neutral voice boundary, not Android recorder details.
+
+## Round 6: Voice Home ViewModel And UI
+
+- Round contract: `.humanize/rlcr/2026-06-24_23-32-34/round-6-contract.md`
+- Review source: `.humanize/rlcr/2026-06-24_23-32-34/round-5-review-result.md`
+- BitLesson selection: `.humanize/bitlesson.md` has no actual lessons. The selector returned its placeholder format for the contract, ViewModel red tests, screen smoke tests, and implementation subtasks, so Round 6 proceeded with `LESSON_IDS: NONE`.
+- Red ViewModel evidence: `artifacts/2026-06-24-voice-first-ai-alarm/round6-red-voice-home-viewmodel.log`
+  - Command: `JAVA_TOOL_OPTIONS=-Duser.home=/tmp/noter-home HOME=/tmp/noter-home GRADLE_USER_HOME=/tmp/noter-gradle-home JAVA_HOME=/home/ronghua/.cache/codex-jdks/jdk-17 ANDROID_HOME=/home/ronghua/.cache/android-sdk ./gradlew --no-daemon --console=plain testDebugUnitTest --tests com.cory.noter.ui.voice.VoiceHomeViewModelTest`
+  - Result: expected compile failure because `VoiceHomeUiState` did not yet expose notice/error/action fields, retry handling, or Task 6 string resources.
+- Red screen evidence: `artifacts/2026-06-24-voice-first-ai-alarm/round6-red-voice-home-screen.log`
+  - Command: `JAVA_TOOL_OPTIONS=-Duser.home=/tmp/noter-home HOME=/tmp/noter-home GRADLE_USER_HOME=/tmp/noter-gradle-home JAVA_HOME=/home/ronghua/.cache/codex-jdks/jdk-17 ANDROID_HOME=/home/ronghua/.cache/android-sdk ./gradlew --no-daemon --console=plain assembleDebugAndroidTest`
+  - Result: expected compile failure because `VoiceHomeScreen`, `VoiceHomeTestTags`, and the expanded voice home state did not exist yet.
+- Red guard evidence: `artifacts/2026-06-24-voice-first-ai-alarm/round6-red-release-after-denied-permission.log`
+  - Command: `JAVA_TOOL_OPTIONS=-Duser.home=/tmp/noter-home HOME=/tmp/noter-home GRADLE_USER_HOME=/tmp/noter-gradle-home JAVA_HOME=/home/ronghua/.cache/codex-jdks/jdk-17 ANDROID_HOME=/home/ronghua/.cache/android-sdk ./gradlew --no-daemon --console=plain testDebugUnitTest --tests com.cory.noter.ui.voice.VoiceHomeViewModelTest`
+  - Result: expected failure proving `onRecordReleased()` still called capture release after microphone permission denial.
+- Green ViewModel evidence: `artifacts/2026-06-24-voice-first-ai-alarm/round6-green-voice-home-viewmodel.log`
+  - Command: `JAVA_TOOL_OPTIONS=-Duser.home=/tmp/noter-home HOME=/tmp/noter-home GRADLE_USER_HOME=/tmp/noter-gradle-home JAVA_HOME=/home/ronghua/.cache/codex-jdks/jdk-17 ANDROID_HOME=/home/ronghua/.cache/android-sdk ./gradlew --no-daemon --console=plain testDebugUnitTest --tests com.cory.noter.ui.voice.VoiceHomeViewModelTest`
+  - Result: passed after adding UI-ready voice home state, retry handling, resource-backed success/failure messages, and the release-after-permission-denial guard.
+- Focused Task 6 green evidence: `artifacts/2026-06-24-voice-first-ai-alarm/round6-green-task6-focused.log`
+  - Command: `JAVA_TOOL_OPTIONS=-Duser.home=/tmp/noter-home HOME=/tmp/noter-home GRADLE_USER_HOME=/tmp/noter-gradle-home JAVA_HOME=/home/ronghua/.cache/codex-jdks/jdk-17 ANDROID_HOME=/home/ronghua/.cache/android-sdk ./gradlew --no-daemon --console=plain testDebugUnitTest --tests com.cory.noter.voice.AndroidTemporaryAudioRecorderTest --tests com.cory.noter.ui.voice.VoiceHomeViewModelTest --tests com.cory.noter.AndroidManifestPermissionTest`
+  - Result: passed.
+- androidTest compile evidence: `artifacts/2026-06-24-voice-first-ai-alarm/round6-green-assemble-debug-android-test.log`
+  - Command: `JAVA_TOOL_OPTIONS=-Duser.home=/tmp/noter-home HOME=/tmp/noter-home GRADLE_USER_HOME=/tmp/noter-gradle-home JAVA_HOME=/home/ronghua/.cache/codex-jdks/jdk-17 ANDROID_HOME=/home/ronghua/.cache/android-sdk ./gradlew --no-daemon --console=plain assembleDebugAndroidTest`
+  - Result: passed after adding `VoiceHomeSmokeTest` and switching it to the v2 Compose rule to avoid deprecated-rule warnings.
+- Diff check:
+  - Log: `artifacts/2026-06-24-voice-first-ai-alarm/round6-git-diff-check.log`
+  - Command: `git diff --check`
+  - Result: passed with no output.
+- Bounded architecture/refactor review:
+  - Result: pass.
+  - Notes: `ui/voice/VoiceHomeViewModel.kt` depends only on `MicrophonePermissionChecker`, `VoiceCaptureController`, provider-neutral voice results, and resource-backed `UiText`; it does not import OpenRouter, Room, WorkManager, Android recorder/STT adapters, or scheduling classes. `ui/voice/VoiceHomeScreen.kt` is a presentation-only composable with injected callbacks and stable tags. `NoterApp`, `MainActivity`, and `AppContainer` route/default/provider wiring remain untouched for Task 7.

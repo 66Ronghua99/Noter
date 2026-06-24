@@ -40,6 +40,26 @@
     <string name="ai_create_remote_failure_error">OpenRouter 错误 %1$d：%2$s</string>
     <string name="ai_create_missing_permission_error">闹钟已保存，但调度需要权限：%1$s</string>
 
+    <string name="voice_home_title">语音闹钟</string>
+    <string name="voice_home_idle_prompt">按住按钮，说出你想创建的闹钟。</string>
+    <string name="voice_home_recording_prompt">正在聆听。</string>
+    <string name="voice_home_processing_notice">Noter 正在处理你的闹钟。</string>
+    <string name="voice_home_permission_needed">录制闹钟需要麦克风权限。</string>
+    <string name="voice_home_hold_button">按住说话</string>
+    <string name="voice_home_recording_button">松开完成</string>
+    <string name="voice_home_processing_button">处理中</string>
+    <string name="voice_home_cancel">取消</string>
+    <string name="voice_home_retry">再试一次</string>
+    <string name="voice_home_text_fallback">改为输入</string>
+    <string name="voice_home_open_list">闹钟</string>
+    <string name="voice_home_already_recording">正在录音。</string>
+    <string name="voice_home_no_active_recording">没有可用的录音。</string>
+    <string name="voice_home_blank_transcript">语音识别没有捕捉到闹钟请求。</string>
+    <string name="voice_home_missing_api_key">请先在设置中添加 OpenRouter API 密钥，才能使用语音兜底识别。</string>
+    <string name="voice_home_unsupported_asr_model">请选择支持的语音识别模型。当前：%1$s</string>
+    <string name="voice_home_recording_failed">录音失败：%1$s</string>
+    <string name="voice_home_asr_failed">语音识别失败：%1$s</string>
+
     <string name="settings_title">设置</string>
     <string name="settings_openrouter_api_key">OpenRouter API 密钥</string>
     <string name="settings_api_key_label">API 密钥</string>
