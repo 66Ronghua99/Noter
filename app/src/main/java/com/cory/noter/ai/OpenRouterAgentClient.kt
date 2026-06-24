@@ -14,12 +14,16 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonObject
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.Request
@@ -99,7 +103,13 @@ class OpenRouterAgentClient(
         parallelToolCalls = false,
         toolChoice = when (val choice = toolChoice) {
             AgentToolChoice.Auto -> null
-            is AgentToolChoice.Required -> ToolChoice("function", ToolChoiceFunction(choice.toolName))
+            AgentToolChoice.RequiredAnyTool -> JsonPrimitive("required")
+            is AgentToolChoice.Required -> buildJsonObject {
+                put("type", "function")
+                putJsonObject("function") {
+                    put("name", choice.toolName)
+                }
+            }
         },
     )
 
@@ -245,7 +255,7 @@ private data class ChatCompletionRequest(
     @SerialName("parallel_tool_calls")
     val parallelToolCalls: Boolean,
     @SerialName("tool_choice")
-    val toolChoice: ToolChoice? = null,
+    val toolChoice: JsonElement? = null,
 )
 
 @Serializable
@@ -268,15 +278,6 @@ private data class ToolFunction(
     val description: String,
     val parameters: JsonObject,
 )
-
-@Serializable
-private data class ToolChoice(
-    val type: String,
-    val function: ToolChoiceFunction,
-)
-
-@Serializable
-private data class ToolChoiceFunction(val name: String)
 
 @Serializable
 private data class ChatToolCall(

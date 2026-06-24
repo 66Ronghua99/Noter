@@ -12,6 +12,14 @@ class AgentLoopRunner(
         require(config.maxToolExecutions >= 0) { "maxToolExecutions must not be negative" }
 
         when (val toolChoice = request.toolChoice) {
+            AgentToolChoice.RequiredAnyTool -> {
+                if (request.toolRegistry.specs.isEmpty()) {
+                    return AgentRunResult.Failed(
+                        AgentFailure.MissingToolCall("RequiredAnyTool requires at least one registered tool."),
+                    )
+                }
+            }
+
             is AgentToolChoice.Required -> {
                 if (request.toolRegistry.get(toolChoice.toolName) == null) {
                     return AgentRunResult.Failed(AgentFailure.ToolNotRegistered(toolChoice.toolName))

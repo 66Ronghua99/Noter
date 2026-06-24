@@ -26,7 +26,15 @@ data class AgentToolSpec(
     val name: String,
     val description: String,
     val parameters: JsonObject,
+    val risk: AgentToolRisk = AgentToolRisk.READ,
 )
+
+enum class AgentToolRisk {
+    READ,
+    WRITE,
+    DESTRUCTIVE,
+    BATCH,
+}
 
 data class AgentToolCall(
     val id: String,
@@ -69,6 +77,8 @@ class AgentToolRegistry(
 
 sealed interface AgentToolChoice {
     data object Auto : AgentToolChoice
+
+    data object RequiredAnyTool : AgentToolChoice
 
     data class Required(val toolName: String) : AgentToolChoice
 }

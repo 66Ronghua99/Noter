@@ -132,6 +132,67 @@ class OpenRouterAgentClientTest {
     }
 
     @Test
+    fun `complete maps required any tool choice to openrouter required string`() = runTest {
+        var capturedBody = ""
+        val client = OpenRouterAgentClient(
+            callFactory = OkHttpClient.Builder()
+                .addInterceptor(Interceptor { chain ->
+                    val buffer = Buffer()
+                    chain.request().body!!.writeTo(buffer)
+                    capturedBody = buffer.readUtf8()
+                    Response.Builder()
+                        .request(chain.request())
+                        .protocol(Protocol.HTTP_1_1)
+                        .code(200)
+                        .message("OK")
+                        .body(
+                            """
+                            {
+                              "choices": [
+                                {
+                                  "message": {
+                                    "role": "assistant",
+                                    "content": "",
+                                    "tool_calls": [
+                                      {
+                                        "id": "call-1",
+                                        "type": "function",
+                                        "function": {
+                                          "name": "create_alarm",
+                                          "arguments": "{\"title\":\"Take medicine\"}"
+                                        }
+                                      }
+                                    ]
+                                  }
+                                }
+                              ]
+                            }
+                            """.trimIndent().toResponseBody("application/json".toMediaType()),
+                        )
+                        .build()
+                })
+                .build(),
+        )
+
+        val result = client.complete(
+            basicRequest(toolChoice = AgentToolChoice.RequiredAnyTool),
+        )
+
+        assertThat(result).isEqualTo(
+            AgentLlmResult.Message(
+                AgentMessage(
+                    role = AgentMessageRole.ASSISTANT,
+                    content = "",
+                    toolCalls = listOf(AgentToolCall("call-1", "create_alarm", "{\"title\":\"Take medicine\"}")),
+                ),
+            ),
+        )
+        val body = Json.parseToJsonElement(capturedBody).jsonObject
+        assertThat(body["tool_choice"]!!.jsonPrimitive.content).isEqualTo("required")
+        assertThat(body["parallel_tool_calls"]!!.jsonPrimitive.content).isEqualTo("false")
+    }
+
+    @Test
     fun `tool follow up messages preserve tool metadata and auto choice omits tool choice`() = runTest {
         var capturedBody = ""
         val client = OpenRouterAgentClient(
@@ -364,7 +425,9 @@ class OpenRouterAgentClientTest {
     }
 }
 
-private fun basicRequest(): AgentLlmRequest = AgentLlmRequest(
+private fun basicRequest(
+    toolChoice: AgentToolChoice = AgentToolChoice.Required("create_alarm"),
+): AgentLlmRequest = AgentLlmRequest(
     apiKey = "sk-or-v1-test",
     modelId = "deepseek/deepseek-v4-flash",
     messages = listOf(AgentMessage(AgentMessageRole.USER, "tomorrow at 8")),
@@ -375,7 +438,7 @@ private fun basicRequest(): AgentLlmRequest = AgentLlmRequest(
             buildJsonObject { put("type", "object") },
         ),
     ),
-    toolChoice = AgentToolChoice.Required("create_alarm"),
+    toolChoice = toolChoice,
 )
 
 private fun responseClient(

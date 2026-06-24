@@ -5,6 +5,7 @@ import com.cory.noter.agent.AgentTool
 import com.cory.noter.agent.AgentToolCall
 import com.cory.noter.agent.AgentToolExecution
 import com.cory.noter.agent.AgentToolResult
+import com.cory.noter.agent.AgentToolRisk
 import com.cory.noter.agent.AgentToolSpec
 import com.cory.noter.alarm.AlarmSchedulingUseCase
 import com.cory.noter.alarm.ScheduleResult
@@ -39,6 +40,7 @@ class CreateAlarmTool(
         name = "create_alarm",
         description = "Create and schedule one local Android alarm from validated alarm fields.",
         parameters = createAlarmParameters(),
+        risk = AgentToolRisk.WRITE,
     )
 
     override suspend fun execute(call: AgentToolCall): AgentToolExecution {

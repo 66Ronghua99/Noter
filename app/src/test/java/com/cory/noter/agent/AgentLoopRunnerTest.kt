@@ -134,6 +134,124 @@ class AgentLoopRunnerTest {
     }
 
     @Test
+    fun `runner requires at least one registered tool for required any tool choice`() = runTest {
+        val gateway = RecordingGateway(
+            AgentLlmResult.Message(
+                AgentMessage(AgentMessageRole.ASSISTANT, "unused"),
+            ),
+        )
+
+        val result = AgentLoopRunner(gateway).run(
+            basicRequest(
+                toolRegistry = AgentToolRegistry(emptyList()),
+                toolChoice = AgentToolChoice.RequiredAnyTool,
+            ),
+        )
+
+        assertThat(result).isEqualTo(
+            AgentRunResult.Failed(
+                AgentFailure.MissingToolCall("RequiredAnyTool requires at least one registered tool."),
+            ),
+        )
+        assertThat(gateway.requests).isEmpty()
+    }
+
+    @Test
+    fun `runner accepts any registered tool when required any tool choice is used`() = runTest {
+        val gateway = RecordingGateway(
+            AgentLlmResult.Message(
+                AgentMessage(
+                    role = AgentMessageRole.ASSISTANT,
+                    content = "",
+                    toolCalls = listOf(AgentToolCall("call-reject", "reject_unclear_request", """{"reason":"unclear"}""")),
+                ),
+            ),
+            AgentLlmResult.Message(AgentMessage(AgentMessageRole.ASSISTANT, "Please try again.")),
+        )
+        val rejectTool = RecordingTool(
+            AgentToolSpec(
+                name = "reject_unclear_request",
+                description = "Reject an unclear request.",
+                parameters = buildJsonObject { put("type", "object") },
+                risk = AgentToolRisk.READ,
+            ),
+            AgentToolExecution.Success(
+                AgentToolResult(
+                    toolCallId = "call-reject",
+                    toolName = "reject_unclear_request",
+                    content = buildJsonObject {
+                        put("status", "rejected")
+                    },
+                    committed = false,
+                ),
+            ),
+        )
+
+        val result = AgentLoopRunner(gateway).run(
+            basicRequest(
+                toolRegistry = AgentToolRegistry(listOf(rejectTool)),
+                toolChoice = AgentToolChoice.RequiredAnyTool,
+            ),
+        )
+
+        assertThat(result).isInstanceOf(AgentRunResult.Completed::class.java)
+        assertThat(rejectTool.calls.single().name).isEqualTo("reject_unclear_request")
+        assertThat(gateway.requests[0].toolChoice).isEqualTo(AgentToolChoice.RequiredAnyTool)
+        assertThat(gateway.requests[1].toolChoice).isEqualTo(AgentToolChoice.Auto)
+    }
+
+    @Test
+    fun `runner rejects unregistered tool call when required any tool choice is used`() = runTest {
+        val gateway = RecordingGateway(
+            AgentLlmResult.Message(
+                AgentMessage(
+                    role = AgentMessageRole.ASSISTANT,
+                    content = "",
+                    toolCalls = listOf(AgentToolCall("call-missing", "reject_unclear_request", "{}")),
+                ),
+            ),
+        )
+
+        val result = AgentLoopRunner(gateway).run(
+            basicRequest(toolChoice = AgentToolChoice.RequiredAnyTool),
+        )
+
+        assertThat(result).isEqualTo(
+            AgentRunResult.Failed(AgentFailure.ToolNotRegistered("reject_unclear_request")),
+        )
+    }
+
+    @Test
+    fun `runner fails first turn final assistant response when required any tool choice is used`() = runTest {
+        val runner = AgentLoopRunner(
+            RecordingGateway(
+                AgentLlmResult.Message(AgentMessage(AgentMessageRole.ASSISTANT, "No tool needed.")),
+            ),
+        )
+
+        val result = runner.run(basicRequest(toolChoice = AgentToolChoice.RequiredAnyTool))
+
+        assertThat(result).isEqualTo(
+            AgentRunResult.Failed(AgentFailure.MissingToolCall("Model did not call a tool.")),
+        )
+    }
+
+    @Test
+    fun `tool specs carry provider neutral risk metadata`() {
+        val spec = AgentToolSpec(
+            name = "delete_alarm",
+            description = "Delete alarms.",
+            parameters = buildJsonObject { put("type", "object") },
+            risk = AgentToolRisk.DESTRUCTIVE,
+        )
+
+        assertThat(spec.risk).isEqualTo(AgentToolRisk.DESTRUCTIVE)
+        assertThat(AgentToolRisk.entries.map { it.name })
+            .containsExactly("READ", "WRITE", "DESTRUCTIVE", "BATCH")
+            .inOrder()
+    }
+
+    @Test
     fun `runner rejects non assistant final message and keeps committed tool result`() = runTest {
         val gateway = RecordingGateway(
             AgentLlmResult.Message(
