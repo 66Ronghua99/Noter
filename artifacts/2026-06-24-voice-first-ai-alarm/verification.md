@@ -29,10 +29,10 @@
 - Task 4 focused unit tests: passed.
 - Task 5 focused unit tests: passed after the Round 5 recorder setup failure fix.
 - Task 6 focused unit tests: Codex-verified after the Round 7 quick-release review fix.
-- Task 7 focused navigation/app wiring checks: passed locally; pending Codex stop-gate review.
+- Task 7 focused navigation/app wiring checks: Codex-verified after the Round 8 stop-gate review.
 - Debug androidTest APK compile: passed after adding the Round 8 app-level voice home navigation smoke coverage.
-- Full local gate (`testDebugUnitTest`, `lintDebug`, `assembleDebug`): pending later integration task.
-- Connected Android test: pending later integration task.
+- Full local gate (`testDebugUnitTest`, `lintDebug`, `assembleDebug`): passed in Round 9.
+- Connected Android test: unavailable in Round 9 because `/home/ronghua/.cache/android-sdk/platform-tools/adb devices -l` showed no attached devices; proof is recorded in `round9-adb-devices.log`.
 
 ## Task 2: Permanent `reject_unclear_request` Tool
 
@@ -254,3 +254,37 @@
 - Bounded architecture/refactor review:
   - Result: pass.
   - Notes: `NoterApp` owns route constants and navigation transitions (`app/src/main/java/com/cory/noter/ui/NoterApp.kt:11`); `MainActivity` owns Android microphone permission launch and production route composition (`app/src/main/java/com/cory/noter/MainActivity.kt:139`); `AppContainer` owns construction of Android recorder/STT/OpenRouter ASR/cleanup/background enqueue/coordinator providers (`app/src/main/java/com/cory/noter/di/AppContainer.kt:121`). `ui/voice` remains presentation/ViewModel-only and still does not import Android recorder/STT, OpenRouter, WorkManager, Room, or scheduler classes.
+
+## Round 9: Integration Regression And Evidence
+
+- Round contract: `.humanize/rlcr/2026-06-24_23-32-34/round-9-contract.md`
+- Review source: `.humanize/rlcr/2026-06-24_23-32-34/round-8-review-result.md`
+- BitLesson selection: `.humanize/bitlesson.md` still has no actual lessons. The selector returned the placeholder format for the evidence and handoff sync subtask, so Round 9 proceeded with `LESSON_IDS: NONE`.
+- Production legacy-tool absence check:
+  - Log: `artifacts/2026-06-24-voice-first-ai-alarm/round9-submit-alarm-draft-absence.log`
+  - Command: `rg -n "submit_alarm_draft" app/src/main/java app/src/main/res app/src/main/AndroidManifest.xml`
+  - Result: passed; no production hits were found.
+- Diff check:
+  - Log: `artifacts/2026-06-24-voice-first-ai-alarm/round9-git-diff-check.log`
+  - Command: `git diff --check`
+  - Result: passed with no output.
+- Full unit gate:
+  - Log: `artifacts/2026-06-24-voice-first-ai-alarm/round9-test-debug-unit-test.log`
+  - Command: `JAVA_TOOL_OPTIONS=-Duser.home=/tmp/noter-home HOME=/tmp/noter-home GRADLE_USER_HOME=/tmp/noter-gradle-home JAVA_HOME=/home/ronghua/.cache/codex-jdks/jdk-17 ANDROID_HOME=/home/ronghua/.cache/android-sdk ./gradlew --no-daemon --console=plain testDebugUnitTest`
+  - Result: passed; `BUILD SUCCESSFUL in 33s`.
+  - Note: an initial full-unit run exposed a stale `AiAlarmPromptBuilderTest` assertion for the deleted `"needsClarification"` prompt contract. The test now asserts the current `reject_unclear_request` and poor voice transcript instructions, and the full unit rerun passed.
+- Lint gate:
+  - Log: `artifacts/2026-06-24-voice-first-ai-alarm/round9-lint-debug.log`
+  - Command: `JAVA_TOOL_OPTIONS=-Duser.home=/tmp/noter-home HOME=/tmp/noter-home GRADLE_USER_HOME=/tmp/noter-gradle-home JAVA_HOME=/home/ronghua/.cache/codex-jdks/jdk-17 ANDROID_HOME=/home/ronghua/.cache/android-sdk ./gradlew --no-daemon --console=plain lintDebug`
+  - Result: passed; `BUILD SUCCESSFUL in 56s`.
+- Debug assemble gate:
+  - Log: `artifacts/2026-06-24-voice-first-ai-alarm/round9-assemble-debug.log`
+  - Command: `JAVA_TOOL_OPTIONS=-Duser.home=/tmp/noter-home HOME=/tmp/noter-home GRADLE_USER_HOME=/tmp/noter-gradle-home JAVA_HOME=/home/ronghua/.cache/codex-jdks/jdk-17 ANDROID_HOME=/home/ronghua/.cache/android-sdk ./gradlew --no-daemon --console=plain assembleDebug`
+  - Result: passed; `BUILD SUCCESSFUL in 22s`.
+- Connected Android test:
+  - Log: `artifacts/2026-06-24-voice-first-ai-alarm/round9-adb-devices.log`
+  - Command: `/home/ronghua/.cache/android-sdk/platform-tools/adb devices -l`
+  - Result: connected execution was unavailable; the fresh device list only printed `List of devices attached`.
+- Bounded architecture/refactor review:
+  - Result: pass.
+  - Notes: `ui/voice` remains presentation/ViewModel-only with no Android recorder/STT, OpenRouter, WorkManager, Room, repository, or scheduler imports. `voice/VoiceCaptureCoordinator.kt` owns provider-neutral recording/STT/ASR/enqueue lifecycle. `voice/AndroidVoiceAdapters.kt` owns Android recorder, system STT, cleanup, permission, and background enqueue adapters. `voice/OpenRouterVoiceAsrTranscriber.kt` owns OpenRouter ASR mapping. `AiAlarmCreator.kt` continues to use the agent path and existing background text AI creation path.
