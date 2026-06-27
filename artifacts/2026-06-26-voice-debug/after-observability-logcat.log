@@ -1,0 +1,110 @@
+06-26 22:52:26.917 I/com.cory.noter(10593): vart_impl, update 67108864, state=75497472
+06-26 22:52:27.422 W/NoterOpenRouter(10593): asr.response.invalid code=200 message= requestId=missing reason=OpenRouter ASR response did not contain transcript text. bodyPreview={"text":"","usage":{"seconds":3.84,"cost":0.000096}}
+06-26 22:52:27.423 D/NoterVoice(10593): voice.remoteAsr.failed reason=OpenRouter ASR response did not contain transcript text.
+06-26 22:52:29.970 I/com.cory.noter(10593): CollectorTransition concurrent copying GC freed 4374KB AllocSpace bytes, 6(108KB) LOS objects, 52% free, 5655KB(1868KB_48KB)/11MB, 2Bd, itvl 12.109s, cpu 36.254ms, paused 254us,24us total 43.290ms
+06-26 22:52:29.970 I/com.cory.noter(10593): vart_bigdata, last_report_time=1782485549970
+06-26 22:53:20.961 D/ActivityThread(32095): Package [com.cory.noter] reported as REPLACED, but missing application info. Assuming REMOVED.
+06-26 22:53:20.967 D/ActivityThread(32095): Package [com.cory.noter] reported as REPLACED, but missing application info. Assuming REMOVED.
+06-26 22:53:20.994 D/ActivityThread(13967): Package [com.cory.noter] reported as REPLACED, but missing application info. Assuming REMOVED.
+06-26 22:53:20.998 D/ActivityThread(13967): Package [com.cory.noter] reported as REPLACED, but missing application info. Assuming REMOVED.
+06-26 22:53:21.055 D/ActivityThread(  784): Package [com.cory.noter] reported as REPLACED, but missing application info. Assuming REMOVED.
+06-26 22:53:21.108 D/ActivityThread(  784): Package [com.cory.noter] reported as REPLACED, but missing application info. Assuming REMOVED.
+06-26 22:53:21.110 D/ActivityThread(  779): Package [com.cory.noter] reported as REPLACED, but missing application info. Assuming REMOVED.
+06-26 22:53:21.111 D/ActivityThread(  779): Package [com.cory.noter] reported as REPLACED, but missing application info. Assuming REMOVED.
+06-26 22:53:21.122 D/ActivityThread(31992): Package [com.cory.noter] reported as REPLACED, but missing application info. Assuming REMOVED.
+06-26 22:53:21.142 D/ActivityThread(31992): Package [com.cory.noter] reported as REPLACED, but missing application info. Assuming REMOVED.
+06-26 22:54:41.171 I/com.cory.noter(10593): vart_impl, update 109051904, state=109051904
+06-26 22:54:41.224 I/ImeTracker(10593): com.cory.noter:3258ea22: onCancelled at PHASE_CLIENT_ALREADY_HIDDEN
+06-26 22:54:41.447 W/InteractionJankMonitor(10593): Initializing without READ_DEVICE_CONFIG permission. enabled=false, interval=1, missedFrameThreshold=3, frameTimeThreshold=64, package=com.cory.noter
+06-26 22:55:36.604 V/MediaRecorder(10593): constructor
+06-26 22:55:36.605 V/MediaRecorder(10593): doCleanUp
+06-26 22:55:36.605 V/MediaRecorder(10593): setListener
+06-26 22:55:36.605 V/MediaRecorder(10593): setClientName
+06-26 22:55:36.606 V/MediaRecorder(10593): setAudioSource(1)
+06-26 22:55:36.606 V/MediaRecorder(10593): Call init() since the media recorder is not initialized yet
+06-26 22:55:36.606 V/MediaRecorder(10593): init
+06-26 22:55:36.601 W/support-thread(10593): type=1400 audit(0.0:29479259): avc:  denied  { read } for  name="u:object_r:vendor_feature_prop:s0" dev="tmpfs" ino=504 scontext=u:r:untrusted_app:s0:c131,c257,c512,c768 tcontext=u:object_r:vendor_feature_prop:s0 tclass=file permissive=0 app=com.cory.noter
+06-26 22:55:36.619 V/MediaRecorder(10593): setOutputFormat(2)
+06-26 22:55:36.619 V/MediaRecorder(10593): setAudioEncoder(3)
+06-26 22:55:36.619 V/MediaRecorder(10593): setOutputFile(204)
+06-26 22:55:36.619 V/MediaRecorder(10593): prepare
+06-26 22:55:36.620 V/MediaRecorder(10593): start
+06-26 22:55:36.681 D/NoterVoice(10593): voice.recording.started handle=/data/user/0/com.cory.noter/cache/noter-voice-2303880140174199342.m4a
+06-26 22:55:36.682 E/SpeechRecognizer(10593): no selected voice recognition service
+06-26 22:55:36.682 D/NoterVoice(10593): voice.systemStt.started
+06-26 22:55:36.717 W/binder:10593_4(10593): type=1400 audit(0.0:29479263): avc:  denied  { ioctl } for  path="/proc/fas/render" dev="proc" ino=4026532164 ioctlcmd=0x6609 scontext=u:r:untrusted_app:s0:c131,c257,c512,c768 tcontext=u:object_r:proc_fas:s0 tclass=file permissive=0 app=com.cory.noter
+06-26 22:55:36.725 W/binder:10593_4(10593): type=1400 audit(0.0:29479264): avc:  denied  { ioctl } for  path="/proc/fas/render" dev="proc" ino=4026532164 ioctlcmd=0x6609 scontext=u:r:untrusted_app:s0:c131,c257,c512,c768 tcontext=u:object_r:proc_fas:s0 tclass=file permissive=0 app=com.cory.noter
+06-26 22:55:37.401 E/com.cory.noter(10593): No package ID ff found for resource ID 0xffffffff.
+06-26 22:55:39.318 I/com.cory.noter(10593): Open vivo delay for GC JIT .
+06-26 22:55:42.194 V/MediaRecorder(10593): stop
+06-26 22:55:42.204 V/MediaRecorder(10593): message received msg=101, ext1=268436456, ext2=-1011
+06-26 22:55:42.204 V/MediaRecorder(10593): callback application
+06-26 22:55:42.204 V/MediaRecorder(10593): back from callback
+06-26 22:55:42.271 V/MediaRecorder(10593): doCleanUp
+06-26 22:55:42.272 V/MediaRecorder(10593): setListener
+06-26 22:55:42.272 V/MediaRecorder(10593): release
+06-26 22:55:42.274 V/MediaRecorder(10593): destructor
+06-26 22:55:42.275 D/NoterVoice(10593): voice.systemStt.result.failed reason=System speech recognition failed: 5
+06-26 22:55:42.293 W/MediaRecorder(10593): mediarecorder went away with unhandled events
+06-26 22:55:42.294 D/NoterVoice(10593): voice.remoteAsr.request model=nvidia/parakeet-tdt-0.6b-v3 audioBytes=11549
+06-26 22:55:42.302 D/NoterOpenRouter(10593): asr.request.start endpoint=https://openrouter.ai/api/v1/audio/transcriptions model=nvidia/parakeet-tdt-0.6b-v3 audioBytes=11549
+06-26 22:55:42.297 W/binder:10593_4(10593): type=1400 audit(0.0:29479276): avc:  denied  { ioctl } for  path="/proc/fas/render" dev="proc" ino=4026532164 ioctlcmd=0x6609 scontext=u:r:untrusted_app:s0:c131,c257,c512,c768 tcontext=u:object_r:proc_fas:s0 tclass=file permissive=0 app=com.cory.noter
+06-26 22:55:42.377 I/com.cory.noter(10593): Close vivo delay for GC JIT .
+06-26 22:55:44.630 W/NoterOpenRouter(10593): asr.response.invalid code=200 message= requestId=missing reason=OpenRouter ASR response did not contain transcript text. bodyPreview={"text":"","usage":{"seconds":5.376,"cost":0.0001344}}
+06-26 22:55:44.632 D/NoterVoice(10593): voice.remoteAsr.failed reason=OpenRouter ASR response did not contain transcript text.
+06-26 22:55:44.717 W/binder:10593_4(10593): type=1400 audit(0.0:29479282): avc:  denied  { ioctl } for  path="/proc/fas/render" dev="proc" ino=4026532164 ioctlcmd=0x6609 scontext=u:r:untrusted_app:s0:c131,c257,c512,c768 tcontext=u:object_r:proc_fas:s0 tclass=file permissive=0 app=com.cory.noter
+06-26 22:55:44.733 W/binder:10593_4(10593): type=1400 audit(0.0:29479283): avc:  denied  { ioctl } for  path="/proc/fas/render" dev="proc" ino=4026532164 ioctlcmd=0x6609 scontext=u:r:untrusted_app:s0:c131,c257,c512,c768 tcontext=u:object_r:proc_fas:s0 tclass=file permissive=0 app=com.cory.noter
+06-26 22:56:15.794 V/MediaRecorder(10593): constructor
+06-26 22:56:15.795 V/MediaRecorder(10593): doCleanUp
+06-26 22:56:15.795 V/MediaRecorder(10593): setListener
+06-26 22:56:15.795 V/MediaRecorder(10593): setClientName
+06-26 22:56:15.796 V/MediaRecorder(10593): setAudioSource(1)
+06-26 22:56:15.796 V/MediaRecorder(10593): Call init() since the media recorder is not initialized yet
+06-26 22:56:15.796 V/MediaRecorder(10593): init
+06-26 22:56:15.806 V/MediaRecorder(10593): setOutputFormat(2)
+06-26 22:56:15.806 V/MediaRecorder(10593): setAudioEncoder(3)
+06-26 22:56:15.807 V/MediaRecorder(10593): setOutputFile(153)
+06-26 22:56:15.807 V/MediaRecorder(10593): prepare
+06-26 22:56:15.807 V/MediaRecorder(10593): start
+06-26 22:56:15.856 D/NoterVoice(10593): voice.recording.started handle=/data/user/0/com.cory.noter/cache/noter-voice-1679726540705706511.m4a
+06-26 22:56:15.859 E/SpeechRecognizer(10593): no selected voice recognition service
+06-26 22:56:15.859 D/NoterVoice(10593): voice.systemStt.started
+06-26 22:56:15.891 I/com.cory.noter(10593): Open vivo delay for GC JIT .
+06-26 22:56:15.897 W/binder:10593_2(10593): type=1400 audit(0.0:29479359): avc:  denied  { ioctl } for  path="/proc/fas/render" dev="proc" ino=4026532164 ioctlcmd=0x6609 scontext=u:r:untrusted_app:s0:c131,c257,c512,c768 tcontext=u:object_r:proc_fas:s0 tclass=file permissive=0 app=com.cory.noter
+06-26 22:56:15.909 W/binder:10593_2(10593): type=1400 audit(0.0:29479360): avc:  denied  { ioctl } for  path="/proc/fas/render" dev="proc" ino=4026532164 ioctlcmd=0x6609 scontext=u:r:untrusted_app:s0:c131,c257,c512,c768 tcontext=u:object_r:proc_fas:s0 tclass=file permissive=0 app=com.cory.noter
+06-26 22:56:16.560 E/com.cory.noter(10593): No package ID ff found for resource ID 0xffffffff.
+06-26 22:56:20.072 V/MediaRecorder(10593): stop
+06-26 22:56:20.093 V/MediaRecorder(10593): message received msg=101, ext1=268436456, ext2=-1011
+06-26 22:56:20.093 V/MediaRecorder(10593): callback application
+06-26 22:56:20.093 V/MediaRecorder(10593): back from callback
+06-26 22:56:20.147 V/MediaRecorder(10593): doCleanUp
+06-26 22:56:20.147 V/MediaRecorder(10593): setListener
+06-26 22:56:20.148 V/MediaRecorder(10593): release
+06-26 22:56:20.150 V/MediaRecorder(10593): destructor
+06-26 22:56:20.150 D/NoterVoice(10593): voice.systemStt.result.failed reason=System speech recognition failed: 5
+06-26 22:56:20.172 W/MediaRecorder(10593): mediarecorder went away with unhandled events
+06-26 22:56:20.173 D/NoterVoice(10593): voice.remoteAsr.request model=nvidia/parakeet-tdt-0.6b-v3 audioBytes=9521
+06-26 22:56:20.179 D/NoterOpenRouter(10593): asr.request.start endpoint=https://openrouter.ai/api/v1/audio/transcriptions model=nvidia/parakeet-tdt-0.6b-v3 audioBytes=9521
+06-26 22:56:20.185 W/binder:10593_4(10593): type=1400 audit(0.0:29479369): avc:  denied  { ioctl } for  path="/proc/fas/render" dev="proc" ino=4026532164 ioctlcmd=0x6609 scontext=u:r:untrusted_app:s0:c131,c257,c512,c768 tcontext=u:object_r:proc_fas:s0 tclass=file permissive=0 app=com.cory.noter
+06-26 22:56:20.209 I/com.cory.noter(10593): Close vivo delay for GC JIT .
+06-26 22:56:21.595 D/NoterOpenRouter(10593): asr.response.transcribed code=200 message= requestId=missing transcriptChars=28
+06-26 22:56:21.597 D/NoterVoice(10593): voice.remoteAsr.transcript chars=28
+06-26 22:56:21.615 D/NoterVoice(10593): voice.transcript.enqueued chars=28
+06-26 22:56:21.657 W/binder:10593_4(10593): type=1400 audit(0.0:29479373): avc:  denied  { ioctl } for  path="/proc/fas/render" dev="proc" ino=4026532164 ioctlcmd=0x6609 scontext=u:r:untrusted_app:s0:c131,c257,c512,c768 tcontext=u:object_r:proc_fas:s0 tclass=file permissive=0 app=com.cory.noter
+06-26 22:56:21.699 D/WM-WorkerWrapper(10593): Starting work for com.cory.noter.ai.AiCreateWorker
+06-26 22:56:21.753 D/NoterOpenRouter(10593): request.start endpoint=https://openrouter.ai/api/v1/chat/completions model=deepseek/deepseek-v4-flash messages=1 tools=2
+06-26 22:56:21.759 D/Linux   (10593): [Posix_connect Debug]Process com.cory.noter :443 
+06-26 22:56:21.953 I/Notify_NotificPush( 8888): 1600104310|R|I|Start onNotificationPosted: StatusBarNotification(pkg=com.cory.noter user=UserHandle{0} id=21001 tag=null key=0|com.cory.noter|21001|null|10387 : Notification(channel=ai_alarm_creation shortcut=null contentView=null vibrate=null sound=null defaults=0 flags=ONGOING_EVENT color=0x00000000 category=status vis=PRIVATE internalType=0 internalPriority=0 internalGroupPriority=0 internalFlag=0))
+06-26 22:56:21.962 I/Notify_LiveNotificationUtils( 8888): 1600104310|R|I|onNotificationPosted or onNotificationRemoved liveInfo liveType0x20: 0,pkg=com.cory.noter
+06-26 22:56:21.962 W/Notify_NotificPush( 8888): 1600104310|R|W|onNotificationPosted FILTERED because SUB_SWITCH_TURN_OFF,pkg=com.cory.noter
+06-26 22:56:21.962 I/Notify_NotificPush( 8888): 1600104310|R|I|com.cory.noter onNotificationPosted isMeetPushConditions?(false=filtered): false
+06-26 22:56:32.060 D/NoterOpenRouter(10593): request.start endpoint=https://openrouter.ai/api/v1/chat/completions model=deepseek/deepseek-v4-flash messages=3 tools=2
+06-26 22:56:40.673 I/ImeTracker(10593): com.cory.noter:792488c0: onCancelled at PHASE_CLIENT_ALREADY_HIDDEN
+06-26 22:56:42.806 I/WM-WorkerWrapper(10593): Worker result FAILURE for Work [ id=643a47f5-57c7-48f9-9c2f-b54908a07554, tags={ com.cory.noter.ai.AiCreateWorker,ai_create_alarm } ]
+06-26 22:56:42.817 I/Notify_NotificPush( 8888): 1600104310|R|I|Start onNotificationRemoved isJumpSmsCheck: false ,Notification is: StatusBarNotification(pkg=com.cory.noter user=UserHandle{0} id=21001 tag=null key=0|com.cory.noter|21001|null|10387 : Notification(channel=ai_alarm_creation shortcut=null contentView=null vibrate=null sound=null defaults=0 flags=ONGOING_EVENT color=0x00000000 category=status vis=PRIVATE internalType=0 internalPriority=0 internalGroupPriority=0 internalFlag=0))
+06-26 22:56:42.824 I/Notify_NotificPush( 8888): 1600104310|R|I|onNotificationRemoved: com.cory.noter removed msg when: 1782485781704,postTime: 1782485781710
+06-26 22:56:42.828 I/Notify_LiveNotificationUtils( 8888): 1600104310|R|I|onNotificationPosted or onNotificationRemoved liveInfo liveType0x20: 0,pkg=com.cory.noter
+06-26 22:56:43.029 I/Notify_NotificPush( 8888): 1600104310|R|I|Start onNotificationPosted: StatusBarNotification(pkg=com.cory.noter user=UserHandle{0} id=21002 tag=null key=0|com.cory.noter|21002|null|10387 : Notification(channel=ai_alarm_creation shortcut=null contentView=null vibrate=null sound=null defaults=0 flags=AUTO_CANCEL color=0x00000000 category=status vis=PRIVATE internalType=0 internalPriority=0 internalGroupPriority=0 internalFlag=0))
+06-26 22:56:43.035 I/Notify_LiveNotificationUtils( 8888): 1600104310|R|I|onNotificationPosted or onNotificationRemoved liveInfo liveType0x20: 0,pkg=com.cory.noter
+06-26 22:56:43.035 W/Notify_NotificPush( 8888): 1600104310|R|W|onNotificationPosted FILTERED because SUB_SWITCH_TURN_OFF,pkg=com.cory.noter
+06-26 22:56:43.035 I/Notify_NotificPush( 8888): 1600104310|R|I|com.cory.noter onNotificationPosted isMeetPushConditions?(false=filtered): false

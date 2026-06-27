@@ -51,6 +51,7 @@ class OpenRouterAsrClientTest {
             OpenRouterAsrRequest(
                 apiKey = "sk-or-v1-test",
                 modelId = AsrModel.builtInIds[1],
+                languageCode = "zh",
                 audioBytes = audioBytes,
             ),
         )
@@ -63,6 +64,7 @@ class OpenRouterAsrClientTest {
         val inputAudio = body["input_audio"]!!.jsonObject
         assertThat(inputAudio["data"]!!.jsonPrimitive.content).isEqualTo(audioBytes.toByteString().base64())
         assertThat(inputAudio["format"]!!.jsonPrimitive.content).isEqualTo("m4a")
+        assertThat(body["language"]!!.jsonPrimitive.content).isEqualTo("zh")
         assertThat(body).doesNotContainKey("audio")
     }
 
@@ -73,6 +75,36 @@ class OpenRouterAsrClientTest {
         val result = client.transcribe(basicAsrRequest())
 
         assertThat(result).isEqualTo(AsrTranscriptionResult.Transcribed("turn on the alarm"))
+    }
+
+    @Test
+    fun `asr request start log includes language hint`() = runTest {
+        val logger = RecordingOpenRouterDebugLogger()
+        val client = responseClient(
+            """{"text":"明天早上八点叫我起床"}""",
+            debugLogger = logger,
+        )
+
+        client.transcribe(basicAsrRequest(languageCode = "zh"))
+
+        assertThat(logger.debugs.first())
+            .contains("asr.request.start endpoint=https://openrouter.ai/api/v1/audio/transcriptions")
+        assertThat(logger.debugs.first()).contains("language=zh")
+    }
+
+    @Test
+    fun `transcribed response log includes safe transcript preview`() = runTest {
+        val logger = RecordingOpenRouterDebugLogger()
+        val client = responseClient(
+            """{"text":"明天早上八点叫我起床"}""",
+            debugLogger = logger,
+        )
+
+        client.transcribe(basicAsrRequest(languageCode = "zh"))
+
+        assertThat(logger.debugs.last())
+            .contains("asr.response.transcribed code=200 message=OK requestId=missing transcriptChars=10")
+        assertThat(logger.debugs.last()).contains("transcriptPreview=明天早上八点叫我起床")
     }
 
     @Test
@@ -165,6 +197,24 @@ class OpenRouterAsrClientTest {
     }
 
     @Test
+    fun `malformed successful response logs safe response preview for diagnosis`() = runTest {
+        val logger = RecordingOpenRouterDebugLogger()
+        val client = responseClient(
+            """{"choices":[{"message":{"content":"not a transcription response"}}]}""",
+            debugLogger = logger,
+        )
+
+        val result = client.transcribe(basicAsrRequest())
+
+        assertThat(result).isEqualTo(
+            AsrTranscriptionResult.InvalidResponse("OpenRouter ASR response did not contain transcript text."),
+        )
+        assertThat(logger.warns.single())
+            .contains("asr.response.invalid code=200 message=OK requestId=missing")
+        assertThat(logger.warns.single()).contains("bodyPreview={\"choices\"")
+    }
+
+    @Test
     fun `blank transcript maps to invalid response`() = runTest {
         val client = responseClient("""{"text":"   "}""")
 
@@ -223,9 +273,11 @@ private class ThrowingResponseBody(
 
 private fun basicAsrRequest(
     modelId: String = AsrModel.DefaultId,
+    languageCode: String? = null,
 ): OpenRouterAsrRequest = OpenRouterAsrRequest(
     apiKey = "sk-or-v1-test",
     modelId = modelId,
+    languageCode = languageCode,
     audioBytes = "audio-bytes".encodeToByteArray(),
 )
 
@@ -233,6 +285,7 @@ private fun responseClient(
     body: String,
     code: Int = 200,
     message: String = "OK",
+    debugLogger: OpenRouterDebugLogger = NoOpOpenRouterDebugLogger,
 ): OpenRouterAsrClient = OpenRouterAsrClient(
     callFactory = OkHttpClient.Builder()
         .addInterceptor(Interceptor { chain ->
@@ -245,4 +298,18 @@ private fun responseClient(
                 .build()
         })
         .build(),
+    debugLogger = debugLogger,
 )
+
+private class RecordingOpenRouterDebugLogger : OpenRouterDebugLogger {
+    val debugs = mutableListOf<String>()
+    val warns = mutableListOf<String>()
+
+    override fun debug(message: String) {
+        debugs += message
+    }
+
+    override fun warn(message: String, error: Throwable?) {
+        warns += message
+    }
+}

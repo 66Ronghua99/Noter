@@ -1,0 +1,442 @@
+06-26 23:27:14.755 V/MediaRecorder(20963): constructor
+06-26 23:27:14.756 I/com.cory.noter(20963): vart_dgc, 8192KB,32MB,0.5
+06-26 23:27:14.756 I/com.cory.noter(20963): Background concurrent copying GC freed 3396KB AllocSpace bytes, 1(16KB) LOS objects, 82% free, 5067KB(1684KB_40KB)/28MB, 2Fd, itvl 19.041s, cpu 45.567ms, paused 137us,18us total 47.698ms
+06-26 23:27:14.756 I/com.cory.noter(20963): vart_bigdata, last_report_time=1782487634756
+06-26 23:27:14.757 V/MediaRecorder(20963): doCleanUp
+06-26 23:27:14.757 V/MediaRecorder(20963): setListener
+06-26 23:27:14.757 V/MediaRecorder(20963): setClientName
+06-26 23:27:14.758 D/PermissionController(20963): BpPermissionController checking  android.permission.RECORD_AUDIO for uid=10387 pid=> 20963 , result: 1
+06-26 23:27:14.759 V/MediaRecorder(20963): setAudioSource(1)
+06-26 23:27:14.759 V/MediaRecorder(20963): Call init() since the media recorder is not initialized yet
+06-26 23:27:14.759 V/MediaRecorder(20963): init
+06-26 23:27:14.780 V/MediaRecorder(20963): setOutputFormat(2)
+06-26 23:27:14.780 V/MediaRecorder(20963): setAudioEncoder(3)
+06-26 23:27:14.780 V/MediaRecorder(20963): setOutputFile(5)
+06-26 23:27:14.781 V/MediaRecorder(20963): prepare
+06-26 23:27:14.781 V/MediaRecorder(20963): start
+06-26 23:27:14.883 D/NoterVoice(20963): voice.recording.started handle=/data/user/0/com.cory.noter/cache/noter-voice-2588589379000048005.m4a
+06-26 23:27:14.889 E/SpeechRecognizer(20963): no selected voice recognition service
+06-26 23:27:14.889 D/NoterVoice(20963): voice.systemStt.started
+06-26 23:27:14.917 W/binder:20963_1(20963): type=1400 audit(0.0:29509011): avc:  denied  { ioctl } for  path="/proc/fas/render" dev="proc" ino=4026532164 ioctlcmd=0x6609 scontext=u:r:untrusted_app:s0:c131,c257,c512,c768 tcontext=u:object_r:proc_fas:s0 tclass=file permissive=0 app=com.cory.noter
+06-26 23:27:15.502 V/ActivityThread(20963): updateVmProcessStateForGc sceneId =2 state=197376
+06-26 23:27:15.502 I/com.cory.noter(20963): Open vivo delay for GC JIT .
+06-26 23:27:18.830 I/kloadclassifier(20335): Forcing GC for allocation-inactive process
+06-26 23:27:18.876 I/kloadclassifier(20335): Background concurrent copying GC freed 818KB AllocSpace bytes, 2(32KB) LOS objects, 76% free, 1865KB(1668KB_4096B)/8009KB, 2, itvl 34.199s, cpu 42.032ms, paused 108us,28us total 45.484ms
+06-26 23:27:19.028 V/MediaRecorder(20963): stop
+06-26 23:27:19.040 V/MediaRecorder(20963): message received msg=101, ext1=268436456, ext2=-1011
+06-26 23:27:19.040 V/MediaRecorder(20963): callback application
+06-26 23:27:19.040 V/MediaRecorder(20963): back from callback
+06-26 23:27:19.102 V/MediaRecorder(20963): doCleanUp
+06-26 23:27:19.105 V/MediaRecorder(20963): setListener
+06-26 23:27:19.105 V/MediaRecorder(20963): release
+06-26 23:27:19.106 V/MediaRecorder(20963): destructor
+06-26 23:27:19.107 D/NoterVoice(20963): voice.systemStt.result.failed reason=System speech recognition failed: 5
+06-26 23:27:19.111 D/CompatChangeReporter(20963): Compat change id reported: 312399441; UID 10387; state: ENABLED
+06-26 23:27:19.130 W/MediaRecorder(20963): mediarecorder went away with unhandled events
+06-26 23:27:19.132 D/NoterVoice(20963): voice.remoteAsr.request model=qwen/qwen3-asr-flash-2026-02-10 selectedModel=nvidia/parakeet-tdt-0.6b-v3 language=zh audioBytes=9415
+06-26 23:27:19.137 W/binder:20963_1(20963): type=1400 audit(0.0:29509023): avc:  denied  { ioctl } for  path="/proc/fas/render" dev="proc" ino=4026532164 ioctlcmd=0x6609 scontext=u:r:untrusted_app:s0:c131,c257,c512,c768 tcontext=u:object_r:proc_fas:s0 tclass=file permissive=0 app=com.cory.noter
+06-26 23:27:19.149 D/NoterOpenRouter(20963): asr.request.start endpoint=https://openrouter.ai/api/v1/audio/transcriptions model=qwen/qwen3-asr-flash-2026-02-10 language=zh audioBytes=9415
+06-26 23:27:19.166 V/ActivityThread(20963): updateVmProcessStateForGc sceneId =2 state=196608
+06-26 23:27:19.166 I/com.cory.noter(20963): Close vivo delay for GC JIT .
+06-26 23:27:19.194 D/Linux   (20963): [Posix_connect Debug]Process com.cory.noter :443 
+06-26 23:27:20.963 I/TimeEat_PoolMonitor( 8888): 1600104310|R|I|haf-def-1-main, state{[20, 5, 20], poolSize=3, activeCount=0, runNum=0, waitNum=(0, 0, 0)}, stage{interval=120047, cmpNum=8, avgRunTime=44, maxRunTime=306}, total{taskCmpNum=3874, avgRunTime=31, maxRunTime=11396}
+06-26 23:27:21.330 D/NoterOpenRouter(20963): asr.response.transcribed code=200 message= requestId=missing transcriptChars=12 transcriptPreview=定一个明天早上九点的闹。
+06-26 23:27:21.330 D/NoterVoice(20963): voice.remoteAsr.transcript chars=12
+06-26 23:27:21.336 D/NoterVoice(20963): voice.transcript.enqueued chars=12
+06-26 23:27:21.358 W/JobInfo (20963): Requested important-while-foreground flag for job7 is ignored and takes no effect
+06-26 23:27:21.358 D/CompatChangeReporter(20963): Compat change id reported: 311402873; UID 10387; state: ENABLED
+06-26 23:27:21.358 D/CompatChangeReporter(20963): Compat change id reported: 323349338; UID 10387; state: ENABLED
+06-26 23:27:21.358 D/WM-SystemJobScheduler(20963): Scheduling work ID 4e804594-25e4-4fe2-9835-772b66ceb5f4Job ID 7
+06-26 23:27:21.366 D/WM-GreedyScheduler(20963): Starting work for 4e804594-25e4-4fe2-9835-772b66ceb5f4
+06-26 23:27:21.366 D/WM-SystemJobService(20963): onStartJob for WorkGenerationalId(workSpecId=4e804594-25e4-4fe2-9835-772b66ceb5f4, generation=0)
+06-26 23:27:21.371 D/WM-Processor(20963): Processor: processing WorkGenerationalId(workSpecId=4e804594-25e4-4fe2-9835-772b66ceb5f4, generation=0)
+06-26 23:27:21.365 W/binder:20963_1(20963): type=1400 audit(0.0:29509029): avc:  denied  { ioctl } for  path="/proc/fas/render" dev="proc" ino=4026532164 ioctlcmd=0x6609 scontext=u:r:untrusted_app:s0:c131,c257,c512,c768 tcontext=u:object_r:proc_fas:s0 tclass=file permissive=0 app=com.cory.noter
+06-26 23:27:21.374 D/WM-Processor(20963): Work WorkGenerationalId(workSpecId=4e804594-25e4-4fe2-9835-772b66ceb5f4, generation=0) is already enqueued for processing
+06-26 23:27:21.381 D/WM-WorkerWrapper(20963): Starting work for com.cory.noter.ai.AiCreateWorker
+06-26 23:27:21.382 D/NoterAiCreateNotify(20963): notify.started
+06-26 23:27:21.384 D/WM-PackageManagerHelper(20963): androidx.work.impl.background.systemalarm.RescheduleReceiver enabled
+06-26 23:27:21.390 D/NoterAiCreateNotify(20963): notify.posted id=21001
+06-26 23:27:21.408 D/NoterOpenRouter(20963): request.start endpoint=https://openrouter.ai/api/v1/chat/completions model=deepseek/deepseek-v4-flash messages=1 tools=2
+06-26 23:27:21.415 D/Linux   (20963): [Posix_connect Debug]Process com.cory.noter :443 
+06-26 23:27:21.630 I/Notify_NotificPush( 8888): 1600104310|R|I|Start onNotificationPosted: StatusBarNotification(pkg=com.cory.noter user=UserHandle{0} id=21001 tag=null key=0|com.cory.noter|21001|null|10387 : Notification(channel=ai_alarm_creation shortcut=null contentView=null vibrate=null sound=null defaults=0 flags=ONGOING_EVENT color=0x00000000 category=status vis=PRIVATE internalType=0 internalPriority=0 internalGroupPriority=0 internalFlag=0))
+06-26 23:27:21.640 I/Notify_LiveNotificationUtils( 8888): 1600104310|R|I|onNotificationPosted or onNotificationRemoved liveInfo liveType0x20: 0,pkg=com.cory.noter
+06-26 23:27:21.640 W/Notify_NotificPush( 8888): 1600104310|R|W|onNotificationPosted FILTERED because SUB_SWITCH_TURN_OFF,pkg=com.cory.noter
+06-26 23:27:21.640 I/Notify_NotificPush( 8888): 1600104310|R|I|com.cory.noter onNotificationPosted isMeetPushConditions?(false=filtered): false
+06-26 23:27:21.641 I/FormalHASDK( 8888): HAImpl==> onEvent. tag:_default_config_tag, type:1, eventId:85070006
+06-26 23:27:30.760 D/NoterOpenRouter(20963): request.start endpoint=https://openrouter.ai/api/v1/chat/completions model=deepseek/deepseek-v4-flash messages=3 tools=2
+06-26 23:27:30.922 D/LogUtil_LogConfig( 8888): getLogFile(): logFilePath = /data/user/0/com.huawei.health/files/com.huawei.health/com.huawei.health_DaemonService/
+06-26 23:27:36.719 D/NoterAiCreateNotify(20963): notify.result type=Created
+06-26 23:27:36.729 D/NoterAiCreateNotify(20963): notify.posted id=21002
+06-26 23:27:36.737 I/WM-WorkerWrapper(20963): Worker result SUCCESS for Work [ id=4e804594-25e4-4fe2-9835-772b66ceb5f4, tags={ com.cory.noter.ai.AiCreateWorker,ai_create_alarm } ]
+06-26 23:27:36.741 D/WM-Processor(20963): Processor 4e804594-25e4-4fe2-9835-772b66ceb5f4 executed; reschedule = false
+06-26 23:27:36.742 D/WM-SystemJobService(20963): 4e804594-25e4-4fe2-9835-772b66ceb5f4 executed on JobScheduler
+06-26 23:27:36.746 D/WM-GreedyScheduler(20963): Cancelling work ID 4e804594-25e4-4fe2-9835-772b66ceb5f4
+06-26 23:27:36.749 I/Notify_NotificPush( 8888): 1600104310|R|I|Start onNotificationRemoved isJumpSmsCheck: false ,Notification is: StatusBarNotification(pkg=com.cory.noter user=UserHandle{0} id=21001 tag=null key=0|com.cory.noter|21001|null|10387 : Notification(channel=ai_alarm_creation shortcut=null contentView=null vibrate=null sound=null defaults=0 flags=ONGOING_EVENT color=0x00000000 category=status vis=PRIVATE internalType=0 internalPriority=0 internalGroupPriority=0 internalFlag=0))
+06-26 23:27:36.754 D/WM-PackageManagerHelper(20963): androidx.work.impl.background.systemalarm.RescheduleReceiver disabled
+06-26 23:27:36.759 I/Notify_NotificPush( 8888): 1600104310|R|I|onNotificationRemoved: com.cory.noter removed msg when: 1782487641384,postTime: 1782487641389
+06-26 23:27:36.762 I/Notify_LiveNotificationUtils( 8888): 1600104310|R|I|onNotificationPosted or onNotificationRemoved liveInfo liveType0x20: 0,pkg=com.cory.noter
+06-26 23:27:36.762 I/Notify_NotifiPush( 8888): 1600104310|R|I|onNotificationRemoved filter FLAG_ONGOING_EVENT
+06-26 23:27:36.963 I/Notify_NotificPush( 8888): 1600104310|R|I|Start onNotificationPosted: StatusBarNotification(pkg=com.cory.noter user=UserHandle{0} id=21002 tag=null key=0|com.cory.noter|21002|null|10387 : Notification(channel=ai_alarm_creation shortcut=null contentView=null vibrate=null sound=null defaults=0 flags=AUTO_CANCEL color=0x00000000 category=status vis=PRIVATE internalType=0 internalPriority=0 internalGroupPriority=0 internalFlag=0))
+06-26 23:27:36.969 I/Notify_LiveNotificationUtils( 8888): 1600104310|R|I|onNotificationPosted or onNotificationRemoved liveInfo liveType0x20: 0,pkg=com.cory.noter
+06-26 23:27:36.969 W/Notify_NotificPush( 8888): 1600104310|R|W|onNotificationPosted FILTERED because SUB_SWITCH_TURN_OFF,pkg=com.cory.noter
+06-26 23:27:36.969 I/Notify_NotificPush( 8888): 1600104310|R|I|com.cory.noter onNotificationPosted isMeetPushConditions?(false=filtered): false
+06-26 23:27:36.970 I/FormalHASDK( 8888): HAImpl==> onEvent. tag:_default_config_tag, type:1, eventId:85070006
+06-26 23:27:41.868 I/Notify_NotificPush( 8888): 1600104310|R|I|Start onNotificationRemoved isJumpSmsCheck: false ,Notification is: StatusBarNotification(pkg=com.cory.noter user=UserHandle{0} id=21002 tag=null key=0|com.cory.noter|21002|null|10387 : Notification(channel=ai_alarm_creation shortcut=null contentView=null vibrate=null sound=null defaults=0 flags=AUTO_CANCEL color=0x00000000 category=status vis=PRIVATE internalType=0 internalPriority=0 internalGroupPriority=0 internalFlag=0))
+06-26 23:27:41.875 I/Notify_NotificPush( 8888): 1600104310|R|I|onNotificationRemoved: com.cory.noter removed msg when: 1782487656722,postTime: 1782487656727
+06-26 23:27:41.886 I/Notify_LiveNotificationUtils( 8888): 1600104310|R|I|onNotificationPosted or onNotificationRemoved liveInfo liveType0x20: 0,pkg=com.cory.noter
+06-26 23:27:41.887 I/Notify_NotifiPush( 8888): 1600104310|R|I|onNotificationPosted or onNotificationRemoved liveInfo liveType0x20: 0,liveEvent0x1F: OTHER,pkg=com.cory.noter
+06-26 23:27:41.887 W/Notify_NotificPush( 8888): 1600104310|R|W|onNotificationRemoved filter type is else
+06-26 23:27:42.524 V/ImeFocusController(20963): onWindowFocus: com.android.internal.policy.DecorView{f18b497 V.E...... R....... 0,0-1260,2800 aid=0}[MainActivity] softInputMode=STATE_UNSPECIFIED|ADJUST_PAN
+06-26 23:27:42.526 I/ImeTracker(20963): com.cory.noter:81e4bd51: onCancelled at PHASE_CLIENT_ALREADY_HIDDEN
+06-26 23:27:43.599 W/libc    (20963): Access denied finding property "ro.vendor.vivo.software.ai.llm.disable"
+06-26 23:27:43.593 W/support-thread(20963): type=1400 audit(0.0:29509314): avc:  denied  { read } for  name="u:object_r:vendor_feature_prop:s0" dev="tmpfs" ino=504 scontext=u:r:untrusted_app:s0:c131,c257,c512,c768 tcontext=u:object_r:vendor_feature_prop:s0 tclass=file permissive=0 app=com.cory.noter
+06-26 23:27:43.613 W/binder:20963_1(20963): type=1400 audit(0.0:29509315): avc:  denied  { ioctl } for  path="/proc/fas/render" dev="proc" ino=4026532164 ioctlcmd=0x6609 scontext=u:r:untrusted_app:s0:c131,c257,c512,c768 tcontext=u:object_r:proc_fas:s0 tclass=file permissive=0 app=com.cory.noter
+06-26 23:27:43.621 W/binder:20963_1(20963): type=1400 audit(0.0:29509316): avc:  denied  { ioctl } for  path="/proc/fas/render" dev="proc" ino=4026532164 ioctlcmd=0x6609 scontext=u:r:untrusted_app:s0:c131,c257,c512,c768 tcontext=u:object_r:proc_fas:s0 tclass=file permissive=0 app=com.cory.noter
+06-26 23:27:43.633 W/binder:20963_1(20963): type=1400 audit(0.0:29509317): avc:  denied  { ioctl } for  path="/proc/fas/render" dev="proc" ino=4026532164 ioctlcmd=0x6609 scontext=u:r:untrusted_app:s0:c131,c257,c512,c768 tcontext=u:object_r:proc_fas:s0 tclass=file permissive=0 app=com.cory.noter
+06-26 23:27:43.645 W/binder:20963_1(20963): type=1400 audit(0.0:29509318): avc:  denied  { ioctl } for  path="/proc/fas/render" dev="proc" ino=4026532164 ioctlcmd=0x6609 scontext=u:r:untrusted_app:s0:c131,c257,c512,c768 tcontext=u:object_r:proc_fas:s0 tclass=file permissive=0 app=com.cory.noter
+06-26 23:27:43.701 W/WindowOnBackDispatcher(20963): OnBackInvokedCallback is not enabled for the application.
+06-26 23:27:43.701 W/WindowOnBackDispatcher(20963): Set 'android:enableOnBackInvokedCallback="true"' in the application manifest.
+06-26 23:27:43.837 D/CompatChangeReporter(20963): Compat change id reported: 270674727; UID 10387; state: ENABLED
+06-26 23:27:44.756 V/ActivityThread(20963): updateVmProcessStateForGc sceneId =2 state=197376
+06-26 23:27:44.756 I/com.cory.noter(20963): Open vivo delay for GC JIT .
+06-26 23:27:44.773 I/com.cory.noter(20963): hiddenapi: Accessing hidden method Landroid/view/ViewTreeObserver;->dispatchOnScrollChanged()V (runtime_flags=0, domain=platform, api=unsupported) from Landroidx/compose/ui/platform/AndroidComposeView$Companion; (domain=app) using reflection: allowed
+06-26 23:27:44.785 W/binder:20963_1(20963): type=1400 audit(0.0:29509389): avc:  denied  { ioctl } for  path="/proc/fas/render" dev="proc" ino=4026532164 ioctlcmd=0x6609 scontext=u:r:untrusted_app:s0:c131,c257,c512,c768 tcontext=u:object_r:proc_fas:s0 tclass=file permissive=0 app=com.cory.noter
+06-26 23:27:44.793 W/binder:20963_1(20963): type=1400 audit(0.0:29509390): avc:  denied  { ioctl } for  path="/proc/fas/render" dev="proc" ino=4026532164 ioctlcmd=0x6609 scontext=u:r:untrusted_app:s0:c131,c257,c512,c768 tcontext=u:object_r:proc_fas:s0 tclass=file permissive=0 app=com.cory.noter
+06-26 23:27:44.805 W/binder:20963_1(20963): type=1400 audit(0.0:29509392): avc:  denied  { ioctl } for  path="/proc/fas/render" dev="proc" ino=4026532164 ioctlcmd=0x6609 scontext=u:r:untrusted_app:s0:c131,c257,c512,c768 tcontext=u:object_r:proc_fas:s0 tclass=file permissive=0 app=com.cory.noter
+06-26 23:27:44.933 V/ActivityThread(20963): updateVmProcessStateForGc sceneId =2 state=196608
+06-26 23:27:44.933 I/com.cory.noter(20963): Close vivo delay for GC JIT .
+06-26 23:27:45.107 D/BoundBrokerSvc(12581): onUnbind: Intent { act=com.google.android.gms.common.BIND_SHARED_PREFS xflg=0x4 pkg=com.google.android.gms }
+06-26 23:27:45.424 W/Auth    (12715): [TokenResponseCallback] TokenResponse failed with exception [CONTEXT service_id=343 ]
+06-26 23:27:45.424 W/Auth    (12715): dcos: Failed to process request
+06-26 23:27:45.424 W/Auth    (12715): 	at dcoz.a(:com.google.android.gms@262334035@26.23.34 (260400-933906539):23)
+06-26 23:27:45.424 W/Auth    (12715): 	at dcsw.b(:com.google.android.gms@262334035@26.23.34 (260400-933906539):15)
+06-26 23:27:45.424 W/Auth    (12715): 	at dctn.onFailed(:com.google.android.gms@262334035@26.23.34 (260400-933906539):15)
+06-26 23:27:45.424 W/Auth    (12715): 	at m1.lk.onFailed(:com.google.android.gms.dynamite_cronetdynamite@262334035@26.23.34 (260400-0):3)
+06-26 23:27:45.424 W/Auth    (12715): 	at m1.kg.run(:com.google.android.gms.dynamite_cronetdynamite@262334035@26.23.34 (260400-0):16)
+06-26 23:27:45.424 W/Auth    (12715): 	at blkd.c(:com.google.android.gms@262334035@26.23.34 (260400-933906539):50)
+06-26 23:27:45.424 W/Auth    (12715): 	at blkd.run(:com.google.android.gms@262334035@26.23.34 (260400-933906539):66)
+06-26 23:27:45.424 W/Auth    (12715): 	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1156)
+06-26 23:27:45.424 W/Auth    (12715): 	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:651)
+06-26 23:27:45.424 W/Auth    (12715): 	at blpw.run(:com.google.android.gms@262334035@26.23.34 (260400-933906539):8)
+06-26 23:27:45.424 W/Auth    (12715): 	at java.lang.Thread.run(Thread.java:1149)
+06-26 23:27:45.424 W/Auth    (12715): Caused by: m1.kt: Exception in CronetUrlRequest: net::ERR_TIMED_OUT, ErrorCode=4, InternalErrorCode=-7, Retryable=true
+06-26 23:27:45.424 W/Auth    (12715): 	at org.chromium.net.impl.CronetUrlRequest.onError(:com.google.android.gms.dynamite_cronetdynamite@262334035@26.23.34 (260400-0):74)
+06-26 23:27:45.628 W/Auth    (12715): [TokenResponseCallback] TokenResponse failed with exception [CONTEXT service_id=343 ]
+06-26 23:27:45.628 W/Auth    (12715): dcos: Failed to process request
+06-26 23:27:45.628 W/Auth    (12715): 	at dcoz.a(:com.google.android.gms@262334035@26.23.34 (260400-933906539):23)
+06-26 23:27:45.628 W/Auth    (12715): 	at dcsw.b(:com.google.android.gms@262334035@26.23.34 (260400-933906539):15)
+06-26 23:27:45.628 W/Auth    (12715): 	at dctn.onFailed(:com.google.android.gms@262334035@26.23.34 (260400-933906539):15)
+06-26 23:27:45.628 W/Auth    (12715): 	at m1.lk.onFailed(:com.google.android.gms.dynamite_cronetdynamite@262334035@26.23.34 (260400-0):3)
+06-26 23:27:45.628 W/Auth    (12715): 	at m1.kg.run(:com.google.android.gms.dynamite_cronetdynamite@262334035@26.23.34 (260400-0):16)
+06-26 23:27:45.628 W/Auth    (12715): 	at blkd.c(:com.google.android.gms@262334035@26.23.34 (260400-933906539):50)
+06-26 23:27:45.628 W/Auth    (12715): 	at blkd.run(:com.google.android.gms@262334035@26.23.34 (260400-933906539):66)
+06-26 23:27:45.628 W/Auth    (12715): 	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1156)
+06-26 23:27:45.628 W/Auth    (12715): 	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:651)
+06-26 23:27:45.628 W/Auth    (12715): 	at blpw.run(:com.google.android.gms@262334035@26.23.34 (260400-933906539):8)
+06-26 23:27:45.628 W/Auth    (12715): 	at java.lang.Thread.run(Thread.java:1149)
+06-26 23:27:45.628 W/Auth    (12715): Caused by: m1.kt: Exception in CronetUrlRequest: net::ERR_TIMED_OUT, ErrorCode=4, InternalErrorCode=-7, Retryable=true
+06-26 23:27:45.628 W/Auth    (12715): 	at org.chromium.net.impl.CronetUrlRequest.onError(:com.google.android.gms.dynamite_cronetdynamite@262334035@26.23.34 (260400-0):74)
+06-26 23:27:45.637 W/Auth    (12715): [TokenResponseCallback] TokenResponse failed with exception [CONTEXT service_id=343 ]
+06-26 23:27:45.637 W/Auth    (12715): dcos: Failed to process request
+06-26 23:27:45.637 W/Auth    (12715): 	at dcoz.a(:com.google.android.gms@262334035@26.23.34 (260400-933906539):23)
+06-26 23:27:45.637 W/Auth    (12715): 	at dcsw.b(:com.google.android.gms@262334035@26.23.34 (260400-933906539):15)
+06-26 23:27:45.637 W/Auth    (12715): 	at dctn.onFailed(:com.google.android.gms@262334035@26.23.34 (260400-933906539):15)
+06-26 23:27:45.637 W/Auth    (12715): 	at m1.lk.onFailed(:com.google.android.gms.dynamite_cronetdynamite@262334035@26.23.34 (260400-0):3)
+06-26 23:27:45.637 W/Auth    (12715): 	at m1.kg.run(:com.google.android.gms.dynamite_cronetdynamite@262334035@26.23.34 (260400-0):16)
+06-26 23:27:45.637 W/Auth    (12715): 	at blkd.c(:com.google.android.gms@262334035@26.23.34 (260400-933906539):50)
+06-26 23:27:45.637 W/Auth    (12715): 	at blkd.run(:com.google.android.gms@262334035@26.23.34 (260400-933906539):66)
+06-26 23:27:45.637 W/Auth    (12715): 	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1156)
+06-26 23:27:45.637 W/Auth    (12715): 	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:651)
+06-26 23:27:45.637 W/Auth    (12715): 	at blpw.run(:com.google.android.gms@262334035@26.23.34 (260400-933906539):8)
+06-26 23:27:45.637 W/Auth    (12715): 	at java.lang.Thread.run(Thread.java:1149)
+06-26 23:27:45.637 W/Auth    (12715): Caused by: m1.kt: Exception in CronetUrlRequest: net::ERR_TIMED_OUT, ErrorCode=4, InternalErrorCode=-7, Retryable=true
+06-26 23:27:45.637 W/Auth    (12715): 	at org.chromium.net.impl.CronetUrlRequest.onError(:com.google.android.gms.dynamite_cronetdynamite@262334035@26.23.34 (260400-0):74)
+06-26 23:27:45.641 W/Auth    (12715): [TokenResponseCallback] TokenResponse failed with exception [CONTEXT service_id=343 ]
+06-26 23:27:45.641 W/Auth    (12715): dcos: Failed to process request
+06-26 23:27:45.641 W/Auth    (12715): 	at dcoz.a(:com.google.android.gms@262334035@26.23.34 (260400-933906539):23)
+06-26 23:27:45.641 W/Auth    (12715): 	at dcsw.b(:com.google.android.gms@262334035@26.23.34 (260400-933906539):15)
+06-26 23:27:45.641 W/Auth    (12715): 	at dctn.onFailed(:com.google.android.gms@262334035@26.23.34 (260400-933906539):15)
+06-26 23:27:45.641 W/Auth    (12715): 	at m1.lk.onFailed(:com.google.android.gms.dynamite_cronetdynamite@262334035@26.23.34 (260400-0):3)
+06-26 23:27:45.641 W/Auth    (12715): 	at m1.kg.run(:com.google.android.gms.dynamite_cronetdynamite@262334035@26.23.34 (260400-0):16)
+06-26 23:27:45.641 W/Auth    (12715): 	at blkd.c(:com.google.android.gms@262334035@26.23.34 (260400-933906539):50)
+06-26 23:27:45.641 W/Auth    (12715): 	at blkd.run(:com.google.android.gms@262334035@26.23.34 (260400-933906539):66)
+06-26 23:27:45.641 W/Auth    (12715): 	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1156)
+06-26 23:27:45.641 W/Auth    (12715): 	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:651)
+06-26 23:27:45.641 W/Auth    (12715): 	at blpw.run(:com.google.android.gms@262334035@26.23.34 (260400-933906539):8)
+06-26 23:27:45.641 W/Auth    (12715): 	at java.lang.Thread.run(Thread.java:1149)
+06-26 23:27:45.641 W/Auth    (12715): Caused by: m1.kt: Exception in CronetUrlRequest: net::ERR_TIMED_OUT, ErrorCode=4, InternalErrorCode=-7, Retryable=true
+06-26 23:27:45.641 W/Auth    (12715): 	at org.chromium.net.impl.CronetUrlRequest.onError(:com.google.android.gms.dynamite_cronetdynamite@262334035@26.23.34 (260400-0):74)
+06-26 23:27:45.742 W/Auth    (12715): [TokenResponseCallback] TokenResponse failed with exception [CONTEXT service_id=343 ]
+06-26 23:27:45.742 W/Auth    (12715): dcos: Failed to process request
+06-26 23:27:45.742 W/Auth    (12715): 	at dcoz.a(:com.google.android.gms@262334035@26.23.34 (260400-933906539):23)
+06-26 23:27:45.742 W/Auth    (12715): 	at dcsw.b(:com.google.android.gms@262334035@26.23.34 (260400-933906539):15)
+06-26 23:27:45.742 W/Auth    (12715): 	at dctn.onFailed(:com.google.android.gms@262334035@26.23.34 (260400-933906539):15)
+06-26 23:27:45.742 W/Auth    (12715): 	at m1.lk.onFailed(:com.google.android.gms.dynamite_cronetdynamite@262334035@26.23.34 (260400-0):3)
+06-26 23:27:45.742 W/Auth    (12715): 	at m1.kg.run(:com.google.android.gms.dynamite_cronetdynamite@262334035@26.23.34 (260400-0):16)
+06-26 23:27:45.742 W/Auth    (12715): 	at blkd.c(:com.google.android.gms@262334035@26.23.34 (260400-933906539):50)
+06-26 23:27:45.742 W/Auth    (12715): 	at blkd.run(:com.google.android.gms@262334035@26.23.34 (260400-933906539):66)
+06-26 23:27:45.742 W/Auth    (12715): 	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1156)
+06-26 23:27:45.742 W/Auth    (12715): 	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:651)
+06-26 23:27:45.742 W/Auth    (12715): 	at blpw.run(:com.google.android.gms@262334035@26.23.34 (260400-933906539):8)
+06-26 23:27:45.742 W/Auth    (12715): 	at java.lang.Thread.run(Thread.java:1149)
+06-26 23:27:45.742 W/Auth    (12715): Caused by: m1.kt: Exception in CronetUrlRequest: net::ERR_TIMED_OUT, ErrorCode=4, InternalErrorCode=-7, Retryable=true
+06-26 23:27:45.742 W/Auth    (12715): 	at org.chromium.net.impl.CronetUrlRequest.onError(:com.google.android.gms.dynamite_cronetdynamite@262334035@26.23.34 (260400-0):74)
+06-26 23:27:46.670 W/Auth    (12715): [TokenResponseCallback] TokenResponse failed with exception [CONTEXT service_id=343 ]
+06-26 23:27:46.670 W/Auth    (12715): dcos: Failed to process request
+06-26 23:27:46.670 W/Auth    (12715): 	at dcoz.a(:com.google.android.gms@262334035@26.23.34 (260400-933906539):23)
+06-26 23:27:46.670 W/Auth    (12715): 	at dcsw.b(:com.google.android.gms@262334035@26.23.34 (260400-933906539):15)
+06-26 23:27:46.670 W/Auth    (12715): 	at dctn.onFailed(:com.google.android.gms@262334035@26.23.34 (260400-933906539):15)
+06-26 23:27:46.670 W/Auth    (12715): 	at m1.lk.onFailed(:com.google.android.gms.dynamite_cronetdynamite@262334035@26.23.34 (260400-0):3)
+06-26 23:27:46.670 W/Auth    (12715): 	at m1.kg.run(:com.google.android.gms.dynamite_cronetdynamite@262334035@26.23.34 (260400-0):16)
+06-26 23:27:46.670 W/Auth    (12715): 	at blkd.c(:com.google.android.gms@262334035@26.23.34 (260400-933906539):50)
+06-26 23:27:46.670 W/Auth    (12715): 	at blkd.run(:com.google.android.gms@262334035@26.23.34 (260400-933906539):66)
+06-26 23:27:46.670 W/Auth    (12715): 	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1156)
+06-26 23:27:46.670 W/Auth    (12715): 	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:651)
+06-26 23:27:46.670 W/Auth    (12715): 	at blpw.run(:com.google.android.gms@262334035@26.23.34 (260400-933906539):8)
+06-26 23:27:46.670 W/Auth    (12715): 	at java.lang.Thread.run(Thread.java:1149)
+06-26 23:27:46.670 W/Auth    (12715): Caused by: m1.kt: Exception in CronetUrlRequest: net::ERR_TIMED_OUT, ErrorCode=4, InternalErrorCode=-7, Retryable=true
+06-26 23:27:46.670 W/Auth    (12715): 	at org.chromium.net.impl.CronetUrlRequest.onError(:com.google.android.gms.dynamite_cronetdynamite@262334035@26.23.34 (260400-0):74)
+06-26 23:27:48.641 W/binder:20963_3(20963): type=1400 audit(0.0:29509443): avc:  denied  { ioctl } for  path="/proc/fas/render" dev="proc" ino=4026532164 ioctlcmd=0x6609 scontext=u:r:untrusted_app:s0:c131,c257,c512,c768 tcontext=u:object_r:proc_fas:s0 tclass=file permissive=0 app=com.cory.noter
+06-26 23:27:48.661 W/binder:20963_3(20963): type=1400 audit(0.0:29509444): avc:  denied  { ioctl } for  path="/proc/fas/render" dev="proc" ino=4026532164 ioctlcmd=0x6609 scontext=u:r:untrusted_app:s0:c131,c257,c512,c768 tcontext=u:object_r:proc_fas:s0 tclass=file permissive=0 app=com.cory.noter
+06-26 23:27:48.673 W/binder:20963_3(20963): type=1400 audit(0.0:29509445): avc:  denied  { ioctl } for  path="/proc/fas/render" dev="proc" ino=4026532164 ioctlcmd=0x6609 scontext=u:r:untrusted_app:s0:c131,c257,c512,c768 tcontext=u:object_r:proc_fas:s0 tclass=file permissive=0 app=com.cory.noter
+06-26 23:27:49.432 V/ActivityThread(20963): updateVmProcessStateForGc sceneId =2 state=197376
+06-26 23:27:49.432 I/com.cory.noter(20963): Open vivo delay for GC JIT .
+06-26 23:27:49.559 V/ActivityThread(20963): updateVmProcessStateForGc sceneId =2 state=196608
+06-26 23:27:49.559 I/com.cory.noter(20963): Close vivo delay for GC JIT .
+06-26 23:28:00.219 V/MediaRecorder(20963): constructor
+06-26 23:28:00.220 V/MediaRecorder(20963): doCleanUp
+06-26 23:28:00.221 V/MediaRecorder(20963): setListener
+06-26 23:28:00.221 V/MediaRecorder(20963): setClientName
+06-26 23:28:00.222 D/PermissionController(20963): BpPermissionController checking  android.permission.RECORD_AUDIO for uid=10387 pid=> 20963 , result: 1
+06-26 23:28:00.222 V/MediaRecorder(20963): setAudioSource(1)
+06-26 23:28:00.222 V/MediaRecorder(20963): Call init() since the media recorder is not initialized yet
+06-26 23:28:00.222 V/MediaRecorder(20963): init
+06-26 23:28:00.236 V/MediaRecorder(20963): setOutputFormat(2)
+06-26 23:28:00.236 V/MediaRecorder(20963): setAudioEncoder(3)
+06-26 23:28:00.236 V/MediaRecorder(20963): setOutputFile(150)
+06-26 23:28:00.237 V/MediaRecorder(20963): prepare
+06-26 23:28:00.237 V/MediaRecorder(20963): start
+06-26 23:28:00.306 D/NoterVoice(20963): voice.recording.started handle=/data/user/0/com.cory.noter/cache/noter-voice-7750422246149690156.m4a
+06-26 23:28:00.307 E/SpeechRecognizer(20963): no selected voice recognition service
+06-26 23:28:00.307 D/NoterVoice(20963): voice.systemStt.started
+06-26 23:28:00.333 W/binder:20963_3(20963): type=1400 audit(0.0:29509571): avc:  denied  { ioctl } for  path="/proc/fas/render" dev="proc" ino=4026532164 ioctlcmd=0x6609 scontext=u:r:untrusted_app:s0:c131,c257,c512,c768 tcontext=u:object_r:proc_fas:s0 tclass=file permissive=0 app=com.cory.noter
+06-26 23:28:00.345 W/binder:20963_3(20963): type=1400 audit(0.0:29509572): avc:  denied  { ioctl } for  path="/proc/fas/render" dev="proc" ino=4026532164 ioctlcmd=0x6609 scontext=u:r:untrusted_app:s0:c131,c257,c512,c768 tcontext=u:object_r:proc_fas:s0 tclass=file permissive=0 app=com.cory.noter
+06-26 23:28:00.508 I/Step_LSC( 8888): 1600104310|R|I|ACTION_TIME_TICK
+06-26 23:28:00.791 I/Notify_NotificPush( 8888): 1600104310|R|I|Start onNotificationPosted: StatusBarNotification(pkg=com.huawei.health user=UserHandle{0} id=10010 tag=null key=0|com.huawei.health|10010|null|10441 : Notification(channel=channel_common_id shortcut=null contentView=null vibrate=null sound=null defaults=0 flags=ONGOING_EVENT color=0x00000000 vis=PRIVATE internalType=0 internalPriority=0 internalGroupPriority=0 internalFlag=0))
+06-26 23:28:00.797 I/Notify_NotificPush( 8888): 1600104310|R|I|com.huawei.health onNotificationPosted isMeetPushConditions?(false=filtered): true
+06-26 23:28:00.801 I/Notify_NotificPush( 8888): 1600104310|R|I|onNotificationPosted packageMessage: com.huawei.health push msg when: 1782487680558,postTime: 1782487680561
+06-26 23:28:00.801 W/Notify_NotificPush( 8888): 1600104310|R|W|onNotificationPosted FILTERED because FLAG_ONGOING_EVENT,pkg=com.huawei.health
+06-26 23:28:00.802 I/FormalHASDK( 8888): HAImpl==> onEvent. tag:_default_config_tag, type:1, eventId:85070006
+06-26 23:28:00.943 D/LogUtil_LogConfig( 8888): getLogFile(): logFilePath = /data/user/0/com.huawei.health/files/com.huawei.health/com.huawei.health_DaemonService/
+06-26 23:28:00.979 D/DragDropSdk-(20963): [registerLogSwitchReceiver] start
+06-26 23:28:00.994 E/com.cory.noter(20963): No package ID ff found for resource ID 0xffffffff.
+06-26 23:28:01.512 E/AuthPII (12715): [RequestTokenManager] getToken() -> NETWORK_ERROR. App: com.android.vending, Service: oauth2:https://www.googleapis.com/auth/googleplay
+06-26 23:28:01.512 E/AuthPII (12715): bkdh: Error when calling server using GmsNetworkStack.
+06-26 23:28:01.512 E/AuthPII (12715): 	at aijl.b(:com.google.android.gms@262334035@26.23.34 (260400-933906539):1542)
+06-26 23:28:01.512 E/AuthPII (12715): 	at aijj.a(:com.google.android.gms@262334035@26.23.34 (260400-933906539):745)
+06-26 23:28:01.512 E/AuthPII (12715): 	at aiji.b(:com.google.android.gms@262334035@26.23.34 (260400-933906539):151)
+06-26 23:28:01.512 E/AuthPII (12715): 	at abdd.d(:com.google.android.gms@262334035@26.23.34 (260400-933906539):855)
+06-26 23:28:01.512 E/AuthPII (12715): 	at aicv.getAuthToken(:com.google.android.gms@262334035@26.23.34 (260400-933906539):411)
+06-26 23:28:01.512 E/AuthPII (12715): 	at android.accounts.AbstractAccountAuthenticator$Transport.getAuthToken(AbstractAccountAuthenticator.java:251)
+06-26 23:28:01.512 E/AuthPII (12715): 	at android.accounts.IAccountAuthenticator$Stub.onTransact(IAccountAuthenticator.java:254)
+06-26 23:28:01.512 E/AuthPII (12715): 	at android.os.Binder.transact(Binder.java:1288)
+06-26 23:28:01.512 E/AuthPII (12715): 	at cryc.onTransact(:com.google.android.gms@262334035@26.23.34 (260400-933906539):12)
+06-26 23:28:01.512 E/AuthPII (12715): 	at android.os.Binder.transact(Binder.java:1288)
+06-26 23:28:01.512 E/AuthPII (12715): 	at cdlj.onTransact(:com.google.android.gms@262334035@26.23.34 (260400-933906539):169)
+06-26 23:28:01.512 E/AuthPII (12715): 	at android.os.Binder.execTransactInternal(Binder.java:1441)
+06-26 23:28:01.512 E/AuthPII (12715): 	at android.os.Binder.execTransact(Binder.java:1380)
+06-26 23:28:01.512 E/AuthPII (12715): Caused by: bkdh: Error requesting token.
+06-26 23:28:01.512 E/AuthPII (12715): 	at aijl.d(:com.google.android.gms@262334035@26.23.34 (260400-933906539):212)
+06-26 23:28:01.512 E/AuthPII (12715): 	at aijl.b(:com.google.android.gms@262334035@26.23.34 (260400-933906539):47)
+06-26 23:28:01.512 E/AuthPII (12715): 	... 12 more
+06-26 23:28:01.512 E/AuthPII (12715): Caused by: java.util.concurrent.TimeoutException: Waited 30 seconds (plus 1267124 nanoseconds delay) for hpdp@26c96e4[status=PENDING, info=[inputFuture=[hpdp@68de74d[status=PENDING, info=[inputFuture=[llr@9732202[status=PENDING, info=[tag=[GmsUrlRequestImpl.startWithFuture()]]]], function=[ahnn@9ee4713]]]], function=[aijk@fce3d50]]]
+06-26 23:28:01.512 E/AuthPII (12715): 	at hpdm.u(:com.google.android.gms@262334035@26.23.34 (260400-933906539):366)
+06-26 23:28:01.512 E/AuthPII (12715): 	at aijl.d(:com.google.android.gms@262334035@26.23.34 (260400-933906539):197)
+06-26 23:28:01.512 E/AuthPII (12715): 	... 13 more
+06-26 23:28:01.512 E/AuthPII (12715): Message is Error when calling server using GmsNetworkStack.
+06-26 23:28:01.512 E/AuthPII (12715): bkdh: Error when calling server using GmsNetworkStack.
+06-26 23:28:01.512 E/AuthPII (12715): 	at aijl.b(:com.google.android.gms@262334035@26.23.34 (260400-933906539):1542)
+06-26 23:28:01.512 E/AuthPII (12715): 	at aijj.a(:com.google.android.gms@262334035@26.23.34 (260400-933906539):745)
+06-26 23:28:01.512 E/AuthPII (12715): 	at aiji.b(:com.google.android.gms@262334035@26.23.34 (260400-933906539):151)
+06-26 23:28:01.512 E/AuthPII (12715): 	at abdd.d(:com.google.android.gms@262334035@26.23.34 (260400-933906539):855)
+06-26 23:28:01.512 E/AuthPII (12715): 	at aicv.getAuthToken(:com.google.android.gms@262334035@26.23.34 (260400-933906539):411)
+06-26 23:28:01.512 E/AuthPII (12715): 	at android.accounts.AbstractAccountAuthenticator$Transport.getAuthToken(AbstractAccountAuthenticator.java:251)
+06-26 23:28:01.512 E/AuthPII (12715): 	at android.accounts.IAccountAuthenticator$Stub.onTransact(IAccountAuthenticator.java:254)
+06-26 23:28:01.512 E/AuthPII (12715): 	at android.os.Binder.transact(Binder.java:1288)
+06-26 23:28:01.512 E/AuthPII (12715): 	at cryc.onTransact(:com.google.android.gms@262334035@26.23.34 (260400-933906539):12)
+06-26 23:28:01.512 E/AuthPII (12715): 	at android.os.Binder.transact(Binder.java:1288)
+06-26 23:28:01.512 E/AuthPII (12715): 	at cdlj.onTransact(:com.google.android.gms@262334035@26.23.34 (260400-933906539):169)
+06-26 23:28:01.512 E/AuthPII (12715): 	at android.os.Binder.execTransactInternal(Binder.java:1441)
+06-26 23:28:01.512 E/AuthPII (12715): 	at android.os.Binder.execTransact(Binder.java:1380)
+06-26 23:28:01.512 E/AuthPII (12715): Caused by: bkdh: Error requesting token.
+06-26 23:28:01.512 E/AuthPII (12715): 	at aijl.d(:com.google.android.gms@262334035@26.23.34 (260400-933906539):212)
+06-26 23:28:01.512 E/AuthPII (12715): 	at aijl.b(:com.google.android.gms@262334035@26.23.34 (260400-933906539):47)
+06-26 23:28:01.512 E/AuthPII (12715): 	... 12 more
+06-26 23:28:01.512 E/AuthPII (12715): Caused by: java.util.concurrent.TimeoutException: Waited 30 seconds (plus 1267124 nanoseconds delay) for hpdp@26c96e4[status=PENDING, info=[inputFuture=[hpdp@68de74d[status=PENDING, info=[inputFuture=[llr@9732202[status=PENDING, info=[tag=[GmsUrlRequestImpl.startWithFuture()]]]], function=[ahnn@9ee4713]]]], function=[aijk@fce3d50]]]
+06-26 23:28:01.512 E/AuthPII (12715): 	at hpdm.u(:com.google.android.gms@262334035@26.23.34 (260400-933906539):366)
+06-26 23:28:01.512 E/AuthPII (12715): 	at aijl.d(:com.google.android.gms@262334035@26.23.34 (260400-933906539):197)
+06-26 23:28:01.512 E/AuthPII (12715): 	... 13 more
+06-26 23:28:01.513 I/Auth    (12715): (REDACTED) [GetToken] GetToken failed for app=%s with non recoverable status code: %s 
+06-26 23:28:01.513 W/Auth    (12715): [ChimeraGetToken] exception while trying to fetch auth tokens for app=com.google.android.gsf, scope=oauth2:https://www.googleapis.com/auth/googleplay [CONTEXT service_id=153 ]
+06-26 23:28:01.513 W/Auth    (12715): aijd: GetToken failed with status code: NetworkError
+06-26 23:28:01.513 W/Auth    (12715): 	at aiji.b(:com.google.android.gms@262334035@26.23.34 (260400-933906539):358)
+06-26 23:28:01.513 W/Auth    (12715): 	at abdd.d(:com.google.android.gms@262334035@26.23.34 (260400-933906539):855)
+06-26 23:28:01.513 W/Auth    (12715): 	at aicv.getAuthToken(:com.google.android.gms@262334035@26.23.34 (260400-933906539):411)
+06-26 23:28:01.513 W/Auth    (12715): 	at android.accounts.AbstractAccountAuthenticator$Transport.getAuthToken(AbstractAccountAuthenticator.java:251)
+06-26 23:28:01.513 W/Auth    (12715): 	at android.accounts.IAccountAuthenticator$Stub.onTransact(IAccountAuthenticator.java:254)
+06-26 23:28:01.513 W/Auth    (12715): 	at android.os.Binder.transact(Binder.java:1288)
+06-26 23:28:01.513 W/Auth    (12715): 	at cryc.onTransact(:com.google.android.gms@262334035@26.23.34 (260400-933906539):12)
+06-26 23:28:01.513 W/Auth    (12715): 	at android.os.Binder.transact(Binder.java:1288)
+06-26 23:28:01.513 W/Auth    (12715): 	at cdlj.onTransact(:com.google.android.gms@262334035@26.23.34 (260400-933906539):169)
+06-26 23:28:01.513 W/Auth    (12715): 	at android.os.Binder.execTransactInternal(Binder.java:1441)
+06-26 23:28:01.513 W/Auth    (12715): 	at android.os.Binder.execTransact(Binder.java:1380)
+06-26 23:28:01.513 W/GLSActivity(12715): [GmsAccountAuthenticatorImpl] error status while fetching token:NetworkError
+06-26 23:28:01.877 I/AlarmManager(12715): setExactAndAllowWhileIdle [name: FcmRetry type: 2 triggerAtMillis: 600173850]
+06-26 23:28:01.914 I/AlarmManager(12715): setExactAndAllowWhileIdle [name: FcmRetry type: 2 triggerAtMillis: 600379737]
+06-26 23:28:02.827 V/ActivityThread(20963): updateVmProcessStateForGc sceneId =2 state=197376
+06-26 23:28:02.827 I/com.cory.noter(20963): Open vivo delay for GC JIT .
+06-26 23:28:07.197 V/MediaRecorder(20963): stop
+06-26 23:28:07.207 V/MediaRecorder(20963): message received msg=101, ext1=268436456, ext2=-1011
+06-26 23:28:07.207 V/MediaRecorder(20963): callback application
+06-26 23:28:07.207 V/MediaRecorder(20963): back from callback
+06-26 23:28:07.265 V/MediaRecorder(20963): doCleanUp
+06-26 23:28:07.266 V/MediaRecorder(20963): setListener
+06-26 23:28:07.266 V/MediaRecorder(20963): release
+06-26 23:28:07.268 V/MediaRecorder(20963): destructor
+06-26 23:28:07.269 D/NoterVoice(20963): voice.systemStt.result.failed reason=System speech recognition failed: 5
+06-26 23:28:07.293 W/MediaRecorder(20963): mediarecorder went away with unhandled events
+06-26 23:28:07.293 D/NoterVoice(20963): voice.remoteAsr.request model=qwen/qwen3-asr-flash-2026-02-10 selectedModel=nvidia/parakeet-tdt-0.6b-v3 language=zh audioBytes=13693
+06-26 23:28:07.302 D/NoterOpenRouter(20963): asr.request.start endpoint=https://openrouter.ai/api/v1/audio/transcriptions model=qwen/qwen3-asr-flash-2026-02-10 language=zh audioBytes=13693
+06-26 23:28:07.309 W/binder:20963_3(20963): type=1400 audit(0.0:29509587): avc:  denied  { ioctl } for  path="/proc/fas/render" dev="proc" ino=4026532164 ioctlcmd=0x6609 scontext=u:r:untrusted_app:s0:c131,c257,c512,c768 tcontext=u:object_r:proc_fas:s0 tclass=file permissive=0 app=com.cory.noter
+06-26 23:28:07.380 V/ActivityThread(20963): updateVmProcessStateForGc sceneId =2 state=196608
+06-26 23:28:07.380 I/com.cory.noter(20963): Close vivo delay for GC JIT .
+06-26 23:28:09.421 D/Linux   (20963): [Posix_connect Debug]Process com.cory.noter :443 
+06-26 23:28:09.675 D/Linux   (20963): [Posix_connect Debug]Process com.cory.noter :443 
+06-26 23:28:11.900 V/ImeFocusController(20963): onWindowFocus: com.android.internal.policy.DecorView{f18b497 V.E...... R....... 0,0-1260,2800 aid=0}[MainActivity] softInputMode=STATE_UNSPECIFIED|ADJUST_PAN
+06-26 23:28:11.903 I/ImeTracker(20963): com.cory.noter:9367a5be: onCancelled at PHASE_CLIENT_ALREADY_HIDDEN
+06-26 23:28:11.934 D/BoundBrokerSvc(12715): onRebind: Intent { act=com.google.android.gms.libs.gmscorelogger.service.START dat=chimera-action:/... xflg=0x4 cmp=com.google.android.gms/.chimera.PersistentDirectBootAwareApiService }
+06-26 23:28:11.995 D/NoterOpenRouter(20963): asr.response.transcribed code=200 message= requestId=missing transcriptChars=20 transcriptPreview=设置一下，，明天还有后天早上九点的闹钟。
+06-26 23:28:11.996 D/NoterVoice(20963): voice.remoteAsr.transcript chars=20
+06-26 23:28:11.997 D/NoterVoice(20963): voice.transcript.enqueued chars=20
+06-26 23:28:12.023 W/JobInfo (20963): Requested important-while-foreground flag for job8 is ignored and takes no effect
+06-26 23:28:12.023 D/WM-SystemJobScheduler(20963): Scheduling work ID eaf73f52-3873-4d47-a848-f50f6b9371d7Job ID 8
+06-26 23:28:12.028 D/WM-SystemJobService(20963): onStartJob for WorkGenerationalId(workSpecId=eaf73f52-3873-4d47-a848-f50f6b9371d7, generation=0)
+06-26 23:28:12.028 D/WM-GreedyScheduler(20963): Starting work for eaf73f52-3873-4d47-a848-f50f6b9371d7
+06-26 23:28:12.032 D/WM-Processor(20963): Processor: processing WorkGenerationalId(workSpecId=eaf73f52-3873-4d47-a848-f50f6b9371d7, generation=0)
+06-26 23:28:12.034 D/WM-Processor(20963): Work WorkGenerationalId(workSpecId=eaf73f52-3873-4d47-a848-f50f6b9371d7, generation=0) is already enqueued for processing
+06-26 23:28:12.042 D/WM-WorkerWrapper(20963): Starting work for com.cory.noter.ai.AiCreateWorker
+06-26 23:28:12.042 D/NoterAiCreateNotify(20963): notify.started
+06-26 23:28:12.045 D/WM-PackageManagerHelper(20963): androidx.work.impl.background.systemalarm.RescheduleReceiver enabled
+06-26 23:28:12.046 D/NoterAiCreateNotify(20963): notify.posted id=21001
+06-26 23:28:12.053 D/NoterOpenRouter(20963): request.start endpoint=https://openrouter.ai/api/v1/chat/completions model=deepseek/deepseek-v4-flash messages=1 tools=2
+06-26 23:28:12.060 D/Linux   (20963): [Posix_connect Debug]Process com.cory.noter :443 
+06-26 23:28:12.265 I/Notify_NotificPush( 8888): 1600104310|R|I|Start onNotificationPosted: StatusBarNotification(pkg=com.cory.noter user=UserHandle{0} id=21001 tag=null key=0|com.cory.noter|21001|null|10387 : Notification(channel=ai_alarm_creation shortcut=null contentView=null vibrate=null sound=null defaults=0 flags=ONGOING_EVENT color=0x00000000 category=status vis=PRIVATE internalType=0 internalPriority=0 internalGroupPriority=0 internalFlag=0))
+06-26 23:28:12.271 I/Notify_LiveNotificationUtils( 8888): 1600104310|R|I|onNotificationPosted or onNotificationRemoved liveInfo liveType0x20: 0,pkg=com.cory.noter
+06-26 23:28:12.271 W/Notify_NotificPush( 8888): 1600104310|R|W|onNotificationPosted FILTERED because SUB_SWITCH_TURN_OFF,pkg=com.cory.noter
+06-26 23:28:12.272 I/Notify_NotificPush( 8888): 1600104310|R|I|com.cory.noter onNotificationPosted isMeetPushConditions?(false=filtered): false
+06-26 23:28:12.272 I/FormalHASDK( 8888): HAImpl==> onEvent. tag:_default_config_tag, type:1, eventId:85070006
+06-26 23:28:15.462 V/ImeFocusController(20963): onWindowFocus: com.android.internal.policy.DecorView{f18b497 V.E...... R....... 0,0-1260,2800 aid=0}[MainActivity] softInputMode=STATE_UNSPECIFIED|ADJUST_PAN
+06-26 23:28:15.465 I/ImeTracker(20963): com.cory.noter:53bef187: onCancelled at PHASE_CLIENT_ALREADY_HIDDEN
+06-26 23:28:20.963 D/NoterOpenRouter(20963): request.start endpoint=https://openrouter.ai/api/v1/chat/completions model=deepseek/deepseek-v4-flash messages=3 tools=2
+06-26 23:28:24.783 V/ImeFocusController(20963): onWindowFocus: com.android.internal.policy.DecorView{f18b497 V.E...... R....... 0,0-1260,2800 aid=0}[MainActivity] softInputMode=STATE_UNSPECIFIED|ADJUST_PAN
+06-26 23:28:24.788 I/ImeTracker(20963): com.cory.noter:2e8cf1d6: onCancelled at PHASE_CLIENT_ALREADY_HIDDEN
+06-26 23:28:26.964 D/BoundBrokerSvc(12715): onUnbind: Intent { act=com.google.android.gms.libs.gmscorelogger.service.START dat=chimera-action:/... xflg=0x4 cmp=com.google.android.gms/.chimera.PersistentDirectBootAwareApiService }
+06-26 23:28:29.205 I/OkHttp  (20963): Callback failure for call to https://openrouter.ai/...
+06-26 23:28:29.205 I/OkHttp  (20963): java.net.SocketException: Software caused connection abort
+06-26 23:28:29.205 I/OkHttp  (20963): 	at java.net.SocketInputStream.socketRead0(Native Method)
+06-26 23:28:29.205 I/OkHttp  (20963): 	at java.net.SocketInputStream.socketRead(SocketInputStream.java:118)
+06-26 23:28:29.205 I/OkHttp  (20963): 	at java.net.SocketInputStream.read(SocketInputStream.java:173)
+06-26 23:28:29.205 I/OkHttp  (20963): 	at java.net.SocketInputStream.read(SocketInputStream.java:143)
+06-26 23:28:29.205 I/OkHttp  (20963): 	at com.android.org.conscrypt.ConscryptEngineSocket$SSLInputStream.readFromSocket(ConscryptEngineSocket.java:994)
+06-26 23:28:29.205 I/OkHttp  (20963): 	at com.android.org.conscrypt.ConscryptEngineSocket$SSLInputStream.processDataFromSocket(ConscryptEngineSocket.java:958)
+06-26 23:28:29.205 I/OkHttp  (20963): 	at com.android.org.conscrypt.ConscryptEngineSocket$SSLInputStream.readUntilDataAvailable(ConscryptEngineSocket.java:873)
+06-26 23:28:29.205 I/OkHttp  (20963): 	at com.android.org.conscrypt.ConscryptEngineSocket$SSLInputStream.read(ConscryptEngineSocket.java:846)
+06-26 23:28:29.205 I/OkHttp  (20963): 	at okio.internal.DefaultSocket$SocketSource.read(DefaultSocket.kt:124)
+06-26 23:28:29.205 I/OkHttp  (20963): 	at okio.RealBufferedSource.request(RealBufferedSource.kt:232)
+06-26 23:28:29.205 I/OkHttp  (20963): 	at okio.RealBufferedSource.require(RealBufferedSource.kt:225)
+06-26 23:28:29.205 I/OkHttp  (20963): 	at okhttp3.internal.http2.Http2Reader.nextFrame(Http2Reader.kt:94)
+06-26 23:28:29.205 I/OkHttp  (20963): 	at okhttp3.internal.http2.Http2Connection$ReaderRunnable.invoke(Http2Connection.kt:629)
+06-26 23:28:29.205 I/OkHttp  (20963): 	at okhttp3.internal.http2.Http2Connection$ReaderRunnable.invoke(Http2Connection.kt:619)
+06-26 23:28:29.205 I/OkHttp  (20963): 	at okhttp3.internal.concurrent.TaskQueue$execute$1.runOnce(TaskQueue.kt:112)
+06-26 23:28:29.205 I/OkHttp  (20963): 	at okhttp3.internal.concurrent.TaskRunner$runnable$1.run(TaskRunner.kt:81)
+06-26 23:28:29.205 I/OkHttp  (20963): 	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1156)
+06-26 23:28:29.205 I/OkHttp  (20963): 	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:651)
+06-26 23:28:29.205 I/OkHttp  (20963): 	at java.lang.Thread.run(Thread.java:1149)
+06-26 23:28:30.974 D/LogUtil_LogConfig( 8888): getLogFile(): logFilePath = /data/user/0/com.huawei.health/files/com.huawei.health/com.huawei.health_DaemonService/
+06-26 23:28:31.042 D/DragDropSdk-(20963): [unregisterLogSwitchReceiver] start
+06-26 23:28:31.942 E/AuthPII (12715): [RequestTokenManager] getToken() -> NETWORK_ERROR. App: com.android.vending, Service: oauth2:https://www.googleapis.com/auth/googleplay
+06-26 23:28:31.942 E/AuthPII (12715): bkdh: Error when calling server using GmsNetworkStack.
+06-26 23:28:31.942 E/AuthPII (12715): 	at aijl.b(:com.google.android.gms@262334035@26.23.34 (260400-933906539):1542)
+06-26 23:28:31.942 E/AuthPII (12715): 	at aijj.a(:com.google.android.gms@262334035@26.23.34 (260400-933906539):745)
+06-26 23:28:31.942 E/AuthPII (12715): 	at aiji.b(:com.google.android.gms@262334035@26.23.34 (260400-933906539):151)
+06-26 23:28:31.942 E/AuthPII (12715): 	at abdd.d(:com.google.android.gms@262334035@26.23.34 (260400-933906539):855)
+06-26 23:28:31.942 E/AuthPII (12715): 	at aicv.getAuthToken(:com.google.android.gms@262334035@26.23.34 (260400-933906539):411)
+06-26 23:28:31.942 E/AuthPII (12715): 	at android.accounts.AbstractAccountAuthenticator$Transport.getAuthToken(AbstractAccountAuthenticator.java:251)
+06-26 23:28:31.942 E/AuthPII (12715): 	at android.accounts.IAccountAuthenticator$Stub.onTransact(IAccountAuthenticator.java:254)
+06-26 23:28:31.942 E/AuthPII (12715): 	at android.os.Binder.transact(Binder.java:1288)
+06-26 23:28:31.942 E/AuthPII (12715): 	at cryc.onTransact(:com.google.android.gms@262334035@26.23.34 (260400-933906539):12)
+06-26 23:28:31.942 E/AuthPII (12715): 	at android.os.Binder.transact(Binder.java:1288)
+06-26 23:28:31.942 E/AuthPII (12715): 	at cdlj.onTransact(:com.google.android.gms@262334035@26.23.34 (260400-933906539):169)
+06-26 23:28:31.942 E/AuthPII (12715): 	at android.os.Binder.execTransactInternal(Binder.java:1441)
+06-26 23:28:31.942 E/AuthPII (12715): 	at android.os.Binder.execTransact(Binder.java:1380)
+06-26 23:28:31.942 E/AuthPII (12715): Caused by: bkdh: Error requesting token.
+06-26 23:28:31.942 E/AuthPII (12715): 	at aijl.d(:com.google.android.gms@262334035@26.23.34 (260400-933906539):212)
+06-26 23:28:31.942 E/AuthPII (12715): 	at aijl.b(:com.google.android.gms@262334035@26.23.34 (260400-933906539):47)
+06-26 23:28:31.942 E/AuthPII (12715): 	... 12 more
+06-26 23:28:31.942 E/AuthPII (12715): Caused by: java.util.concurrent.TimeoutException: Waited 30 seconds (plus 1514416 nanoseconds delay) for hpdp@d07070e[status=PENDING, info=[inputFuture=[hpdp@2f8752f[status=PENDING, info=[inputFuture=[llr@8d8673c[status=PENDING, info=[tag=[GmsUrlRequestImpl.startWithFuture()]]]], function=[ahnn@8006cc5]]]], function=[aijk@eb0861a]]]
+06-26 23:28:31.942 E/AuthPII (12715): 	at hpdm.u(:com.google.android.gms@262334035@26.23.34 (260400-933906539):366)
+06-26 23:28:31.942 E/AuthPII (12715): 	at aijl.d(:com.google.android.gms@262334035@26.23.34 (260400-933906539):197)
+06-26 23:28:31.942 E/AuthPII (12715): 	... 13 more
+06-26 23:28:31.942 E/AuthPII (12715): Message is Error when calling server using GmsNetworkStack.
+06-26 23:28:31.942 E/AuthPII (12715): bkdh: Error when calling server using GmsNetworkStack.
+06-26 23:28:31.942 E/AuthPII (12715): 	at aijl.b(:com.google.android.gms@262334035@26.23.34 (260400-933906539):1542)
+06-26 23:28:31.942 E/AuthPII (12715): 	at aijj.a(:com.google.android.gms@262334035@26.23.34 (260400-933906539):745)
+06-26 23:28:31.942 E/AuthPII (12715): 	at aiji.b(:com.google.android.gms@262334035@26.23.34 (260400-933906539):151)
+06-26 23:28:31.942 E/AuthPII (12715): 	at abdd.d(:com.google.android.gms@262334035@26.23.34 (260400-933906539):855)
+06-26 23:28:31.942 E/AuthPII (12715): 	at aicv.getAuthToken(:com.google.android.gms@262334035@26.23.34 (260400-933906539):411)
+06-26 23:28:31.942 E/AuthPII (12715): 	at android.accounts.AbstractAccountAuthenticator$Transport.getAuthToken(AbstractAccountAuthenticator.java:251)
+06-26 23:28:31.942 E/AuthPII (12715): 	at android.accounts.IAccountAuthenticator$Stub.onTransact(IAccountAuthenticator.java:254)
+06-26 23:28:31.942 E/AuthPII (12715): 	at android.os.Binder.transact(Binder.java:1288)
+06-26 23:28:31.942 E/AuthPII (12715): 	at cryc.onTransact(:com.google.android.gms@262334035@26.23.34 (260400-933906539):12)
+06-26 23:28:31.942 E/AuthPII (12715): 	at android.os.Binder.transact(Binder.java:1288)
+06-26 23:28:31.942 E/AuthPII (12715): 	at cdlj.onTransact(:com.google.android.gms@262334035@26.23.34 (260400-933906539):169)
+06-26 23:28:31.942 E/AuthPII (12715): 	at android.os.Binder.execTransactInternal(Binder.java:1441)
+06-26 23:28:31.942 E/AuthPII (12715): 	at android.os.Binder.execTransact(Binder.java:1380)
+06-26 23:28:31.942 E/AuthPII (12715): Caused by: bkdh: Error requesting token.
+06-26 23:28:31.942 E/AuthPII (12715): 	at aijl.d(:com.google.android.gms@262334035@26.23.34 (260400-933906539):212)
+06-26 23:28:31.942 E/AuthPII (12715): 	at aijl.b(:com.google.android.gms@262334035@26.23.34 (260400-933906539):47)
+06-26 23:28:31.942 E/AuthPII (12715): 	... 12 more
+06-26 23:28:31.942 E/AuthPII (12715): Caused by: java.util.concurrent.TimeoutException: Waited 30 seconds (plus 1514416 nanoseconds delay) for hpdp@d07070e[status=PENDING, info=[inputFuture=[hpdp@2f8752f[status=PENDING, info=[inputFuture=[llr@8d8673c[status=PENDING, info=[tag=[GmsUrlRequestImpl.startWithFuture()]]]], function=[ahnn@8006cc5]]]], function=[aijk@eb0861a]]]
+06-26 23:28:31.942 E/AuthPII (12715): 	at hpdm.u(:com.google.android.gms@262334035@26.23.34 (260400-933906539):366)
+06-26 23:28:31.942 E/AuthPII (12715): 	at aijl.d(:com.google.android.gms@262334035@26.23.34 (260400-933906539):197)
+06-26 23:28:31.942 E/AuthPII (12715): 	... 13 more
+06-26 23:28:31.943 I/Auth    (12715): (REDACTED) [GetToken] GetToken failed for app=%s with non recoverable status code: %s 
+06-26 23:28:31.943 W/Auth    (12715): [ChimeraGetToken] exception while trying to fetch auth tokens for app=com.google.android.gsf, scope=oauth2:https://www.googleapis.com/auth/googleplay [CONTEXT service_id=153 ]
+06-26 23:28:31.943 W/Auth    (12715): aijd: GetToken failed with status code: NetworkError
+06-26 23:28:31.943 W/Auth    (12715): 	at aiji.b(:com.google.android.gms@262334035@26.23.34 (260400-933906539):358)
+06-26 23:28:31.943 W/Auth    (12715): 	at abdd.d(:com.google.android.gms@262334035@26.23.34 (260400-933906539):855)
+06-26 23:28:31.943 W/Auth    (12715): 	at aicv.getAuthToken(:com.google.android.gms@262334035@26.23.34 (260400-933906539):411)
+06-26 23:28:31.943 W/Auth    (12715): 	at android.accounts.AbstractAccountAuthenticator$Transport.getAuthToken(AbstractAccountAuthenticator.java:251)
+06-26 23:28:31.943 W/Auth    (12715): 	at android.accounts.IAccountAuthenticator$Stub.onTransact(IAccountAuthenticator.java:254)
+06-26 23:28:31.943 W/Auth    (12715): 	at android.os.Binder.transact(Binder.java:1288)
+06-26 23:28:31.943 W/Auth    (12715): 	at cryc.onTransact(:com.google.android.gms@262334035@26.23.34 (260400-933906539):12)
+06-26 23:28:31.943 W/Auth    (12715): 	at android.os.Binder.transact(Binder.java:1288)
+06-26 23:28:31.943 W/Auth    (12715): 	at cdlj.onTransact(:com.google.android.gms@262334035@26.23.34 (260400-933906539):169)
+06-26 23:28:31.943 W/Auth    (12715): 	at android.os.Binder.execTransactInternal(Binder.java:1441)
+06-26 23:28:31.943 W/Auth    (12715): 	at android.os.Binder.execTransact(Binder.java:1380)
+06-26 23:28:31.943 W/GLSActivity(12715): [GmsAccountAuthenticatorImpl] error status while fetching token:NetworkError
+06-26 23:28:42.456 V/ImeFocusController(20963): onWindowFocus: com.android.internal.policy.DecorView{f18b497 V.E...... R....... 0,0-1260,2800 aid=0}[MainActivity] softInputMode=STATE_UNSPECIFIED|ADJUST_PAN
+06-26 23:28:42.459 I/ImeTracker(20963): com.cory.noter:33504a7d: onCancelled at PHASE_CLIENT_ALREADY_HIDDEN
+06-26 23:28:42.771 W/WindowOnBackDispatcher(20963): OnBackInvokedCallback is not enabled for the application.
+06-26 23:28:42.771 W/WindowOnBackDispatcher(20963): Set 'android:enableOnBackInvokedCallback="true"' in the application manifest.
+06-26 23:28:43.361 W/binder:20963_1(20963): type=1400 audit(0.0:29510778): avc:  denied  { ioctl } for  path="/proc/fas/render" dev="proc" ino=4026532164 ioctlcmd=0x6609 scontext=u:r:untrusted_app:s0:c131,c257,c512,c768 tcontext=u:object_r:proc_fas:s0 tclass=file permissive=0 app=com.cory.noter
+06-26 23:28:43.373 W/binder:20963_1(20963): type=1400 audit(0.0:29510779): avc:  denied  { ioctl } for  path="/proc/fas/render" dev="proc" ino=4026532164 ioctlcmd=0x6609 scontext=u:r:untrusted_app:s0:c131,c257,c512,c768 tcontext=u:object_r:proc_fas:s0 tclass=file permissive=0 app=com.cory.noter
+06-26 23:28:43.381 W/binder:20963_1(20963): type=1400 audit(0.0:29510780): avc:  denied  { ioctl } for  path="/proc/fas/render" dev="proc" ino=4026532164 ioctlcmd=0x6609 scontext=u:r:untrusted_app:s0:c131,c257,c512,c768 tcontext=u:object_r:proc_fas:s0 tclass=file permissive=0 app=com.cory.noter
+06-26 23:28:43.393 W/binder:20963_1(20963): type=1400 audit(0.0:29510781): avc:  denied  { ioctl } for  path="/proc/fas/render" dev="proc" ino=4026532164 ioctlcmd=0x6609 scontext=u:r:untrusted_app:s0:c131,c257,c512,c768 tcontext=u:object_r:proc_fas:s0 tclass=file permissive=0 app=com.cory.noter
+06-26 23:28:43.405 W/binder:20963_1(20963): type=1400 audit(0.0:29510782): avc:  denied  { ioctl } for  path="/proc/fas/render" dev="proc" ino=4026532164 ioctlcmd=0x6609 scontext=u:r:untrusted_app:s0:c131,c257,c512,c768 tcontext=u:object_r:proc_fas:s0 tclass=file permissive=0 app=com.cory.noter
+06-26 23:28:43.766 V/ActivityThread(20963): updateVmProcessStateForGc sceneId =2 state=197376
+06-26 23:28:43.766 I/com.cory.noter(20963): Open vivo delay for GC JIT .
+06-26 23:28:43.909 V/ActivityThread(20963): updateVmProcessStateForGc sceneId =2 state=196608
+06-26 23:28:43.909 I/com.cory.noter(20963): Close vivo delay for GC JIT .
+06-26 23:28:45.430 I/kloadclassifier(20335): System.exit called, status: 0
+06-26 23:28:45.430 I/AndroidRuntime(20335): VM exiting with result code 0, cleanup skipped.

@@ -1,0 +1,20 @@
+3:06-22 14:50:40.027 I/ActivityManager(  597): Broadcasting: Intent { act=com.cory.noter.DEBUG_AI_CREATE flg=0x400000 cmp=com.cory.noter/.debug.DebugAiCreateReceiver (has extras) }
+5:06-22 14:50:40.029 I/ActivityManager(  597): Enqueued broadcast Intent { act=com.cory.noter.DEBUG_AI_CREATE flg=0x400000 cmp=com.cory.noter/.debug.DebugAiCreateReceiver (has extras) }: 0
+20:06-22 14:50:40.621 D/WM-WrkMgrInitializer( 6621): Initializing WorkManager with default configuration.
+93:06-22 14:50:44.414 D/NoterDebugAiCreate( 6621): selected model=deepseek/deepseek-v4-flash
+94:06-22 14:50:44.415 D/NoterDebugAiCreate( 6621): enqueue.start promptChars=30
+96:06-22 14:50:44.655 D/NoterDebugAiCreate( 6621): enqueue.accepted
+117:06-22 14:50:45.671 D/WM-WorkerWrapper( 6621): Starting work for com.cory.noter.ai.AiCreateWorker
+118:06-22 14:50:45.678 D/NoterAiCreateNotify( 6621): notify.started
+120:06-22 14:50:45.788 D/NoterAiCreateNotify( 6621): notify.posted id=21001
+139:06-22 14:50:46.072 D/NoterOpenRouter( 6621): request.start endpoint=https://openrouter.ai/api/v1/chat/completions model=deepseek/deepseek-v4-flash messages=1 tools=1
+272:06-22 14:50:48.455 D/AlphabeticIndexCompat(  972): computeSectionName: cs: Noter sectionName: N
+286:06-22 14:50:48.464 D/AlphabeticalAppsList(  972): addAppsWithSections: adding sectionName: N with appInfoTitle: Noter
+299:06-22 14:50:48.464 D/AlphabeticalAppsList(  972): addAppsWithSections: adding sectionName: N with appInfoTitle: Noter
+328:06-22 14:50:49.164 D/NoterOpenRouter( 6621): request.start endpoint=https://openrouter.ai/api/v1/chat/completions model=deepseek/deepseek-v4-flash messages=3 tools=1
+362:06-22 14:50:52.123 D/NoterAiCreateNotify( 6621): notify.result type=Created
+366:06-22 14:50:52.135 D/NoterAiCreateNotify( 6621): notify.posted id=21002
+367:06-22 14:50:52.137 I/WM-WorkerWrapper( 6621): Worker result SUCCESS for Work [ id=f11fe8d6-03f9-4f02-b9bc-63d9ca166736, tags={ com.cory.noter.ai.AiCreateWorker,ai_create_alarm } ]
+504:06-22 14:50:53.203 D/AlphabeticIndexCompat(  972): computeSectionName: cs: Noter sectionName: N
+518:06-22 14:50:53.204 D/AlphabeticalAppsList(  972): addAppsWithSections: adding sectionName: N with appInfoTitle: Noter
+531:06-22 14:50:53.204 D/AlphabeticalAppsList(  972): addAppsWithSections: adding sectionName: N with appInfoTitle: Noter

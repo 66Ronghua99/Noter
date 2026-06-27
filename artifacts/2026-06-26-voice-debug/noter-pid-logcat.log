@@ -1,0 +1,74 @@
+--------- beginning of main
+06-26 21:31:35.220 V/MediaRecorder(31506): constructor
+06-26 21:31:35.222 V/MediaRecorder(31506): doCleanUp
+06-26 21:31:35.222 V/MediaRecorder(31506): setListener
+06-26 21:31:35.222 V/MediaRecorder(31506): setClientName
+06-26 21:31:35.223 D/PermissionController(31506): BpPermissionController checking  android.permission.RECORD_AUDIO for uid=10387 pid=> 31506 , result: 1
+06-26 21:31:35.223 V/MediaRecorder(31506): setAudioSource(1)
+06-26 21:31:35.223 V/MediaRecorder(31506): Call init() since the media recorder is not initialized yet
+06-26 21:31:35.223 V/MediaRecorder(31506): init
+06-26 21:31:35.237 V/MediaRecorder(31506): setOutputFormat(2)
+06-26 21:31:35.237 V/MediaRecorder(31506): setAudioEncoder(3)
+06-26 21:31:35.238 V/MediaRecorder(31506): setOutputFile(172)
+06-26 21:31:35.239 V/MediaRecorder(31506): prepare
+06-26 21:31:35.239 V/MediaRecorder(31506): start
+06-26 21:31:35.355 E/SpeechRecognizer(31506): no selected voice recognition service
+06-26 21:31:35.381 W/binder:31506_F(31506): type=1400 audit(0.0:29431804): avc:  denied  { ioctl } for  path="/proc/fas/render" dev="proc" ino=4026532164 ioctlcmd=0x6609 scontext=u:r:untrusted_app:s0:c131,c257,c512,c768 tcontext=u:object_r:proc_fas:s0 tclass=file permissive=0 app=com.cory.noter
+06-26 21:31:35.393 W/binder:31506_F(31506): type=1400 audit(0.0:29431805): avc:  denied  { ioctl } for  path="/proc/fas/render" dev="proc" ino=4026532164 ioctlcmd=0x6609 scontext=u:r:untrusted_app:s0:c131,c257,c512,c768 tcontext=u:object_r:proc_fas:s0 tclass=file permissive=0 app=com.cory.noter
+06-26 21:31:35.970 D/DragDropSdk-(31506): [registerLogSwitchReceiver] start
+06-26 21:31:36.125 E/com.cory.noter(31506): No package ID ff found for resource ID 0xffffffff.
+06-26 21:31:41.865 V/MediaRecorder(31506): stop
+06-26 21:31:41.877 V/MediaRecorder(31506): message received msg=101, ext1=268436456, ext2=-1011
+06-26 21:31:41.877 V/MediaRecorder(31506): callback application
+06-26 21:31:41.877 V/MediaRecorder(31506): back from callback
+06-26 21:31:41.942 V/MediaRecorder(31506): doCleanUp
+06-26 21:31:41.943 V/MediaRecorder(31506): setListener
+06-26 21:31:41.943 V/MediaRecorder(31506): release
+06-26 21:31:41.945 V/MediaRecorder(31506): destructor
+06-26 21:31:41.962 W/MediaRecorder(31506): mediarecorder went away with unhandled events
+06-26 21:31:41.965 W/binder:31506_F(31506): type=1400 audit(0.0:29431828): avc:  denied  { ioctl } for  path="/proc/fas/render" dev="proc" ino=4026532164 ioctlcmd=0x6609 scontext=u:r:untrusted_app:s0:c131,c257,c512,c768 tcontext=u:object_r:proc_fas:s0 tclass=file permissive=0 app=com.cory.noter
+06-26 21:31:41.975 D/NoterOpenRouter(31506): asr.request.start endpoint=https://openrouter.ai/api/v1/audio/transcriptions model=nvidia/parakeet-tdt-0.6b-v3 audioBytes=12915
+06-26 21:31:42.019 D/Linux   (31506): [Posix_connect Debug]Process com.cory.noter :443 
+--------- beginning of system
+06-26 21:31:42.046 V/ActivityThread(31506): updateVmProcessStateForGc sceneId =2 state=196608
+06-26 21:31:42.046 I/com.cory.noter(31506): Close vivo delay for GC JIT .
+06-26 21:31:42.276 D/Linux   (31506): [Posix_connect Debug]Process com.cory.noter :443 
+06-26 21:31:44.381 W/binder:31506_F(31506): type=1400 audit(0.0:29431835): avc:  denied  { ioctl } for  path="/proc/fas/render" dev="proc" ino=4026532164 ioctlcmd=0x6609 scontext=u:r:untrusted_app:s0:c131,c257,c512,c768 tcontext=u:object_r:proc_fas:s0 tclass=file permissive=0 app=com.cory.noter
+06-26 21:31:44.397 W/binder:31506_F(31506): type=1400 audit(0.0:29431836): avc:  denied  { ioctl } for  path="/proc/fas/render" dev="proc" ino=4026532164 ioctlcmd=0x6609 scontext=u:r:untrusted_app:s0:c131,c257,c512,c768 tcontext=u:object_r:proc_fas:s0 tclass=file permissive=0 app=com.cory.noter
+--------- beginning of main
+06-26 21:31:35.220 V/MediaRecorder(31506): constructor
+06-26 21:31:35.222 V/MediaRecorder(31506): doCleanUp
+06-26 21:31:35.222 V/MediaRecorder(31506): setListener
+06-26 21:31:35.222 V/MediaRecorder(31506): setClientName
+06-26 21:31:35.223 D/PermissionController(31506): BpPermissionController checking  android.permission.RECORD_AUDIO for uid=10387 pid=> 31506 , result: 1
+06-26 21:31:35.223 V/MediaRecorder(31506): setAudioSource(1)
+06-26 21:31:35.223 V/MediaRecorder(31506): Call init() since the media recorder is not initialized yet
+06-26 21:31:35.223 V/MediaRecorder(31506): init
+06-26 21:31:35.237 V/MediaRecorder(31506): setOutputFormat(2)
+06-26 21:31:35.237 V/MediaRecorder(31506): setAudioEncoder(3)
+06-26 21:31:35.238 V/MediaRecorder(31506): setOutputFile(172)
+06-26 21:31:35.239 V/MediaRecorder(31506): prepare
+06-26 21:31:35.239 V/MediaRecorder(31506): start
+06-26 21:31:35.355 E/SpeechRecognizer(31506): no selected voice recognition service
+06-26 21:31:35.381 W/binder:31506_F(31506): type=1400 audit(0.0:29431804): avc:  denied  { ioctl } for  path="/proc/fas/render" dev="proc" ino=4026532164 ioctlcmd=0x6609 scontext=u:r:untrusted_app:s0:c131,c257,c512,c768 tcontext=u:object_r:proc_fas:s0 tclass=file permissive=0 app=com.cory.noter
+06-26 21:31:35.393 W/binder:31506_F(31506): type=1400 audit(0.0:29431805): avc:  denied  { ioctl } for  path="/proc/fas/render" dev="proc" ino=4026532164 ioctlcmd=0x6609 scontext=u:r:untrusted_app:s0:c131,c257,c512,c768 tcontext=u:object_r:proc_fas:s0 tclass=file permissive=0 app=com.cory.noter
+06-26 21:31:35.970 D/DragDropSdk-(31506): [registerLogSwitchReceiver] start
+06-26 21:31:36.125 E/com.cory.noter(31506): No package ID ff found for resource ID 0xffffffff.
+06-26 21:31:41.865 V/MediaRecorder(31506): stop
+06-26 21:31:41.877 V/MediaRecorder(31506): message received msg=101, ext1=268436456, ext2=-1011
+06-26 21:31:41.877 V/MediaRecorder(31506): callback application
+06-26 21:31:41.877 V/MediaRecorder(31506): back from callback
+06-26 21:31:41.942 V/MediaRecorder(31506): doCleanUp
+06-26 21:31:41.943 V/MediaRecorder(31506): setListener
+06-26 21:31:41.943 V/MediaRecorder(31506): release
+06-26 21:31:41.945 V/MediaRecorder(31506): destructor
+06-26 21:31:41.962 W/MediaRecorder(31506): mediarecorder went away with unhandled events
+06-26 21:31:41.965 W/binder:31506_F(31506): type=1400 audit(0.0:29431828): avc:  denied  { ioctl } for  path="/proc/fas/render" dev="proc" ino=4026532164 ioctlcmd=0x6609 scontext=u:r:untrusted_app:s0:c131,c257,c512,c768 tcontext=u:object_r:proc_fas:s0 tclass=file permissive=0 app=com.cory.noter
+06-26 21:31:41.975 D/NoterOpenRouter(31506): asr.request.start endpoint=https://openrouter.ai/api/v1/audio/transcriptions model=nvidia/parakeet-tdt-0.6b-v3 audioBytes=12915
+06-26 21:31:42.019 D/Linux   (31506): [Posix_connect Debug]Process com.cory.noter :443 
+--------- beginning of system
+06-26 21:31:42.046 V/ActivityThread(31506): updateVmProcessStateForGc sceneId =2 state=196608
+06-26 21:31:42.046 I/com.cory.noter(31506): Close vivo delay for GC JIT .
+06-26 21:31:42.276 D/Linux   (31506): [Posix_connect Debug]Process com.cory.noter :443 
+06-26 21:31:44.381 W/binder:31506_F(31506): type=1400 audit(0.0:29431835): avc:  denied  { ioctl } for  path="/proc/fas/render" dev="proc" ino=4026532164 ioctlcmd=0x6609 scontext=u:r:untrusted_app:s0:c131,c257,c512,c768 tcontext=u:object_r:proc_fas:s0 tclass=file permissive=0 app=com.cory.noter
+06-26 21:31:44.397 W/binder:31506_F(31506): type=1400 audit(0.0:29431836): avc:  denied  { ioctl } for  path="/proc/fas/render" dev="proc" ino=4026532164 ioctlcmd=0x6609 scontext=u:r:untrusted_app:s0:c131,c257,c512,c768 tcontext=u:object_r:proc_fas:s0 tclass=file permissive=0 app=com.cory.noter

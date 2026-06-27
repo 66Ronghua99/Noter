@@ -12,6 +12,7 @@ class OpenRouterVoiceAsrTranscriber(
             OpenRouterAsrRequest(
                 apiKey = request.apiKey,
                 modelId = request.modelId,
+                languageCode = request.languageCode,
                 audioBytes = request.audio.bytes,
             ),
         )

@@ -31,6 +31,8 @@ import com.cory.noter.permissions.PermissionStatusReader
 import com.cory.noter.voice.AndroidMicrophonePermissionChecker
 import com.cory.noter.voice.AndroidSystemSpeechRecognizer
 import com.cory.noter.voice.AndroidTemporaryAudioRecorder
+import com.cory.noter.voice.AndroidVoiceCaptureDebugLogger
+import com.cory.noter.voice.AndroidVoiceAsrLanguageProvider
 import com.cory.noter.voice.BackgroundVoiceAiCreateEnqueuer
 import com.cory.noter.voice.FileTemporaryAudioCleanup
 import com.cory.noter.voice.MicrophonePermissionChecker
@@ -39,6 +41,7 @@ import com.cory.noter.voice.RemoteAsrTranscriber
 import com.cory.noter.voice.SystemSpeechRecognizer
 import com.cory.noter.voice.TemporaryAudioCleanup
 import com.cory.noter.voice.TemporaryAudioRecorder
+import com.cory.noter.voice.VoiceAsrLanguageProvider
 import com.cory.noter.voice.VoiceAiCreateEnqueuer
 import com.cory.noter.voice.VoiceCaptureController
 import com.cory.noter.voice.VoiceCaptureCoordinator
@@ -150,6 +153,16 @@ class AppContainer(
         BackgroundVoiceAiCreateEnqueuer(aiCreateBackgroundScheduler)
     }
 
+    private val voiceCaptureDebugLogger by lazy {
+        AndroidVoiceCaptureDebugLogger(
+            enabled = applicationContext.isDebuggableApplication(),
+        )
+    }
+
+    val voiceAsrLanguageProvider: VoiceAsrLanguageProvider by lazy {
+        AndroidVoiceAsrLanguageProvider(applicationContext)
+    }
+
     val voiceCaptureController: VoiceCaptureController by lazy {
         VoiceCaptureCoordinator(
             settingsRepository = settingsRepository,
@@ -158,6 +171,8 @@ class AppContainer(
             remoteAsrTranscriber = remoteAsrTranscriber,
             temporaryAudioCleanup = temporaryAudioCleanup,
             aiCreateEnqueuer = voiceAiCreateEnqueuer,
+            asrLanguageProvider = voiceAsrLanguageProvider,
+            debugLogger = voiceCaptureDebugLogger,
         )
     }
 

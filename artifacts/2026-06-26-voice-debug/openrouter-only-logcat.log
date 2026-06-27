@@ -1,0 +1,1 @@
+06-26 21:31:41.975 D/NoterOpenRouter(31506): asr.request.start endpoint=https://openrouter.ai/api/v1/audio/transcriptions model=nvidia/parakeet-tdt-0.6b-v3 audioBytes=12915

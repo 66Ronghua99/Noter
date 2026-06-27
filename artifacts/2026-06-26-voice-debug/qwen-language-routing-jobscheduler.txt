@@ -1,0 +1,221 @@
+  abandoned_job_timeouts_before_aggressive_backoff=3 
+  es_u_timeout_uij_count=2 
+  es_u_timeout_ej_count=5 
+  es_u_timeout_reg_count=3 
+  es_u_timeout_total_count=10 
+  es_u_timeout_window_ms=86400000 
+    <0>com.microsoft.skydrive::timeout-reg:
+    <0>com.microsoft.skydrive::timeout-total:
+    <0>com.vivo.weather.provider::timeout-reg:
+    <0>com.vivo.weather.provider::timeout-total:
+    <0>com.huawei.health::timeout-reg:
+    <0>com.huawei.health::timeout-total:
+    <0>com.vivo.abe::timeout-reg:
+    <0>com.vivo.abe::timeout-total:
+    <0>com.vivo.sps::timeout-reg:
+    <0>com.vivo.sps::timeout-total:
+    <0>com.vivo.vms::timeout-reg:
+    <0>com.vivo.vms::timeout-total:
+    <0>com.vivo.safecenter::timeout-reg:
+    <0>com.vivo.safecenter::timeout-total:
+    <0>com.sankuai.meituan::timeout-reg:
+    <0>com.sankuai.meituan::timeout-total:
+    <0>com.whatsapp::timeout-reg:
+    <0>com.whatsapp::timeout-total:
+    <0>com.vivo.numbermark::timeout-reg:
+    <0>com.vivo.numbermark::timeout-total:
+    <0>com.android.providers.downloads::timeout-reg:
+    <0>com.android.providers.downloads::timeout-total:
+    <0>com.vivo.weather::timeout-reg:
+    <0>com.vivo.weather::timeout-total:
+    <0>com.openai.chatgpt::timeout-reg:
+    <0>com.openai.chatgpt::timeout-total:
+    <0>com.openai.chatgpt::timeout-ej:
+    <0>com.vivo.gamecube::timeout-reg:
+    <0>com.vivo.gamecube::timeout-total:
+    <0>com.google.android.configupdater::timeout-total:
+    <0>com.github.android::timeout-reg:
+    <0>com.github.android::timeout-total:
+    <0>com.android.vending::timeout-reg:
+    <0>com.android.vending::timeout-total:
+    <0>com.android.vending::timeout-ej:
+    <0>com.android.networkstack::timeout-total:
+    <0>com.xingin.xhs::timeout-reg:
+    <0>com.xingin.xhs::timeout-total:
+    <0>com.microsoft.skydrive::timeout-reg:
+    <0>com.microsoft.skydrive::timeout-total:
+    <0>com.tencent.mm::timeout-reg:
+    <0>com.tencent.mm::timeout-total:
+    <0>android::timeout-reg:
+    <0>android::timeout-total:
+    <0>com.android.contacts::timeout-reg:
+    <0>com.android.contacts::timeout-total:
+    <0>com.bbk.theme::timeout-reg:
+    <0>com.bbk.theme::timeout-total:
+    <0>com.android.mms::timeout-reg:
+    <0>com.android.mms::timeout-total:
+    <0>com.bbk.calendar::timeout-reg:
+    <0>com.bbk.calendar::timeout-total:
+    <0>com.android.statementservice::timeout-reg:
+    <0>com.android.statementservice::timeout-total:
+    <0>com.google.android.gm::timeout-reg:
+    <0>com.google.android.gm::timeout-total:
+    <0>com.google.android.gm::timeout-ej:
+    <0>com.vivo.aiengine::timeout-reg:
+    <0>com.vivo.aiengine::timeout-total:
+    <0>com.vivo.daemonService::timeout-reg:
+    <0>com.vivo.daemonService::timeout-total:
+    <0>com.microsoft.office.outlook::timeout-reg:
+    <0>com.microsoft.office.outlook::timeout-total:
+    <0>com.microsoft.office.outlook::timeout-ej:
+    <0>com.android.providers.settings::timeout-reg:
+    <0>com.android.providers.settings::timeout-total:
+    <0>com.vivo.globalanimation::timeout-reg:
+    <0>com.vivo.globalanimation::timeout-total:
+    <0>com.vivo.cota::timeout-reg:
+    <0>com.vivo.cota::timeout-total:
+    <0>com.android.rkpdapp::timeout-reg:
+    <0>com.android.rkpdapp::timeout-total:
+    <0>com.lolaage.tbulu.tools::timeout-reg:
+    <0>com.lolaage.tbulu.tools::timeout-total:
+    <0>com.bbk.iqoo.logsystem::timeout-reg:
+    <0>com.bbk.iqoo.logsystem::timeout-total:
+    <0>com.google.android.apps.maps::timeout-reg:
+    <0>com.google.android.apps.maps::timeout-total:
+    <0>com.google.android.webview::timeout-reg:
+    <0>com.google.android.webview::timeout-total:
+    <0>com.vivo.permissionmanager::timeout-reg:
+    <0>com.vivo.permissionmanager::timeout-total:
+    <0>com.vivo.hybrid::timeout-reg:
+    <0>com.vivo.hybrid::timeout-total:
+    <0>com.android.camera::timeout-reg:
+    <0>com.android.camera::timeout-total:
+    <0>com.android.chrome::timeout-reg:
+    <0>com.android.chrome::timeout-total:
+    <0>com.bbk.launcher2::timeout-reg:
+    <0>com.bbk.launcher2::timeout-total:
+    <0>com.ss.android.ugc.aweme::timeout-reg:
+    <0>com.ss.android.ugc.aweme::timeout-total:
+    <0>com.google.android.gms::timeout-reg:
+    <0>com.google.android.gms::timeout-total:
+    <0>android.ext.services::timeout-reg:
+    <0>android.ext.services::timeout-total:
+    <0>com.ss.android.lark::timeout-reg:
+    <0>com.ss.android.lark::timeout-total:
+    <0>com.vivo.familycare.local::timeout-reg:
+    <0>com.vivo.familycare.local::timeout-total:
+    <0>com.vivo.familycare.local::timeout-ej:
+    <0>com.google.android.syncadapters.calendar::timeout-reg:
+    <0>com.google.android.syncadapters.calendar::timeout-total:
+    <0>com.iqoo.secure::timeout-reg:
+    <0>com.iqoo.secure::timeout-total:
+    <0>com.cory.noter::timeout-reg:
+    <0>com.cory.noter::.schedulePersisted():
+    <0>com.cory.noter::anr:
+    <0>com.cory.noter::timeout-total:
+    <0>com.vivo.wallet::timeout-reg:
+    <0>com.vivo.wallet::timeout-total:
+    <0>com.vivo.globalsearch::timeout-reg:
+    <0>com.vivo.globalsearch::timeout-total:
+    <0>com.facebook.katana::timeout-reg:
+    <0>com.facebook.katana::timeout-total:
+    <0>com.zhihu.android::timeout-reg:
+    <0>com.zhihu.android::timeout-total:
+    <0>com.android.settings::timeout-reg:
+    <0>com.android.settings::timeout-total:
+    <0>com.taobao.idlefish::timeout-reg:
+    <0>com.taobao.idlefish::timeout-total:
+    <0>com.vivo.gallery::timeout-reg:
+    <0>com.vivo.gallery::timeout-total:
+    <0>com.vivo.aiservice::timeout-reg:
+    <0>com.vivo.aiservice::timeout-total:
+    <0>com.android.providers.media.module::timeout-reg:
+    <0>com.android.providers.media.module::timeout-total:
+    <0>com.vivo.favorite::timeout-reg:
+    <0>com.vivo.favorite::timeout-total:
+    <0>com.azure.authenticator::timeout-reg:
+    <0>com.azure.authenticator::timeout-total:
+    <0>com.android.permissioncontroller::timeout-reg:
+    <0>com.android.permissioncontroller::timeout-total:
+    <0>com.baidu.netdisk::timeout-reg:
+    <0>com.baidu.netdisk::timeout-total:
+    <0>com.eg.android.AlipayGphone::timeout-reg:
+    <0>com.eg.android.AlipayGphone::timeout-total:
+    <666>com.android.settings::timeout-reg:
+    <666>com.android.settings::timeout-total:
+    <999>com.tencent.mm::timeout-reg:
+    <999>com.tencent.mm::timeout-total:
+    <999>com.google.android.webview::timeout-reg:
+    <999>com.google.android.webview::timeout-total:
+    Category{timeout-reg}: 3 events in +1d0h0m0s0ms
+    Category{timeout-uij}: 2 events in +1d0h0m0s0ms
+    Category{timeout-total}: 10 events in +1d0h0m0s0ms
+    Category{timeout-ej}: 5 events in +1d0h0m0s0ms
+  JOB androidx.work.systemjobscheduler:u0a387/8: 3fa65e5 @androidx.work.systemjobscheduler@com.cory.noter/androidx.work.impl.background.systemjob.SystemJobService
+    u0a387 tag=*job*r/@androidx.work.systemjobscheduler@com.cory.noter/androidx.work.impl.background.systemjob.SystemJobService
+    Source: uid=u0a387 user=0 pkg=com.cory.noter
+      Service: com.cory.noter/androidx.work.impl.background.systemjob.SystemJobService
+      Trace tag: AiCreateWorker
+    JobStatus{3fa65e5 androidx.work.systemjobscheduler:u0a387/8 @androidx.work.systemjobscheduler@com.cory.noter/androidx.work.impl.background.systemjob.SystemJobService u=0 s=10387 READY}: 621663997
+    10387:com.cory.noter=false
+    #androidx.work.systemjobscheduler:u0a387/8 from u0a387 active: com.cory.noter [RUN_ANY_IN_BACKGROUND allowed] RUNNABLE
+    #androidx.work.systemjobscheduler:u0a387/8 from u0a387: com.cory.noter RUNNABLE
+    Timer<REG>{<0>com.cory.noter} NOT active, 0 running bg jobs
+      3fa65e5 {androidx.work.systemjobscheduler} #u0a387/8 @androidx.work.systemjobscheduler@com.cory.noter/androidx.work.impl.background.systemjob.SystemJobService
+    TopAppTimer{<0>com.cory.noter} started at 599987741 (334602ms ago)
+      com.cory.noter.MainActivity
+      <0>com.cory.noter
+      <0>com.cory.noter: ShrinkableDebits { debit tally: 0, bucket: 0 }
+  0-ComponentInfo{com.cory.noter/androidx.work.impl.background.systemjob.SystemJobService}: com.cory.noter
+  10387: {com.cory.noter}
+  u0a387 / com.cory.noter:
+    4x successful_finish, 1x vpt_thermal
+       -36m08s704ms   START: #u0a387/3 @androidx.work.systemjobscheduler@com.cory.noter/androidx.work.impl.background.systemjob.SystemJobService
+       -35m47s559ms    STOP: #u0a387/3 @androidx.work.systemjobscheduler@com.cory.noter/androidx.work.impl.background.systemjob.SystemJobService app called jobFinished
+       -25m36s000ms   START: #u0a387/4 @androidx.work.systemjobscheduler@com.cory.noter/androidx.work.impl.background.systemjob.SystemJobService
+       -25m26s003ms    STOP: #u0a387/4 @androidx.work.systemjobscheduler@com.cory.noter/androidx.work.impl.background.systemjob.SystemJobService app called jobFinished
+       -15m41s972ms   START: #u0a387/5 @androidx.work.systemjobscheduler@com.cory.noter/androidx.work.impl.background.systemjob.SystemJobService
+       -12m57s767ms    STOP: #u0a387/5 @androidx.work.systemjobscheduler@com.cory.noter/androidx.work.impl.background.systemjob.SystemJobService vpt_thermal
+       -12m51s521ms   START: #u0a387/6 @androidx.work.systemjobscheduler@com.cory.noter/androidx.work.impl.background.systemjob.SystemJobService
+       -12m46s496ms    STOP: #u0a387/6 @androidx.work.systemjobscheduler@com.cory.noter/androidx.work.impl.background.systemjob.SystemJobService app called jobFinished
+        -5m09s010ms   START: #u0a387/7 @androidx.work.systemjobscheduler@com.cory.noter/androidx.work.impl.background.systemjob.SystemJobService
+        -4m53s631ms    STOP: #u0a387/7 @androidx.work.systemjobscheduler@com.cory.noter/androidx.work.impl.background.systemjob.SystemJobService app called jobFinished
+        -4m18s347ms   START: #u0a387/8 @androidx.work.systemjobscheduler@com.cory.noter/androidx.work.impl.background.systemjob.SystemJobService
+Active jobs:
+  Slot #0(ID=12096864): 3fa65e5 {androidx.work.systemjobscheduler} #u0a387/8 @androidx.work.systemjobscheduler@com.cory.noter/androidx.work.impl.background.systemjob.SystemJobService
+    Running for: +4m18s334ms, timeout at: +41s670ms
+      u0a387 tag=*job*r/@androidx.work.systemjobscheduler@com.cory.noter/androidx.work.impl.background.systemjob.SystemJobService
+      Source: uid=u0a387 user=0 pkg=com.cory.noter
+  ID=203396930: inactive since -1m27s909ms, stopped because: app called jobFinished
+  ID=213421851: inactive since -40m16s943ms, stopped because: app called jobFinished
+  ID=218119334: inactive since -1h30m16s609ms, stopped because: app called jobFinished
+  ID=218773496: inactive since -2h13m19s465ms, stopped because: app called jobFinished
+  ID=230451052: inactive since -2h13m19s467ms, stopped because: app called jobFinished
+  ID=232393068: inactive since -2h13m19s460ms, stopped because: app called jobFinished
+  ID=234010944: inactive since -14h3m3s464ms, stopped because: app called jobFinished
+  ID=252323193: inactive since -10h53m52s827ms, stopped because: app called jobFinished
+  ID=259647885: inactive since -20h22m32s310ms, stopped because: app called jobFinished
+  ID=260481539: inactive since -22h42m30s681ms, stopped because: app called jobFinished
+  ID=265169081: inactive since -15h10m33s157ms, stopped because: app called jobFinished
+Recently completed jobs:
+      9540aaa {androidx.work.systemjobscheduler} #u0a387/7 @androidx.work.systemjobscheduler@com.cory.noter/androidx.work.impl.background.systemjob.SystemJobService
+      u0a387 tag=*job*r/@androidx.work.systemjobscheduler@com.cory.noter/androidx.work.impl.background.systemjob.SystemJobService
+      Source: uid=u0a387 user=0 pkg=com.cory.noter
+        Service: com.cory.noter/androidx.work.impl.background.systemjob.SystemJobService
+        Trace tag: AiCreateWorker
+      d5986ac {androidx.work.systemjobscheduler} #u0a387/6 @androidx.work.systemjobscheduler@com.cory.noter/androidx.work.impl.background.systemjob.SystemJobService
+      u0a387 tag=*job*r/@androidx.work.systemjobscheduler@com.cory.noter/androidx.work.impl.background.systemjob.SystemJobService
+      Source: uid=u0a387 user=0 pkg=com.cory.noter
+        Service: com.cory.noter/androidx.work.impl.background.systemjob.SystemJobService
+        Trace tag: AiCreateWorker
+      f3b1ef3 {androidx.work.systemjobscheduler} #u0a387/5 @androidx.work.systemjobscheduler@com.cory.noter/androidx.work.impl.background.systemjob.SystemJobService
+      u0a387 tag=*job*r/@androidx.work.systemjobscheduler@com.cory.noter/androidx.work.impl.background.systemjob.SystemJobService
+      Source: uid=u0a387 user=0 pkg=com.cory.noter
+        Service: com.cory.noter/androidx.work.impl.background.systemjob.SystemJobService
+        Trace tag: AiCreateWorker
+      db85492 {androidx.work.systemjobscheduler} #u0a387/4 @androidx.work.systemjobscheduler@com.cory.noter/androidx.work.impl.background.systemjob.SystemJobService
+      u0a387 tag=*job*r/@androidx.work.systemjobscheduler@com.cory.noter/androidx.work.impl.background.systemjob.SystemJobService
+      Source: uid=u0a387 user=0 pkg=com.cory.noter
+        Service: com.cory.noter/androidx.work.impl.background.systemjob.SystemJobService
+        Trace tag: AiCreateWorker
+    PackageStats{0-com.cory.noter#runEJ=0 #runReg=1 #stagedEJ=0 #stagedReg=0 }

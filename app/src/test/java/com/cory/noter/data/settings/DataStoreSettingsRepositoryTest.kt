@@ -32,9 +32,11 @@ class DataStoreSettingsRepositoryTest {
     fun `built in asr models include default and secondary options`() {
         assertThat(AsrModel.builtInIds).containsExactly(
             "nvidia/parakeet-tdt-0.6b-v3",
+            "qwen/qwen3-asr-flash-2026-02-10",
             "mistralai/voxtral-mini-transcribe",
         ).inOrder()
         assertThat(AsrModel.DefaultId).isEqualTo("nvidia/parakeet-tdt-0.6b-v3")
+        assertThat(AsrModel.ChineseDefaultId).isEqualTo("qwen/qwen3-asr-flash-2026-02-10")
     }
 
     @Test

@@ -20,6 +20,7 @@ import okio.ByteString.Companion.toByteString
 class OpenRouterAsrRequest(
     val apiKey: String,
     val modelId: String,
+    val languageCode: String?,
     val audioBytes: ByteArray,
 )
 
@@ -52,7 +53,9 @@ class OpenRouterAsrClient(
                 .build()
 
             debugLogger.debug(
-                "asr.request.start endpoint=$endpoint model=${request.modelId} audioBytes=${request.audioBytes.size}",
+                "asr.request.start endpoint=$endpoint model=${request.modelId} " +
+                    "language=${request.languageCode?.trim()?.takeIf { it.isNotEmpty() } ?: "none"} " +
+                    "audioBytes=${request.audioBytes.size}",
             )
 
             try {
@@ -102,6 +105,7 @@ class OpenRouterAsrClient(
 
     private fun OpenRouterAsrRequest.toPayload(): AsrTranscriptionRequest = AsrTranscriptionRequest(
         model = modelId,
+        language = languageCode?.trim()?.takeIf { it.isNotEmpty() },
         inputAudio = AsrInputAudio(
             data = audioBytes.toByteString().base64(),
             format = "m4a",
@@ -123,7 +127,23 @@ class OpenRouterAsrClient(
             }
         }
 
-        return parseTranscript(responseText)
+        return when (val result = parseTranscript(responseText)) {
+            is AsrTranscriptionResult.InvalidResponse -> {
+                debugLogger.warn(
+                    "asr.response.invalid $responseSummary reason=${result.reason.compactForLog()} " +
+                        "bodyPreview=${responseText.previewForLog()}",
+                )
+                result
+            }
+            is AsrTranscriptionResult.Transcribed -> {
+                debugLogger.debug(
+                    "asr.response.transcribed $responseSummary transcriptChars=${result.text.length} " +
+                        "transcriptPreview=${result.text.previewForLog()}",
+                )
+                result
+            }
+            else -> result
+        }
     }
 
     private fun parseTranscript(responseText: String): AsrTranscriptionResult = runCatching {
@@ -179,6 +199,7 @@ class OpenRouterAsrClient(
 @Serializable
 private data class AsrTranscriptionRequest(
     val model: String,
+    val language: String? = null,
     @SerialName("input_audio")
     val inputAudio: AsrInputAudio,
 )

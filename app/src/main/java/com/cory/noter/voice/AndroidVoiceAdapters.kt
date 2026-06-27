@@ -8,13 +8,16 @@ import android.content.pm.PackageManager
 import android.media.MediaRecorder
 import android.os.Build
 import android.os.Bundle
+import android.os.LocaleList
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
+import android.util.Log
 import androidx.core.content.ContextCompat
 import com.cory.noter.ai.AiCreateBackgroundScheduler
 import java.io.File
 import java.io.IOException
+import java.util.Locale
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -43,6 +46,41 @@ class FileTemporaryAudioCleanup : TemporaryAudioCleanup {
         val file = File(handle.id)
         if (file.exists() && !file.delete()) {
             throw IOException("Failed to delete temporary voice audio: ${file.absolutePath}")
+        }
+    }
+}
+
+class AndroidVoiceCaptureDebugLogger(
+    private val enabled: Boolean,
+) : VoiceCaptureDebugLogger {
+    override fun debug(message: String) {
+        if (enabled) {
+            Log.d(TAG, message)
+        }
+    }
+
+    override fun warn(message: String, error: Throwable?) {
+        if (enabled) {
+            Log.w(TAG, message, error)
+        }
+    }
+
+    private companion object {
+        const val TAG = "NoterVoice"
+    }
+}
+
+class AndroidVoiceAsrLanguageProvider(
+    context: Context,
+) : VoiceAsrLanguageProvider {
+    private val applicationContext = context.applicationContext
+
+    override fun languageCode(): String {
+        val locale = applicationContext.resources.configuration.locales.firstOrNullCompat()
+            ?: Locale.getDefault()
+        return when (locale.language.lowercase(Locale.ROOT)) {
+            "zh" -> "zh"
+            else -> "en"
         }
     }
 }
@@ -331,3 +369,6 @@ private class AndroidVoiceSpeechRecognizer(
 private fun VoiceMediaRecorder?.releaseIgnoringFailure() {
     runCatching { this?.release() }
 }
+
+private fun LocaleList.firstOrNullCompat(): Locale? =
+    if (isEmpty) null else get(0)

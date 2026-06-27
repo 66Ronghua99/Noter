@@ -21,6 +21,8 @@ import com.cory.noter.voice.TemporaryAudioRecorder
 import com.cory.noter.voice.VoiceAiCreateEnqueuer
 import com.cory.noter.voice.VoiceAsrRequest
 import com.cory.noter.voice.VoiceAsrResult
+import com.cory.noter.voice.VoiceAsrLanguageProvider
+import com.cory.noter.voice.VoiceCaptureDebugLogger
 import com.cory.noter.voice.VoiceCaptureController
 import com.cory.noter.voice.VoiceCaptureCoordinator
 import com.cory.noter.voice.VoiceCaptureFailure
@@ -492,8 +494,63 @@ class VoiceHomeViewModelTest {
         val request = remoteAsr.requests.single()
         assertThat(request.apiKey).isEqualTo("sk-or-v1-test")
         assertThat(request.modelId).isEqualTo("mistralai/voxtral-mini-transcribe")
+        assertThat(request.languageCode).isEqualTo("zh")
         assertThat(request.audio.bytes).isEqualTo(recordedBytes)
         assertThat(enqueuer.transcripts).containsExactly("set an alarm for nine")
+    }
+
+    @Test
+    fun `chinese fallback resolves default parakeet selection to qwen asr model`() = runTest {
+        val remoteAsr = RecordingRemoteAsrTranscriber(
+            nextResult = VoiceAsrResult.Transcript("明天早上八点叫我起床"),
+        )
+        val coordinator = newCoordinator(
+            settingsRepository = FakeSettingsRepository(
+                initialSettings = voiceSettings(selectedAsrModelId = AsrModel.DefaultId),
+            ),
+            recorder = FakeTemporaryAudioRecorder(recordedBytes = "recorded-audio".encodeToByteArray()),
+            systemSpeechRecognizer = FakeSystemSpeechRecognizer(
+                stopResult = SystemSpeechResult.Failed("system stt unavailable"),
+            ),
+            remoteAsr = remoteAsr,
+            asrLanguageProvider = VoiceAsrLanguageProvider { "zh" },
+        )
+
+        assertThat(coordinator.start()).isEqualTo(VoiceCaptureResult.RecordingStarted)
+        val result = coordinator.release()
+
+        assertThat(result).isEqualTo(VoiceCaptureResult.Enqueued("明天早上八点叫我起床"))
+        assertThat(remoteAsr.requests.single().modelId).isEqualTo(AsrModel.ChineseDefaultId)
+        assertThat(remoteAsr.requests.single().languageCode).isEqualTo("zh")
+    }
+
+    @Test
+    fun `system stt fallback path logs speech failure and remote asr request`() = runTest {
+        val logger = RecordingVoiceCaptureDebugLogger()
+        val coordinator = newCoordinator(
+            recorder = FakeTemporaryAudioRecorder(recordedBytes = "recorded-audio".encodeToByteArray()),
+            systemSpeechRecognizer = FakeSystemSpeechRecognizer(
+                stopResult = SystemSpeechResult.Failed("no selected voice recognition service"),
+            ),
+            remoteAsr = RecordingRemoteAsrTranscriber(
+                nextResult = VoiceAsrResult.Failed("invalid transcription response"),
+            ),
+            asrLanguageProvider = VoiceAsrLanguageProvider { "zh" },
+            debugLogger = logger,
+        )
+
+        assertThat(coordinator.start()).isEqualTo(VoiceCaptureResult.RecordingStarted)
+        val result = coordinator.release()
+
+        assertThat(result)
+            .isEqualTo(VoiceCaptureResult.Failed(VoiceCaptureFailure.AsrFailed("invalid transcription response")))
+        assertThat(logger.debugs).contains("voice.systemStt.result.failed reason=no selected voice recognition service")
+        assertThat(logger.debugs)
+            .contains(
+                "voice.remoteAsr.request model=mistralai/voxtral-mini-transcribe " +
+                    "selectedModel=mistralai/voxtral-mini-transcribe language=zh audioBytes=14",
+            )
+        assertThat(logger.debugs).contains("voice.remoteAsr.failed reason=invalid transcription response")
     }
 
     @Test
@@ -612,6 +669,8 @@ class VoiceHomeViewModelTest {
         remoteAsr: RecordingRemoteAsrTranscriber = RecordingRemoteAsrTranscriber(),
         cleanup: RecordingTemporaryAudioCleanup = RecordingTemporaryAudioCleanup(),
         enqueuer: RecordingVoiceAiCreateEnqueuer = RecordingVoiceAiCreateEnqueuer(),
+        asrLanguageProvider: VoiceAsrLanguageProvider = VoiceAsrLanguageProvider { "zh" },
+        debugLogger: VoiceCaptureDebugLogger = VoiceCaptureDebugLogger.None,
     ): VoiceCaptureCoordinator = VoiceCaptureCoordinator(
         settingsRepository = settingsRepository,
         temporaryAudioRecorder = recorder,
@@ -619,6 +678,8 @@ class VoiceHomeViewModelTest {
         remoteAsrTranscriber = remoteAsr,
         temporaryAudioCleanup = cleanup,
         aiCreateEnqueuer = enqueuer,
+        asrLanguageProvider = asrLanguageProvider,
+        debugLogger = debugLogger,
     )
 
     private class RecordingVoiceCaptureController(
@@ -757,6 +818,19 @@ class VoiceHomeViewModelTest {
 
         override fun enqueue(transcript: String) {
             transcripts += transcript
+        }
+    }
+
+    private class RecordingVoiceCaptureDebugLogger : VoiceCaptureDebugLogger {
+        val debugs = mutableListOf<String>()
+        val warns = mutableListOf<String>()
+
+        override fun debug(message: String) {
+            debugs += message
+        }
+
+        override fun warn(message: String, error: Throwable?) {
+            warns += message
         }
     }
 }

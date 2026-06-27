@@ -1,0 +1,24 @@
+219-      whenElapsed=+9h7m45s55ms maxWhenElapsed=+9h7m45s55ms
+220-      operation=PendingIntent{c550e8d: PendingIntentRecord{8b45842 android broadcastIntent}}
+221:    RTC_WAKEUP #20: Alarm{db3e599 type 0 origWhen 1782172800000 whenElapsed 63946301 com.cory.noter}
+222:      tag=*walarm*:com.cory.noter.alarm.TRIGGER
+223-      type=RTC_WAKEUP origWhen=2026-06-23 08:00:00.000 window=0 exactAllowReason=permission repeatInterval=0 count=0 flags=0x5
+224-      policyWhenElapsed: requester=+17h7m45s54ms app_standby=-1m25s784ms device_idle=-- battery_saver=-1m25s784ms
+225-      whenElapsed=+17h7m45s54ms maxWhenElapsed=+17h7m45s54ms
+226:      operation=PendingIntent{2e3905e: PendingIntentRecord{7954c3f com.cory.noter broadcastIntent}}
+227-      idle-options=Bundle[{android.pendingIntent.backgroundActivityAllowed=2, android:broadcast.temporaryAppAllowlistReasonCode=302, android:broadcast.temporaryAppAllowlistDuration=10000, android:broadcast.temporaryAppAllowlistReason=, android:broadcast.temporaryAppAllowlistType=0, android:broadcast.flags=8}]
+228-    RTC #21: Alarm{e7a8245 type 1 origWhen 1782172800000 whenElapsed 63946302 android}
+--
+472-      #1: Reason=data_cleared elapsed=-1m51s340ms rtc=2026-06-22 14:50:23.606
+473-        Snapshot:
+474:          type=RTC_WAKEUP tag=*walarm*:com.cory.noter.alarm.TRIGGER 
+475-          policyWhenElapsed: requester=+17h7m45s54ms app_standby=-8m2s175ms device_idle=-- battery_saver=-1m51s869ms
+476-      #2: Reason=data_cleared elapsed=-1m51s340ms rtc=2026-06-22 14:50:23.606
+477-        Snapshot:
+478:          type=RTC_WAKEUP tag=*walarm*:com.cory.noter.alarm.TRIGGER 
+479-          policyWhenElapsed: requester=+17h7m45s54ms app_standby=-10m5s769ms device_idle=-- battery_saver=-1m51s869ms
+480-      #3: Reason=pi_cancelled elapsed=-10m6s507ms rtc=2026-06-22 14:42:08.438
+481-        Snapshot:
+482:          type=RTC_WAKEUP tag=*walarm*:com.cory.noter.alarm.TRIGGER 
+483-          policyWhenElapsed: requester=+17h7m45s54ms app_standby=-11m47s698ms device_idle=-- battery_saver=-10m6s580ms
+484-  

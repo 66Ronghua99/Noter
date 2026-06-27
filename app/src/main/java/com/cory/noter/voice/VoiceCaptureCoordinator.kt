@@ -45,12 +45,28 @@ interface RemoteAsrTranscriber {
     suspend fun transcribe(request: VoiceAsrRequest): VoiceAsrResult
 }
 
+fun interface VoiceAsrLanguageProvider {
+    fun languageCode(): String
+}
+
 interface TemporaryAudioCleanup {
     suspend fun cleanup(handle: TemporaryAudioHandle)
 }
 
 interface VoiceAiCreateEnqueuer {
     fun enqueue(transcript: String)
+}
+
+interface VoiceCaptureDebugLogger {
+    fun debug(message: String)
+
+    fun warn(message: String, error: Throwable? = null)
+
+    object None : VoiceCaptureDebugLogger {
+        override fun debug(message: String) = Unit
+
+        override fun warn(message: String, error: Throwable?) = Unit
+    }
 }
 
 data class TemporaryAudioHandle(val id: String)
@@ -63,6 +79,7 @@ class RecordedVoiceAudio(
 class VoiceAsrRequest(
     val apiKey: String,
     val modelId: String,
+    val languageCode: String,
     val audio: RecordedVoiceAudio,
 )
 
@@ -131,6 +148,8 @@ class VoiceCaptureCoordinator(
     private val remoteAsrTranscriber: RemoteAsrTranscriber,
     private val temporaryAudioCleanup: TemporaryAudioCleanup,
     private val aiCreateEnqueuer: VoiceAiCreateEnqueuer,
+    private val asrLanguageProvider: VoiceAsrLanguageProvider,
+    private val debugLogger: VoiceCaptureDebugLogger = VoiceCaptureDebugLogger.None,
 ) : VoiceCaptureController {
     private val logger = Logger.getLogger(VoiceCaptureCoordinator::class.java.name)
     private var activeCapture: ActiveVoiceCapture? = null
@@ -141,15 +160,25 @@ class VoiceCaptureCoordinator(
         }
 
         val recording = when (val startResult = temporaryAudioRecorder.start()) {
-            is VoiceRecordingStartResult.Started -> startResult.recording
+            is VoiceRecordingStartResult.Started -> {
+                debugLogger.debug("voice.recording.started handle=${startResult.recording.handle.id}")
+                startResult.recording
+            }
             is VoiceRecordingStartResult.Failed -> {
+                debugLogger.debug("voice.recording.start.failed reason=${startResult.reason}")
                 return VoiceCaptureResult.Failed(VoiceCaptureFailure.RecordingFailed(startResult.reason))
             }
         }
 
         val systemSpeech = when (val speechStart = systemSpeechRecognizer.start()) {
-            is SystemSpeechStartResult.Started -> speechStart.recognition
-            is SystemSpeechStartResult.Failed -> null
+            is SystemSpeechStartResult.Started -> {
+                debugLogger.debug("voice.systemStt.started")
+                speechStart.recognition
+            }
+            is SystemSpeechStartResult.Failed -> {
+                debugLogger.debug("voice.systemStt.start.failed reason=${speechStart.reason}")
+                null
+            }
         }
 
         activeCapture = ActiveVoiceCapture(
@@ -166,6 +195,7 @@ class VoiceCaptureCoordinator(
         return when (val stopResult = capture.recording.stop()) {
             is VoiceRecordingStopResult.Recorded -> processRecordedAudio(capture, stopResult.audio)
             is VoiceRecordingStopResult.Failed -> {
+                debugLogger.debug("voice.recording.stop.failed reason=${stopResult.reason}")
                 capture.systemSpeechRecognition?.cancel()
                 cleanupWithoutMasking(capture.recording.handle)
                 VoiceCaptureResult.Failed(VoiceCaptureFailure.RecordingFailed(stopResult.reason))
@@ -196,8 +226,14 @@ class VoiceCaptureCoordinator(
             val systemSpeech = capture.systemSpeechRecognition
             if (systemSpeech != null) {
                 return when (val speechResult = systemSpeech.stopAndTranscribe()) {
-                    is SystemSpeechResult.Transcript -> enqueueTranscriptOrFail(speechResult.text)
-                    is SystemSpeechResult.Failed -> transcribeWithRemoteAsr(audio)
+                    is SystemSpeechResult.Transcript -> {
+                        debugLogger.debug("voice.systemStt.transcript chars=${speechResult.text.trim().length}")
+                        enqueueTranscriptOrFail(speechResult.text)
+                    }
+                    is SystemSpeechResult.Failed -> {
+                        debugLogger.debug("voice.systemStt.result.failed reason=${speechResult.reason}")
+                        transcribeWithRemoteAsr(audio)
+                    }
                 }
             }
 
@@ -214,6 +250,7 @@ class VoiceCaptureCoordinator(
             if (error is CancellationException) {
                 throw error
             }
+            debugLogger.warn("voice.cleanup.failed handle=${handle.id}", error)
             logger.log(Level.WARNING, "Temporary voice audio cleanup failed for ${handle.id}.", error)
         }
     }
@@ -222,35 +259,53 @@ class VoiceCaptureCoordinator(
         val settings = settingsRepository.settings.first()
         val apiKey = settings.openRouterApiKey.trim()
         if (apiKey.isEmpty()) {
+            debugLogger.debug("voice.remoteAsr.missingApiKey")
             return VoiceCaptureResult.Failed(VoiceCaptureFailure.MissingApiKey)
         }
 
-        val modelId = settings.selectedAsrModelId.trim()
-        if (modelId !in AsrModel.builtInIds) {
-            return VoiceCaptureResult.Failed(VoiceCaptureFailure.UnsupportedAsrModel(modelId))
+        val selectedModelId = settings.selectedAsrModelId.trim()
+        if (selectedModelId !in AsrModel.builtInIds) {
+            debugLogger.debug("voice.remoteAsr.unsupportedModel model=$selectedModelId")
+            return VoiceCaptureResult.Failed(VoiceCaptureFailure.UnsupportedAsrModel(selectedModelId))
         }
 
+        val languageCode = asrLanguageProvider.languageCode().trim().ifBlank { "en" }
+        val modelId = AsrModel.resolveForLanguage(selectedModelId, languageCode)
+
+        debugLogger.debug(
+            "voice.remoteAsr.request model=$modelId selectedModel=$selectedModelId " +
+                "language=$languageCode audioBytes=${audio.bytes.size}",
+        )
         return when (
             val asrResult = remoteAsrTranscriber.transcribe(
                 VoiceAsrRequest(
                     apiKey = apiKey,
                     modelId = modelId,
+                    languageCode = languageCode,
                     audio = audio,
                 ),
             )
         ) {
-            is VoiceAsrResult.Transcript -> enqueueTranscriptOrFail(asrResult.text)
-            is VoiceAsrResult.Failed -> VoiceCaptureResult.Failed(VoiceCaptureFailure.AsrFailed(asrResult.reason))
+            is VoiceAsrResult.Transcript -> {
+                debugLogger.debug("voice.remoteAsr.transcript chars=${asrResult.text.trim().length}")
+                enqueueTranscriptOrFail(asrResult.text)
+            }
+            is VoiceAsrResult.Failed -> {
+                debugLogger.debug("voice.remoteAsr.failed reason=${asrResult.reason}")
+                VoiceCaptureResult.Failed(VoiceCaptureFailure.AsrFailed(asrResult.reason))
+            }
         }
     }
 
     private fun enqueueTranscriptOrFail(transcript: String): VoiceCaptureResult {
         val normalizedTranscript = transcript.trim()
         if (normalizedTranscript.isEmpty()) {
+            debugLogger.debug("voice.transcript.blank")
             return VoiceCaptureResult.Failed(VoiceCaptureFailure.BlankTranscript)
         }
 
         aiCreateEnqueuer.enqueue(normalizedTranscript)
+        debugLogger.debug("voice.transcript.enqueued chars=${normalizedTranscript.length}")
         return VoiceCaptureResult.Enqueued(normalizedTranscript)
     }
 
