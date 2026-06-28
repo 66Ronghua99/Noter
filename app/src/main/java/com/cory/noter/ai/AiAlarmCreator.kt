@@ -9,6 +9,7 @@ import com.cory.noter.agent.AgentRunResult
 import com.cory.noter.agent.AgentToolChoice
 import com.cory.noter.agent.AgentToolRegistry
 import com.cory.noter.agent.AgentToolResult
+import com.cory.noter.agent.tools.EndTaskTool
 import com.cory.noter.agent.tools.RejectUnclearRequestTool
 import com.cory.noter.agent.tools.alarm.CreateAlarmTool
 import com.cory.noter.agent.tools.alarm.CreateAlarmToolContext
@@ -69,6 +70,7 @@ class AiAlarmCreator(
                     clock = clock,
                 ),
                 RejectUnclearRequestTool(),
+                EndTaskTool(),
             ),
         )
 
@@ -91,7 +93,7 @@ class AiAlarmCreator(
     }
 
     private suspend fun AgentRunResult.toAiCreateResult(): AiCreateResult = when (this) {
-        is AgentRunResult.Completed -> toolResults.lastOrNull()?.toAiCreateResult()
+        is AgentRunResult.Completed -> toolResults.lastBusinessResultOrNull()?.toAiCreateResult()
             ?: AiCreateResult.InvalidResponse("Agent completed without a tool result.")
 
         is AgentRunResult.CompletedWithFinalizationFailure -> committedResults.last().toAiCreateResult()
@@ -102,6 +104,9 @@ class AiAlarmCreator(
 
         is AgentRunResult.Failed -> failure.toAiCreateResult()
     }
+
+    private fun List<AgentToolResult>.lastBusinessResultOrNull(): AgentToolResult? =
+        asReversed().firstOrNull { it.toolName != EndTaskTool.Name }
 
     private suspend fun AgentToolResult.toAiCreateResult(): AiCreateResult {
         val status = content.requiredString("status")

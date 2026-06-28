@@ -232,7 +232,17 @@ class AiAlarmCreatorTest {
             ),
         )
         fakeAgentGateway.results += AgentLlmResult.Message(
-            AgentMessage(AgentMessageRole.ASSISTANT, "Created."),
+            AgentMessage(
+                role = AgentMessageRole.ASSISTANT,
+                content = "",
+                toolCalls = listOf(
+                    AgentToolCall(
+                        id = "call-end",
+                        name = "end_task",
+                        arguments = """{"reason":"Alarm created."}""",
+                    ),
+                ),
+            ),
         )
 
         val result = creator.createFromText("tomorrow morning remind me to take medicine")
@@ -259,14 +269,14 @@ class AiAlarmCreatorTest {
         assertThat(fakeAgentGateway.requests[0].messages.single().content)
             .contains("Current local date: 2026-04-23")
         assertThat(fakeAgentGateway.requests.first().tools.map { it.name })
-            .containsExactly("create_alarm", "reject_unclear_request")
+            .containsExactly("create_alarm", "reject_unclear_request", "end_task")
             .inOrder()
         assertThat(fakeAgentGateway.requests.first().tools.map { it.name })
             .doesNotContain("submit_alarm_draft")
     }
 
     @Test
-    fun `text ai creation starts with required any tool policy and both tools registered`() = runTest {
+    fun `text ai creation starts with required any tool policy and all tools registered`() = runTest {
         settingsRepository.set(validSettings())
         fakeAgentGateway.results += AgentLlmResult.NetworkFailure("stop after first request")
 
@@ -276,7 +286,7 @@ class AiAlarmCreatorTest {
         val request = fakeAgentGateway.requests.single()
         assertThat(request.toolChoice).isEqualTo(AgentToolChoice.RequiredAnyTool)
         assertThat(request.tools.map { it.name })
-            .containsExactly("create_alarm", "reject_unclear_request")
+            .containsExactly("create_alarm", "reject_unclear_request", "end_task")
             .inOrder()
     }
 
@@ -302,7 +312,17 @@ class AiAlarmCreatorTest {
             ),
         )
         fakeAgentGateway.results += AgentLlmResult.Message(
-            AgentMessage(AgentMessageRole.ASSISTANT, "Please try again with a day and time."),
+            AgentMessage(
+                role = AgentMessageRole.ASSISTANT,
+                content = "",
+                toolCalls = listOf(
+                    AgentToolCall(
+                        id = "call-end",
+                        name = "end_task",
+                        arguments = """{"reason":"Request rejected."}""",
+                    ),
+                ),
+            ),
         )
 
         val result = creator.createFromText("remind me sometime")
@@ -429,7 +449,7 @@ class AiAlarmCreatorTest {
     }
 
     @Test
-    fun `committed tool result stays authoritative when finalization fails`() = runTest {
+    fun `committed tool result stays authoritative when required follow up fails`() = runTest {
         settingsRepository.set(validSettings())
         fakeAgentGateway.results += AgentLlmResult.Message(
             AgentMessage(
@@ -444,7 +464,7 @@ class AiAlarmCreatorTest {
                 ),
             ),
         )
-        fakeAgentGateway.results += AgentLlmResult.InvalidResponse("malformed final assistant message")
+        fakeAgentGateway.results += AgentLlmResult.InvalidResponse("malformed follow up tool response")
 
         val result = creator.createFromText("tomorrow morning remind me to take medicine")
 

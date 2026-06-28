@@ -27,6 +27,7 @@ data class AgentToolSpec(
     val description: String,
     val parameters: JsonObject,
     val risk: AgentToolRisk = AgentToolRisk.READ,
+    val endsRun: Boolean = false,
 )
 
 enum class AgentToolRisk {

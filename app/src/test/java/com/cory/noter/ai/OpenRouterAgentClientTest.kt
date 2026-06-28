@@ -193,7 +193,7 @@ class OpenRouterAgentClientTest {
     }
 
     @Test
-    fun `tool follow up messages preserve tool metadata and auto choice omits tool choice`() = runTest {
+    fun `tool follow up messages preserve tool metadata and required choice`() = runTest {
         var capturedBody = ""
         val client = OpenRouterAgentClient(
             callFactory = OkHttpClient.Builder()
@@ -232,7 +232,7 @@ class OpenRouterAgentClientTest {
                         buildJsonObject { put("type", "object") },
                     ),
                 ),
-                toolChoice = AgentToolChoice.Auto,
+                toolChoice = AgentToolChoice.RequiredAnyTool,
             ),
         )
 
@@ -241,7 +241,7 @@ class OpenRouterAgentClientTest {
         )
 
         val body = Json.parseToJsonElement(capturedBody).jsonObject
-        assertThat(body).doesNotContainKey("tool_choice")
+        assertThat(body["tool_choice"]!!.jsonPrimitive.content).isEqualTo("required")
         assertThat(body["parallel_tool_calls"]!!.jsonPrimitive.content).isEqualTo("false")
         assertThat(body["tools"]!!.jsonArray.single().jsonObject["function"]!!.jsonObject["name"]!!.jsonPrimitive.content)
             .isEqualTo("create_alarm")

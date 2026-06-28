@@ -42,6 +42,7 @@ class AiAlarmPromptBuilderTest {
         assertThat(prompt).contains("Sunday is 7")
         assertThat(prompt).contains("Call create_alarm")
         assertThat(prompt).contains("Call reject_unclear_request")
+        assertThat(prompt).contains("Call end_task")
         assertThat(prompt).contains("poor voice transcript")
         assertThat(prompt).doesNotContain("submit_alarm_draft")
         assertThat(prompt).doesNotContain("Return only JSON")

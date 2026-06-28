@@ -8,7 +8,7 @@ import org.junit.Test
 
 class AgentLoopRunnerTest {
     @Test
-    fun `runner executes tool then sends tool result before final assistant message`() = runTest {
+    fun `runner executes tool then sends tool result with required follow up choice`() = runTest {
         val gateway = RecordingGateway(
             AgentLlmResult.Message(
                 AgentMessage(
@@ -54,7 +54,7 @@ class AgentLoopRunnerTest {
         assertThat(gateway.requests[0].tools.single().name).isEqualTo("create_alarm")
         assertThat(gateway.requests[0].toolChoice).isEqualTo(AgentToolChoice.Required("create_alarm"))
         assertThat(gateway.requests[1].tools.single().name).isEqualTo("create_alarm")
-        assertThat(gateway.requests[1].toolChoice).isEqualTo(AgentToolChoice.Auto)
+        assertThat(gateway.requests[1].toolChoice).isEqualTo(AgentToolChoice.Required("create_alarm"))
         assertThat(gateway.requests[1].messages.last().role).isEqualTo(AgentMessageRole.TOOL)
         assertThat(gateway.requests[1].messages.last().toolCallId).isEqualTo("call-1")
     }
@@ -197,7 +197,7 @@ class AgentLoopRunnerTest {
         assertThat(result).isInstanceOf(AgentRunResult.Completed::class.java)
         assertThat(rejectTool.calls.single().name).isEqualTo("reject_unclear_request")
         assertThat(gateway.requests[0].toolChoice).isEqualTo(AgentToolChoice.RequiredAnyTool)
-        assertThat(gateway.requests[1].toolChoice).isEqualTo(AgentToolChoice.Auto)
+        assertThat(gateway.requests[1].toolChoice).isEqualTo(AgentToolChoice.RequiredAnyTool)
     }
 
     @Test
@@ -331,7 +331,7 @@ class AgentLoopRunnerTest {
         assertThat(failed.toolResults.single().toolName).isEqualTo("reject_unclear_request")
         assertThat(failed.toolResults.single().committed).isFalse()
         assertThat(failed.failure).isEqualTo(AgentFailure.NetworkFailure("after reject"))
-        assertThat(gateway.requests[1].toolChoice).isEqualTo(AgentToolChoice.Auto)
+        assertThat(gateway.requests[1].toolChoice).isEqualTo(AgentToolChoice.RequiredAnyTool)
     }
 
     private fun basicRequest(

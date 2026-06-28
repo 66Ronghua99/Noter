@@ -27,6 +27,7 @@ class AiAlarmPromptBuilder {
             For weekly_interval alarms, include repeatRule.endDate as yyyy-MM-dd when the user gives an end date; if the user does not mention an end date, set repeatRule.endDate to one year after repeatRule.startDate.
             Call create_alarm with the alarm arguments when the request has enough alarm details.
             Call reject_unclear_request when the request is unclear, incomplete, not an alarm request, or likely came from a poor voice transcript.
+            Call end_task after create_alarm or reject_unclear_request succeeds to end the task.
             Do not answer with prose before the tool call.
         """.trimIndent()
     }

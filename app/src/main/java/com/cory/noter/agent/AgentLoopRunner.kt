@@ -75,18 +75,26 @@ class AgentLoopRunner(
             }
 
             for (toolCall in assistantMessage.toolCalls) {
-                if (toolExecutions >= config.maxToolExecutions) {
-                    return committedOrFailed(toolResults, AgentFailure.ToolLimitExceeded("Tool execution limit exceeded."))
-                }
                 val tool = request.toolRegistry.get(toolCall.name)
                     ?: return committedOrFailed(toolResults, AgentFailure.ToolNotRegistered(toolCall.name))
+                if (toolExecutions >= config.maxToolExecutions && !tool.spec.endsRun) {
+                    return committedOrFailed(toolResults, AgentFailure.ToolLimitExceeded("Tool execution limit exceeded."))
+                }
 
                 when (val execution = tool.execute(toolCall)) {
                     is AgentToolExecution.Success -> {
-                        toolExecutions += 1
+                        if (!tool.spec.endsRun) {
+                            toolExecutions += 1
+                        }
                         toolResults += execution.result
                         messages += execution.result.toToolMessage()
-                        nextToolChoice = AgentToolChoice.Auto
+                        if (tool.spec.endsRun) {
+                            return AgentRunResult.Completed(
+                                finalMessage = assistantMessage,
+                                toolResults = toolResults.toList(),
+                            )
+                        }
+                        nextToolChoice = request.toolChoice
                     }
 
                     is AgentToolExecution.Failure -> {
