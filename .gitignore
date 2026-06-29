@@ -1,8 +1,11 @@
 # Harness local verification artifacts
 superpowers/artifacts/refactor-gate/
+artifacts/
 
 # Local collaboration docs kept out of repository history
 /*.md
+!/README.md
+!/README-zh.md
 docs/superpowers/
 
 # Humanize RLCR local runtime state
