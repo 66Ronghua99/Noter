@@ -176,6 +176,31 @@ class VoiceHomeSmokeTest {
     }
 
     @Test
+    fun noter_app_text_back_from_alarm_list_returns_to_alarm_list() {
+        composeRule.setContent {
+            MaterialTheme {
+                TestNoterApp()
+            }
+        }
+
+        composeRule.onNodeWithTag(VoiceHomeTestTags.ListAction)
+            .assertIsDisplayed()
+            .performClick()
+        composeRule.onNodeWithTag(AppRouteTestTags.AlarmListAiCreateAction)
+            .assertIsDisplayed()
+            .performClick()
+        composeRule.onNodeWithTag(UnifiedAiCreateTestTags.TextModeAction)
+            .assertIsDisplayed()
+            .performClick()
+        composeRule.onNodeWithTag(AiCreateTestTags.BackAction)
+            .assertIsDisplayed()
+            .performClick()
+
+        composeRule.onNodeWithTag(AppRouteTestTags.AlarmList)
+            .assertIsDisplayed()
+    }
+
+    @Test
     fun noter_app_voice_home_list_action_reaches_alarm_list() {
         composeRule.setContent {
             MaterialTheme {
@@ -478,7 +503,7 @@ class VoiceHomeSmokeTest {
         onOpenExactAlarmSettings: () -> Unit = {},
     ) {
         NoterApp(
-            unifiedAiCreateScreen = { onOpenAlarmList, onOpenSettings, onOpenManualCreate ->
+            unifiedAiCreateScreen = { onOpenAlarmList, onOpenSettings, onOpenManualCreate, onBackFromAiCreate ->
                 UnifiedAiCreateScreen(
                     voiceContent = { onSwitchToText ->
                         VoiceHomeScreen(
@@ -501,7 +526,7 @@ class VoiceHomeSmokeTest {
                             onSubmit = onSubmit,
                             onOpenExactAlarmSettings = onOpenExactAlarmSettings,
                             onOpenManualCreate = onOpenManualCreate,
-                            onBack = {},
+                            onBack = onBackFromAiCreate,
                         )
                     },
                 )

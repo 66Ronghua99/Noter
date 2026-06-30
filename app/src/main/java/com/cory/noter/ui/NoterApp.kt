@@ -29,6 +29,7 @@ fun NoterApp(
         onOpenAlarmList: () -> Unit,
         onOpenSettings: () -> Unit,
         onOpenManualCreate: () -> Unit,
+        onBackFromAiCreate: () -> Unit,
     ) -> Unit,
     alarmListScreen: @Composable (
         onOpenManualCreate: () -> Unit,
@@ -59,10 +60,17 @@ fun NoterApp(
         modifier = modifier,
     ) {
         composable(route = Routes.AI_CREATE) {
+            val openAlarmList = { navController.navigate(Routes.LIST) }
+            val backFromAiCreate = {
+                if (!navController.popBackStack()) {
+                    navController.navigate(Routes.LIST)
+                }
+            }
             unifiedAiCreateScreen(
-                { navController.navigate(Routes.LIST) },
+                openAlarmList,
                 { navController.navigate(Routes.SETTINGS) },
                 { navController.navigate(Routes.EDIT_NEW) },
+                backFromAiCreate,
             )
         }
         composable(route = Routes.LIST) {
