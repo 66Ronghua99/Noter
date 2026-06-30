@@ -61,9 +61,17 @@ fun NoterApp(
     ) {
         composable(route = Routes.AI_CREATE) {
             val openAlarmList = { navController.navigate(Routes.LIST) }
+            val closeAiCreateToAlarmList = {
+                navController.navigate(Routes.LIST) {
+                    popUpTo(Routes.AI_CREATE) {
+                        inclusive = true
+                    }
+                    launchSingleTop = true
+                }
+            }
             val backFromAiCreate = {
                 if (!navController.popBackStack()) {
-                    navController.navigate(Routes.LIST)
+                    closeAiCreateToAlarmList()
                 }
             }
             unifiedAiCreateScreen(

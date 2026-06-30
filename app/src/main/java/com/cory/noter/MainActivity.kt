@@ -240,7 +240,7 @@ private fun UnifiedAiCreateRoute(
 
     LaunchedEffect(aiState.createdAlarmId) {
         if (aiState.createdAlarmId != null) {
-            onOpenAlarmList()
+            onBackFromAiCreate()
         }
     }
 
