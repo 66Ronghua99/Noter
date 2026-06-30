@@ -51,6 +51,38 @@ class FakeSettingsRepository(
         return Result.success(Unit)
     }
 
+    override suspend fun setThemePreset(presetId: String): Result<Unit> {
+        if (presetId !in AppSettings.BuiltInThemePresetIds) {
+            return Result.failure(
+                IllegalArgumentException("UNKNOWN_THEME_PRESET_ID: $presetId"),
+            )
+        }
+
+        state.update {
+            it.copy(
+                themePresetId = presetId,
+                customThemeSeedColor = null,
+            )
+        }
+        return Result.success(Unit)
+    }
+
+    override suspend fun setCustomThemeSeedColor(seedColor: String): Result<Unit> {
+        if (!AppSettings.isValidThemeSeedColor(seedColor)) {
+            return Result.failure(
+                IllegalArgumentException("INVALID_THEME_SEED_COLOR: $seedColor"),
+            )
+        }
+
+        state.update {
+            it.copy(
+                themePresetId = AppSettings.CustomThemePresetId,
+                customThemeSeedColor = seedColor.lowercase(),
+            )
+        }
+        return Result.success(Unit)
+    }
+
     suspend fun set(settings: AppSettings) {
         state.emit(settings)
     }

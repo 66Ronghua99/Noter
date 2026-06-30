@@ -26,6 +26,8 @@ class DataStoreSettingsRepositoryTest {
         assertThat(settings.selectedModelId).isEqualTo(OpenRouterModel.DefaultId)
         assertThat(settings.selectedAsrModelId).isEqualTo(AsrModel.DefaultId)
         assertThat(settings.defaultRingtoneUri).isEqualTo(AppSettings.DefaultRingtoneUri)
+        assertThat(settings.themePresetId).isEqualTo(AppSettings.DefaultThemePresetId)
+        assertThat(settings.customThemeSeedColor).isNull()
     }
 
     @Test
@@ -105,6 +107,91 @@ class DataStoreSettingsRepositoryTest {
     }
 
     @Test
+    fun `saving theme preset persists it and clears custom seed color`() = runTest {
+        val repository = createRepository(backgroundScope)
+
+        assertThat(repository.setCustomThemeSeedColor("#b65b70").isSuccess).isTrue()
+        val result = repository.setThemePreset("fresh_green")
+
+        assertThat(result.isSuccess).isTrue()
+        assertThat(repository.settings.first().themePresetId).isEqualTo("fresh_green")
+        assertThat(repository.settings.first().customThemeSeedColor).isNull()
+    }
+
+    @Test
+    fun `saving custom theme seed persists custom theme state`() = runTest {
+        val repository = createRepository(backgroundScope)
+
+        val result = repository.setCustomThemeSeedColor("#4a6ea9")
+
+        assertThat(result.isSuccess).isTrue()
+        assertThat(repository.settings.first().themePresetId).isEqualTo(AppSettings.CustomThemePresetId)
+        assertThat(repository.settings.first().customThemeSeedColor).isEqualTo("#4a6ea9")
+    }
+
+    @Test
+    fun `unknown theme preset write is rejected and preserves prior theme`() = runTest {
+        val repository = createRepository(backgroundScope)
+
+        val result = repository.setThemePreset("electric_ultraviolet")
+
+        assertThat(result.isFailure).isTrue()
+        assertThat(result.exceptionOrNull()).isInstanceOf(IllegalArgumentException::class.java)
+        assertThat(result.exceptionOrNull()).hasMessageThat().contains("UNKNOWN_THEME_PRESET_ID")
+        assertThat(repository.settings.first().themePresetId).isEqualTo(AppSettings.DefaultThemePresetId)
+    }
+
+    @Test
+    fun `invalid custom theme seed write is rejected and preserves prior theme`() = runTest {
+        val repository = createRepository(backgroundScope)
+
+        val result = repository.setCustomThemeSeedColor("not-a-color")
+
+        assertThat(result.isFailure).isTrue()
+        assertThat(result.exceptionOrNull()).isInstanceOf(IllegalArgumentException::class.java)
+        assertThat(result.exceptionOrNull()).hasMessageThat().contains("INVALID_THEME_SEED_COLOR")
+        assertThat(repository.settings.first().themePresetId).isEqualTo(AppSettings.DefaultThemePresetId)
+        assertThat(repository.settings.first().customThemeSeedColor).isNull()
+    }
+
+    @Test
+    fun `unknown stored theme preset falls back to default for compatibility`() = runTest {
+        val file = Files.createTempFile("settings-test", ".preferences_pb").toFile()
+        val dataStore = PreferenceDataStoreFactory.create(
+            scope = backgroundScope,
+            produceFile = { file },
+        )
+        dataStore.edit { preferences ->
+            preferences[stringPreferencesKey("theme_preset_id")] = "old-theme-id"
+        }
+        val repository = DataStoreSettingsRepository(dataStore)
+
+        val settings = repository.settings.first()
+
+        assertThat(settings.themePresetId).isEqualTo(AppSettings.DefaultThemePresetId)
+        assertThat(settings.customThemeSeedColor).isNull()
+    }
+
+    @Test
+    fun `invalid stored custom theme seed falls back to default for compatibility`() = runTest {
+        val file = Files.createTempFile("settings-test", ".preferences_pb").toFile()
+        val dataStore = PreferenceDataStoreFactory.create(
+            scope = backgroundScope,
+            produceFile = { file },
+        )
+        dataStore.edit { preferences ->
+            preferences[stringPreferencesKey("theme_preset_id")] = AppSettings.CustomThemePresetId
+            preferences[stringPreferencesKey("custom_theme_seed_color")] = "not-a-color"
+        }
+        val repository = DataStoreSettingsRepository(dataStore)
+
+        val settings = repository.settings.first()
+
+        assertThat(settings.themePresetId).isEqualTo(AppSettings.DefaultThemePresetId)
+        assertThat(settings.customThemeSeedColor).isNull()
+    }
+
+    @Test
     fun `invalid stored model id fails explicitly on read`() = runTest {
         val file = Files.createTempFile("settings-test", ".preferences_pb").toFile()
         val dataStore = PreferenceDataStoreFactory.create(
@@ -170,6 +257,8 @@ class DataStoreSettingsRepositoryTest {
                 selectedModelId = "deepseek/deepseek-v3.2",
                 selectedAsrModelId = "mistralai/voxtral-mini-transcribe",
                 defaultRingtoneUri = "content://media/internal/audio/media/99",
+                themePresetId = AppSettings.DefaultThemePresetId,
+                customThemeSeedColor = null,
             ),
         )
         secondScope.cancel()

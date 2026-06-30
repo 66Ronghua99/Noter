@@ -13,4 +13,8 @@ interface SettingsRepository {
     suspend fun setSelectedAsrModel(modelId: String): Result<Unit>
 
     suspend fun setDefaultRingtoneUri(ringtoneUri: String): Result<Unit>
+
+    suspend fun setThemePreset(presetId: String): Result<Unit>
+
+    suspend fun setCustomThemeSeedColor(seedColor: String): Result<Unit>
 }

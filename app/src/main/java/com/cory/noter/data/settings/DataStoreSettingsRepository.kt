@@ -16,11 +16,14 @@ class DataStoreSettingsRepository(
     override val settings: Flow<AppSettings> = dataStore.data.map { preferences ->
         val storedModelId = preferences[SELECTED_MODEL_ID]
         val storedAsrModelId = preferences[SELECTED_ASR_MODEL_ID]
+        val themeSettings = readThemeSettings(preferences)
         AppSettings(
             openRouterApiKey = preferences[OPEN_ROUTER_API_KEY] ?: "",
             selectedModelId = storedModelId?.also(::requireKnownModelId) ?: OpenRouterModel.DefaultId,
             selectedAsrModelId = storedAsrModelId?.also(::requireKnownAsrModelId) ?: AsrModel.DefaultId,
             defaultRingtoneUri = preferences[DEFAULT_RINGTONE_URI] ?: AppSettings.DefaultRingtoneUri,
+            themePresetId = themeSettings.presetId,
+            customThemeSeedColor = themeSettings.customSeedColor,
         )
     }
 
@@ -54,11 +57,31 @@ class DataStoreSettingsRepository(
         Unit
     }
 
+    override suspend fun setThemePreset(presetId: String): Result<Unit> = runCatching {
+        requireKnownThemePresetId(presetId)
+        dataStore.edit { preferences ->
+            preferences[THEME_PRESET_ID] = presetId
+            preferences.remove(CUSTOM_THEME_SEED_COLOR)
+        }
+        Unit
+    }
+
+    override suspend fun setCustomThemeSeedColor(seedColor: String): Result<Unit> = runCatching {
+        requireValidCustomThemeSeedColor(seedColor)
+        dataStore.edit { preferences ->
+            preferences[THEME_PRESET_ID] = AppSettings.CustomThemePresetId
+            preferences[CUSTOM_THEME_SEED_COLOR] = seedColor.lowercase()
+        }
+        Unit
+    }
+
     private companion object {
         val OPEN_ROUTER_API_KEY = stringPreferencesKey("open_router_api_key")
         val SELECTED_MODEL_ID = stringPreferencesKey("selected_model_id")
         val SELECTED_ASR_MODEL_ID = stringPreferencesKey("selected_asr_model_id")
         val DEFAULT_RINGTONE_URI = stringPreferencesKey("default_ringtone_uri")
+        val THEME_PRESET_ID = stringPreferencesKey("theme_preset_id")
+        val CUSTOM_THEME_SEED_COLOR = stringPreferencesKey("custom_theme_seed_color")
     }
 
     private fun requireKnownModelId(modelId: String) {
@@ -72,4 +95,42 @@ class DataStoreSettingsRepository(
             "UNKNOWN_ASR_MODEL_ID: $modelId"
         }
     }
+
+    private fun requireKnownThemePresetId(presetId: String) {
+        require(presetId in AppSettings.BuiltInThemePresetIds) {
+            "UNKNOWN_THEME_PRESET_ID: $presetId"
+        }
+    }
+
+    private fun requireValidCustomThemeSeedColor(seedColor: String) {
+        require(AppSettings.isValidThemeSeedColor(seedColor)) {
+            "INVALID_THEME_SEED_COLOR: $seedColor"
+        }
+    }
+
+    private fun readThemeSettings(preferences: Preferences): ThemeSettings {
+        val storedPresetId = preferences[THEME_PRESET_ID] ?: AppSettings.DefaultThemePresetId
+        if (storedPresetId == AppSettings.CustomThemePresetId) {
+            val customSeedColor = preferences[CUSTOM_THEME_SEED_COLOR]
+            return if (customSeedColor != null && AppSettings.isValidThemeSeedColor(customSeedColor)) {
+                ThemeSettings(
+                    presetId = AppSettings.CustomThemePresetId,
+                    customSeedColor = customSeedColor.lowercase(),
+                )
+            } else {
+                ThemeSettings()
+            }
+        }
+
+        return if (storedPresetId in AppSettings.BuiltInThemePresetIds) {
+            ThemeSettings(presetId = storedPresetId)
+        } else {
+            ThemeSettings()
+        }
+    }
+
+    private data class ThemeSettings(
+        val presetId: String = AppSettings.DefaultThemePresetId,
+        val customSeedColor: String? = null,
+    )
 }
