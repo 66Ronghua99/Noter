@@ -403,6 +403,16 @@ private fun SettingsRoute(
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
+    val destinationKey = when (destination) {
+        is SettingsDestination.Home -> "home"
+        SettingsDestination.Appearance -> "appearance"
+        SettingsDestination.AiVoice -> "ai_voice"
+        SettingsDestination.Sound -> "sound"
+        SettingsDestination.Permissions -> "permissions"
+    }
+    LaunchedEffect(destinationKey) {
+        viewModel.refreshPermissionRows()
+    }
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
     ) {
