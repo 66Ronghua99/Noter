@@ -15,12 +15,13 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.platform.testTag
 import com.cory.noter.ui.NoterApp
 import com.cory.noter.ui.ai.AiCreateScreen
+import com.cory.noter.ui.ai.AiCreateTestTags
 import com.cory.noter.ui.ai.AiCreateUiState
 import com.cory.noter.ui.ai.UnifiedAiCreateScreen
 import com.cory.noter.ui.ai.UnifiedAiCreateTestTags
@@ -67,9 +68,9 @@ class VoiceHomeSmokeTest {
 
         composeRule.onNodeWithTag(AppRouteTestTags.AiCreate)
             .assertIsDisplayed()
-        composeRule.onNodeWithText("Describe the alarm")
+        composeRule.onNodeWithTag(AiCreateTestTags.PromptInput)
             .assertIsDisplayed()
-        composeRule.onNodeWithText("Create with AI")
+        composeRule.onNodeWithTag(AiCreateTestTags.SubmitAction)
             .assertIsDisplayed()
 
         composeRule.onNodeWithTag(UnifiedAiCreateTestTags.VoiceModeAction)
@@ -78,6 +79,79 @@ class VoiceHomeSmokeTest {
 
         composeRule.onNodeWithTag(VoiceHomeTestTags.RecordButton)
             .assertIsDisplayed()
+    }
+
+    @Test
+    fun noter_app_unified_text_mode_exposes_prompt_entry_and_submit_action() {
+        var prompt = ""
+        var submitCount = 0
+
+        composeRule.setContent {
+            MaterialTheme {
+                TestNoterApp(
+                    textState = AiCreateUiState(
+                        selectedModelId = "demo-model",
+                        prompt = prompt,
+                    ),
+                    onPromptChanged = { prompt = it },
+                    onSubmit = { submitCount += 1 },
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag(UnifiedAiCreateTestTags.TextModeAction)
+            .assertIsDisplayed()
+            .performClick()
+
+        composeRule.onNodeWithTag(AiCreateTestTags.Root)
+            .assertIsDisplayed()
+        composeRule.onNodeWithTag(AiCreateTestTags.PromptInput)
+            .assertIsDisplayed()
+            .performTextInput("Wake me at seven tomorrow")
+        composeRule.onNodeWithTag(AiCreateTestTags.SubmitAction)
+            .assertIsDisplayed()
+            .performClick()
+
+        assertEquals("Wake me at seven tomorrow", prompt)
+        assertEquals(1, submitCount)
+    }
+
+    @Test
+    fun noter_app_unified_text_mode_exposes_status_error_loading_and_exact_alarm_actions() {
+        var openedExactAlarmSettings = 0
+
+        composeRule.setContent {
+            MaterialTheme {
+                TestNoterApp(
+                    textState = AiCreateUiState(
+                        selectedModelId = "demo-model",
+                        isLoading = true,
+                        statusMessage = UiText.Raw("Creating alarm..."),
+                        errorMessage = UiText.Raw("Exact alarm permission is required."),
+                        exactAlarmPermissionRequired = true,
+                    ),
+                    onOpenExactAlarmSettings = { openedExactAlarmSettings += 1 },
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag(UnifiedAiCreateTestTags.TextModeAction)
+            .assertIsDisplayed()
+            .performClick()
+
+        composeRule.onNodeWithTag(AiCreateTestTags.LoadingIndicator)
+            .assertIsDisplayed()
+        composeRule.onNodeWithTag(AiCreateTestTags.StatusMessage)
+            .assertIsDisplayed()
+            .assertTextContains("Creating alarm...")
+        composeRule.onNodeWithTag(AiCreateTestTags.ErrorMessage)
+            .assertIsDisplayed()
+            .assertTextContains("Exact alarm permission is required.")
+        composeRule.onNodeWithTag(AiCreateTestTags.ExactAlarmAction)
+            .assertIsDisplayed()
+            .performClick()
+
+        assertEquals(1, openedExactAlarmSettings)
     }
 
     @Test
@@ -398,6 +472,10 @@ class VoiceHomeSmokeTest {
     @Composable
     private fun TestNoterApp(
         voiceState: VoiceHomeUiState = VoiceHomeUiState(status = VoiceHomeStatus.Idle),
+        textState: AiCreateUiState = AiCreateUiState(selectedModelId = "demo-model"),
+        onPromptChanged: (String) -> Unit = {},
+        onSubmit: () -> Unit = {},
+        onOpenExactAlarmSettings: () -> Unit = {},
     ) {
         NoterApp(
             unifiedAiCreateScreen = { onOpenAlarmList, onOpenSettings, onOpenManualCreate ->
@@ -418,10 +496,10 @@ class VoiceHomeSmokeTest {
                     textContent = {
                         Box(modifier = Modifier.testTag(AppRouteTestTags.AiCreate))
                         AiCreateScreen(
-                            state = AiCreateUiState(selectedModelId = "demo-model"),
-                            onPromptChanged = {},
-                            onSubmit = {},
-                            onOpenExactAlarmSettings = {},
+                            state = textState,
+                            onPromptChanged = onPromptChanged,
+                            onSubmit = onSubmit,
+                            onOpenExactAlarmSettings = onOpenExactAlarmSettings,
                             onOpenManualCreate = onOpenManualCreate,
                             onBack = {},
                         )

@@ -16,11 +16,24 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.cory.noter.R
 import com.cory.noter.ui.text.asString
+
+object AiCreateTestTags {
+    const val Root = "AiCreateRoot"
+    const val PromptInput = "AiCreatePromptInput"
+    const val SubmitAction = "AiCreateSubmitAction"
+    const val ManualCreateAction = "AiCreateManualCreateAction"
+    const val BackAction = "AiCreateBackAction"
+    const val ExactAlarmAction = "AiCreateExactAlarmAction"
+    const val LoadingIndicator = "AiCreateLoadingIndicator"
+    const val StatusMessage = "AiCreateStatusMessage"
+    const val ErrorMessage = "AiCreateErrorMessage"
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,12 +47,17 @@ fun AiCreateScreen(
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
-        modifier = modifier.fillMaxSize(),
+        modifier = modifier
+            .fillMaxSize()
+            .testTag(AiCreateTestTags.Root),
         topBar = {
             TopAppBar(
                 title = { Text(text = stringResource(R.string.ai_create_title)) },
                 navigationIcon = {
-                    TextButton(onClick = onBack) {
+                    TextButton(
+                        modifier = Modifier.testTag(AiCreateTestTags.BackAction),
+                        onClick = onBack,
+                    ) {
                         Text(text = stringResource(R.string.common_back))
                     }
                 },
@@ -70,25 +88,30 @@ fun AiCreateScreen(
                 onValueChange = onPromptChanged,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f),
+                    .weight(1f)
+                    .testTag(AiCreateTestTags.PromptInput),
                 label = { Text(text = stringResource(R.string.ai_create_prompt_label)) },
             )
 
             state.errorMessage?.let { errorMessage ->
                 Text(
+                    modifier = Modifier.testTag(AiCreateTestTags.ErrorMessage),
                     text = errorMessage.asString(),
                     color = MaterialTheme.colorScheme.error,
                 )
             }
             state.statusMessage?.let { statusMessage ->
                 Text(
+                    modifier = Modifier.testTag(AiCreateTestTags.StatusMessage),
                     text = statusMessage.asString(),
                     color = MaterialTheme.colorScheme.primary,
                 )
             }
             if (state.exactAlarmPermissionRequired) {
                 Button(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(AiCreateTestTags.ExactAlarmAction),
                     onClick = onOpenExactAlarmSettings,
                 ) {
                     Text(text = stringResource(R.string.ai_create_exact_alarm_settings))
@@ -96,18 +119,24 @@ fun AiCreateScreen(
             }
 
             if (state.isLoading) {
-                CircularProgressIndicator()
+                CircularProgressIndicator(
+                    modifier = Modifier.testTag(AiCreateTestTags.LoadingIndicator),
+                )
             }
 
             Button(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(AiCreateTestTags.SubmitAction),
                 onClick = onSubmit,
                 enabled = !state.isLoading,
             ) {
                 Text(text = stringResource(R.string.ai_create_submit))
             }
             TextButton(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(AiCreateTestTags.ManualCreateAction),
                 onClick = onOpenManualCreate,
             ) {
                 Text(text = stringResource(R.string.ai_create_manual_instead))

@@ -1,5 +1,10 @@
 package com.cory.noter.ui.ai
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -68,12 +73,24 @@ fun UnifiedAiCreateScreen(
                 )
             }
 
-            when (mode) {
-                UnifiedAiCreateMode.Voice -> voiceContent {
-                    mode = UnifiedAiCreateMode.Text
-                }
+            AnimatedContent(
+                targetState = mode,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                transitionSpec = {
+                    fadeIn(animationSpec = tween(durationMillis = 220)) togetherWith
+                        fadeOut(animationSpec = tween(durationMillis = 180))
+                },
+                label = "UnifiedAiCreateModeTransition",
+            ) { targetMode ->
+                when (targetMode) {
+                    UnifiedAiCreateMode.Voice -> voiceContent {
+                        mode = UnifiedAiCreateMode.Text
+                    }
 
-                UnifiedAiCreateMode.Text -> textContent()
+                    UnifiedAiCreateMode.Text -> textContent()
+                }
             }
         }
     }
