@@ -27,6 +27,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.cory.noter.ai.AsrModel
 import com.cory.noter.ai.OpenRouterModel
@@ -106,18 +107,6 @@ private fun NoterRoot(
     batteryOptimizationIgnoredProvider: () -> Boolean,
     onOpenExactAlarmSettings: () -> Unit,
 ) {
-    val settingsViewModel: SettingsViewModel = viewModel(
-        key = "settings",
-        factory = factoryOf {
-            SettingsViewModel(
-                settingsRepository = appContainer.settingsRepository,
-                exactAlarmPermissionReader = appContainer.permissionStatusReader,
-                notificationPermissionProvider = notificationPermissionProvider,
-                batteryOptimizationIgnoredProvider = batteryOptimizationIgnoredProvider,
-            )
-        },
-    )
-
     NoterApp(
         unifiedAiCreateScreen = { onOpenAlarmList, onOpenSettings, onOpenManualCreate, onBackFromAiCreate ->
             UnifiedAiCreateRoute(
@@ -146,10 +135,12 @@ private fun NoterRoot(
                 onDone = onDone,
             )
         },
-        settingsScreen = { onOpenAppearance, onOpenAiVoice, onOpenSound, onOpenPermissions, onBack ->
+        settingsScreen = { onOpenAppearance, onOpenAiVoice, onOpenSound, onOpenPermissions, onBack, settingsViewModelStoreOwner ->
             SettingsRoute(
-                viewModel = settingsViewModel,
+                settingsViewModelStoreOwner = settingsViewModelStoreOwner,
                 appContainer = appContainer,
+                notificationPermissionProvider = notificationPermissionProvider,
+                batteryOptimizationIgnoredProvider = batteryOptimizationIgnoredProvider,
                 destination = SettingsDestination.Home(
                     onOpenAppearance = onOpenAppearance,
                     onOpenAiVoice = onOpenAiVoice,
@@ -159,34 +150,42 @@ private fun NoterRoot(
                 onBack = onBack,
             )
         },
-        appearanceSettingsScreen = { onBack ->
+        appearanceSettingsScreen = { onBack, settingsViewModelStoreOwner ->
             SettingsRoute(
-                viewModel = settingsViewModel,
+                settingsViewModelStoreOwner = settingsViewModelStoreOwner,
                 appContainer = appContainer,
+                notificationPermissionProvider = notificationPermissionProvider,
+                batteryOptimizationIgnoredProvider = batteryOptimizationIgnoredProvider,
                 destination = SettingsDestination.Appearance,
                 onBack = onBack,
             )
         },
-        aiVoiceSettingsScreen = { onBack ->
+        aiVoiceSettingsScreen = { onBack, settingsViewModelStoreOwner ->
             SettingsRoute(
-                viewModel = settingsViewModel,
+                settingsViewModelStoreOwner = settingsViewModelStoreOwner,
                 appContainer = appContainer,
+                notificationPermissionProvider = notificationPermissionProvider,
+                batteryOptimizationIgnoredProvider = batteryOptimizationIgnoredProvider,
                 destination = SettingsDestination.AiVoice,
                 onBack = onBack,
             )
         },
-        soundSettingsScreen = { onBack ->
+        soundSettingsScreen = { onBack, settingsViewModelStoreOwner ->
             SettingsRoute(
-                viewModel = settingsViewModel,
+                settingsViewModelStoreOwner = settingsViewModelStoreOwner,
                 appContainer = appContainer,
+                notificationPermissionProvider = notificationPermissionProvider,
+                batteryOptimizationIgnoredProvider = batteryOptimizationIgnoredProvider,
                 destination = SettingsDestination.Sound,
                 onBack = onBack,
             )
         },
-        permissionsSettingsScreen = { onBack ->
+        permissionsSettingsScreen = { onBack, settingsViewModelStoreOwner ->
             SettingsRoute(
-                viewModel = settingsViewModel,
+                settingsViewModelStoreOwner = settingsViewModelStoreOwner,
                 appContainer = appContainer,
+                notificationPermissionProvider = notificationPermissionProvider,
+                batteryOptimizationIgnoredProvider = batteryOptimizationIgnoredProvider,
                 destination = SettingsDestination.Permissions,
                 onBack = onBack,
             )
@@ -397,12 +396,26 @@ private fun AlarmEditorRoute(
 
 @Composable
 private fun SettingsRoute(
-    viewModel: SettingsViewModel,
+    settingsViewModelStoreOwner: ViewModelStoreOwner,
     appContainer: AppContainer,
+    notificationPermissionProvider: () -> Boolean,
+    batteryOptimizationIgnoredProvider: () -> Boolean,
     destination: SettingsDestination,
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
+    val viewModel: SettingsViewModel = viewModel(
+        key = "settings",
+        viewModelStoreOwner = settingsViewModelStoreOwner,
+        factory = factoryOf {
+            SettingsViewModel(
+                settingsRepository = appContainer.settingsRepository,
+                exactAlarmPermissionReader = appContainer.permissionStatusReader,
+                notificationPermissionProvider = notificationPermissionProvider,
+                batteryOptimizationIgnoredProvider = batteryOptimizationIgnoredProvider,
+            )
+        },
+    )
     val destinationKey = when (destination) {
         is SettingsDestination.Home -> "home"
         SettingsDestination.Appearance -> "appearance"

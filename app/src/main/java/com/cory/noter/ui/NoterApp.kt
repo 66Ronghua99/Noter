@@ -1,10 +1,13 @@
 package com.cory.noter.ui
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.ViewModelStoreOwner
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 
@@ -14,6 +17,7 @@ object Routes {
     const val EDIT_EXISTING = "alarms/{alarmId}/edit"
     const val AI_CREATE = "alarms/ai"
     const val SETTINGS = "settings"
+    const val SETTINGS_HOME = "settings/home"
     const val SETTINGS_APPEARANCE = "settings/appearance"
     const val SETTINGS_AI_VOICE = "settings/ai"
     const val SETTINGS_SOUND = "settings/sound"
@@ -44,11 +48,24 @@ fun NoterApp(
         onOpenSound: () -> Unit,
         onOpenPermissions: () -> Unit,
         onBack: () -> Unit,
+        settingsViewModelStoreOwner: ViewModelStoreOwner,
     ) -> Unit,
-    appearanceSettingsScreen: @Composable (onBack: () -> Unit) -> Unit,
-    aiVoiceSettingsScreen: @Composable (onBack: () -> Unit) -> Unit,
-    soundSettingsScreen: @Composable (onBack: () -> Unit) -> Unit,
-    permissionsSettingsScreen: @Composable (onBack: () -> Unit) -> Unit,
+    appearanceSettingsScreen: @Composable (
+        onBack: () -> Unit,
+        settingsViewModelStoreOwner: ViewModelStoreOwner,
+    ) -> Unit,
+    aiVoiceSettingsScreen: @Composable (
+        onBack: () -> Unit,
+        settingsViewModelStoreOwner: ViewModelStoreOwner,
+    ) -> Unit,
+    soundSettingsScreen: @Composable (
+        onBack: () -> Unit,
+        settingsViewModelStoreOwner: ViewModelStoreOwner,
+    ) -> Unit,
+    permissionsSettingsScreen: @Composable (
+        onBack: () -> Unit,
+        settingsViewModelStoreOwner: ViewModelStoreOwner,
+    ) -> Unit,
     modifier: Modifier = Modifier,
     startDestination: String = Routes.AI_CREATE,
 ) {
@@ -106,34 +123,59 @@ fun NoterApp(
                 { navController.popBackStack() },
             )
         }
-        composable(route = Routes.SETTINGS) {
-            settingsScreen(
-                { navController.navigate(Routes.SETTINGS_APPEARANCE) },
-                { navController.navigate(Routes.SETTINGS_AI_VOICE) },
-                { navController.navigate(Routes.SETTINGS_SOUND) },
-                { navController.navigate(Routes.SETTINGS_PERMISSIONS) },
-                { navController.popBackStack() },
-            )
-        }
-        composable(route = Routes.SETTINGS_APPEARANCE) {
-            appearanceSettingsScreen(
-                { navController.popBackStack() },
-            )
-        }
-        composable(route = Routes.SETTINGS_AI_VOICE) {
-            aiVoiceSettingsScreen(
-                { navController.popBackStack() },
-            )
-        }
-        composable(route = Routes.SETTINGS_SOUND) {
-            soundSettingsScreen(
-                { navController.popBackStack() },
-            )
-        }
-        composable(route = Routes.SETTINGS_PERMISSIONS) {
-            permissionsSettingsScreen(
-                { navController.popBackStack() },
-            )
+        navigation(
+            startDestination = Routes.SETTINGS_HOME,
+            route = Routes.SETTINGS,
+        ) {
+            composable(route = Routes.SETTINGS_HOME) { backStackEntry ->
+                val settingsViewModelStoreOwner = remember(backStackEntry) {
+                    navController.getBackStackEntry(Routes.SETTINGS)
+                }
+                settingsScreen(
+                    { navController.navigate(Routes.SETTINGS_APPEARANCE) },
+                    { navController.navigate(Routes.SETTINGS_AI_VOICE) },
+                    { navController.navigate(Routes.SETTINGS_SOUND) },
+                    { navController.navigate(Routes.SETTINGS_PERMISSIONS) },
+                    { navController.popBackStack() },
+                    settingsViewModelStoreOwner,
+                )
+            }
+            composable(route = Routes.SETTINGS_APPEARANCE) { backStackEntry ->
+                val settingsViewModelStoreOwner = remember(backStackEntry) {
+                    navController.getBackStackEntry(Routes.SETTINGS)
+                }
+                appearanceSettingsScreen(
+                    { navController.popBackStack() },
+                    settingsViewModelStoreOwner,
+                )
+            }
+            composable(route = Routes.SETTINGS_AI_VOICE) { backStackEntry ->
+                val settingsViewModelStoreOwner = remember(backStackEntry) {
+                    navController.getBackStackEntry(Routes.SETTINGS)
+                }
+                aiVoiceSettingsScreen(
+                    { navController.popBackStack() },
+                    settingsViewModelStoreOwner,
+                )
+            }
+            composable(route = Routes.SETTINGS_SOUND) { backStackEntry ->
+                val settingsViewModelStoreOwner = remember(backStackEntry) {
+                    navController.getBackStackEntry(Routes.SETTINGS)
+                }
+                soundSettingsScreen(
+                    { navController.popBackStack() },
+                    settingsViewModelStoreOwner,
+                )
+            }
+            composable(route = Routes.SETTINGS_PERMISSIONS) { backStackEntry ->
+                val settingsViewModelStoreOwner = remember(backStackEntry) {
+                    navController.getBackStackEntry(Routes.SETTINGS)
+                }
+                permissionsSettingsScreen(
+                    { navController.popBackStack() },
+                    settingsViewModelStoreOwner,
+                )
+            }
         }
     }
 }

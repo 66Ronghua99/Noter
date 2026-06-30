@@ -544,19 +544,19 @@ class VoiceHomeSmokeTest {
             alarmEditorScreen = { _, _ ->
                 Box(modifier = Modifier.testTag(AppRouteTestTags.Editor))
             },
-            settingsScreen = { _, _, _, _, _ ->
+            settingsScreen = { _, _, _, _, _, _ ->
                 Box(modifier = Modifier.testTag(AppRouteTestTags.Settings))
             },
-            appearanceSettingsScreen = {
+            appearanceSettingsScreen = { _, _ ->
                 Box(modifier = Modifier.testTag(AppRouteTestTags.Settings))
             },
-            aiVoiceSettingsScreen = {
+            aiVoiceSettingsScreen = { _, _ ->
                 Box(modifier = Modifier.testTag(AppRouteTestTags.Settings))
             },
-            soundSettingsScreen = {
+            soundSettingsScreen = { _, _ ->
                 Box(modifier = Modifier.testTag(AppRouteTestTags.Settings))
             },
-            permissionsSettingsScreen = {
+            permissionsSettingsScreen = { _, _ ->
                 Box(modifier = Modifier.testTag(AppRouteTestTags.Settings))
             },
         )

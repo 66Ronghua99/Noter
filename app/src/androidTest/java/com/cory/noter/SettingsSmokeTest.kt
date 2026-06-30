@@ -236,7 +236,7 @@ class SettingsSmokeTest {
                     unifiedAiCreateScreen = { _, _, _, _ -> Box(Modifier.testTag("ai-create")) },
                     alarmListScreen = { _, _, _, _ -> Box(Modifier.testTag("alarms")) },
                     alarmEditorScreen = { _, _ -> Box(Modifier.testTag("editor")) },
-                    settingsScreen = { onOpenAppearance, onOpenAiVoice, onOpenSound, onOpenPermissions, _ ->
+                    settingsScreen = { onOpenAppearance, onOpenAiVoice, onOpenSound, onOpenPermissions, _, _ ->
                         SettingsScreen(
                             state = SettingsViewModelPreviewStates.default,
                             onOpenAppearance = onOpenAppearance,
@@ -246,16 +246,16 @@ class SettingsSmokeTest {
                             onBack = {},
                         )
                     },
-                    appearanceSettingsScreen = {
+                    appearanceSettingsScreen = { _, _ ->
                         Box(Modifier.testTag(SettingsTestTags.AppearanceDetail))
                     },
-                    aiVoiceSettingsScreen = {
+                    aiVoiceSettingsScreen = { _, _ ->
                         Box(Modifier.testTag(SettingsTestTags.AiVoiceDetail))
                     },
-                    soundSettingsScreen = {
+                    soundSettingsScreen = { _, _ ->
                         Box(Modifier.testTag(SettingsTestTags.SoundDetail))
                     },
-                    permissionsSettingsScreen = {
+                    permissionsSettingsScreen = { _, _ ->
                         Box(Modifier.testTag(SettingsTestTags.PermissionsDetail))
                     },
                     startDestination = Routes.SETTINGS,
