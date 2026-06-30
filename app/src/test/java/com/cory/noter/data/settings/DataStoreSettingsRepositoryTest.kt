@@ -212,6 +212,25 @@ class DataStoreSettingsRepositoryTest {
     }
 
     @Test
+    fun `theme settings ignore invalid stored model id`() = runTest {
+        val file = Files.createTempFile("settings-test", ".preferences_pb").toFile()
+        val dataStore = PreferenceDataStoreFactory.create(
+            scope = backgroundScope,
+            produceFile = { file },
+        )
+        dataStore.edit { preferences ->
+            preferences[stringPreferencesKey("selected_model_id")] = "unknown/model"
+            preferences[stringPreferencesKey("theme_preset_id")] = "fresh_green"
+        }
+        val repository = DataStoreSettingsRepository(dataStore)
+
+        val themeSettings = repository.themeSettings.first()
+
+        assertThat(themeSettings.themePresetId).isEqualTo("fresh_green")
+        assertThat(themeSettings.customThemeSeedColor).isNull()
+    }
+
+    @Test
     fun `invalid stored asr model id fails explicitly on read`() = runTest {
         val file = Files.createTempFile("settings-test", ".preferences_pb").toFile()
         val dataStore = PreferenceDataStoreFactory.create(

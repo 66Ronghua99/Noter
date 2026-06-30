@@ -27,6 +27,10 @@ class DataStoreSettingsRepository(
         )
     }
 
+    override val themeSettings: Flow<AppSettings> = dataStore.data.map { preferences ->
+        readThemeSettings(preferences).toAppSettings()
+    }
+
     override suspend fun setOpenRouterApiKey(apiKey: String): Result<Unit> = runCatching {
         dataStore.edit { preferences ->
             preferences[OPEN_ROUTER_API_KEY] = apiKey
@@ -132,5 +136,14 @@ class DataStoreSettingsRepository(
     private data class ThemeSettings(
         val presetId: String = AppSettings.DefaultThemePresetId,
         val customSeedColor: String? = null,
-    )
+    ) {
+        fun toAppSettings(): AppSettings = AppSettings(
+            openRouterApiKey = "",
+            selectedModelId = OpenRouterModel.DefaultId,
+            selectedAsrModelId = AsrModel.DefaultId,
+            defaultRingtoneUri = AppSettings.DefaultRingtoneUri,
+            themePresetId = presetId,
+            customThemeSeedColor = customSeedColor,
+        )
+    }
 }

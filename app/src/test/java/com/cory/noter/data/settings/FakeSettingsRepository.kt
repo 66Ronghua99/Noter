@@ -18,6 +18,7 @@ class FakeSettingsRepository(
     private val state = MutableStateFlow(initialSettings)
 
     override val settings: Flow<AppSettings> = state
+    override val themeSettings: Flow<AppSettings> = state
 
     override suspend fun setOpenRouterApiKey(apiKey: String): Result<Unit> {
         state.update { it.copy(openRouterApiKey = apiKey) }

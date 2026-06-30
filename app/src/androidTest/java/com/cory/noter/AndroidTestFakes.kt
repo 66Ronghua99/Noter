@@ -111,6 +111,7 @@ class AndroidTestSettingsRepository(
     private val mutableSettings = MutableStateFlow(initial)
 
     override val settings: Flow<AppSettings> = mutableSettings
+    override val themeSettings: Flow<AppSettings> = mutableSettings
 
     override suspend fun setOpenRouterApiKey(apiKey: String): Result<Unit> = runCatching {
         mutableSettings.update { it.copy(openRouterApiKey = apiKey) }

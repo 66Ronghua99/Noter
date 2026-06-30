@@ -57,7 +57,7 @@ class MainActivity : ComponentActivity() {
         val appContainer = (application as NoterApplication).appContainer
 
         setContent {
-            val settings by appContainer.settingsRepository.settings.collectAsState(
+            val settings by appContainer.settingsRepository.themeSettings.collectAsState(
                 initial = AppSettings(
                     openRouterApiKey = "",
                     selectedModelId = OpenRouterModel.DefaultId,

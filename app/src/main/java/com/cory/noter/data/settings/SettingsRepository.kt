@@ -6,6 +6,8 @@ import kotlinx.coroutines.flow.Flow
 interface SettingsRepository {
     val settings: Flow<AppSettings>
 
+    val themeSettings: Flow<AppSettings>
+
     suspend fun setOpenRouterApiKey(apiKey: String): Result<Unit>
 
     suspend fun setSelectedModel(modelId: String): Result<Unit>
