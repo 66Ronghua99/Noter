@@ -106,6 +106,18 @@ private fun NoterRoot(
     batteryOptimizationIgnoredProvider: () -> Boolean,
     onOpenExactAlarmSettings: () -> Unit,
 ) {
+    val settingsViewModel: SettingsViewModel = viewModel(
+        key = "settings",
+        factory = factoryOf {
+            SettingsViewModel(
+                settingsRepository = appContainer.settingsRepository,
+                exactAlarmPermissionReader = appContainer.permissionStatusReader,
+                notificationPermissionProvider = notificationPermissionProvider,
+                batteryOptimizationIgnoredProvider = batteryOptimizationIgnoredProvider,
+            )
+        },
+    )
+
     NoterApp(
         unifiedAiCreateScreen = { onOpenAlarmList, onOpenSettings, onOpenManualCreate, onBackFromAiCreate ->
             UnifiedAiCreateRoute(
@@ -136,9 +148,8 @@ private fun NoterRoot(
         },
         settingsScreen = { onOpenAppearance, onOpenAiVoice, onOpenSound, onOpenPermissions, onBack ->
             SettingsRoute(
+                viewModel = settingsViewModel,
                 appContainer = appContainer,
-                notificationPermissionProvider = notificationPermissionProvider,
-                batteryOptimizationIgnoredProvider = batteryOptimizationIgnoredProvider,
                 destination = SettingsDestination.Home(
                     onOpenAppearance = onOpenAppearance,
                     onOpenAiVoice = onOpenAiVoice,
@@ -150,36 +161,32 @@ private fun NoterRoot(
         },
         appearanceSettingsScreen = { onBack ->
             SettingsRoute(
+                viewModel = settingsViewModel,
                 appContainer = appContainer,
-                notificationPermissionProvider = notificationPermissionProvider,
-                batteryOptimizationIgnoredProvider = batteryOptimizationIgnoredProvider,
                 destination = SettingsDestination.Appearance,
                 onBack = onBack,
             )
         },
         aiVoiceSettingsScreen = { onBack ->
             SettingsRoute(
+                viewModel = settingsViewModel,
                 appContainer = appContainer,
-                notificationPermissionProvider = notificationPermissionProvider,
-                batteryOptimizationIgnoredProvider = batteryOptimizationIgnoredProvider,
                 destination = SettingsDestination.AiVoice,
                 onBack = onBack,
             )
         },
         soundSettingsScreen = { onBack ->
             SettingsRoute(
+                viewModel = settingsViewModel,
                 appContainer = appContainer,
-                notificationPermissionProvider = notificationPermissionProvider,
-                batteryOptimizationIgnoredProvider = batteryOptimizationIgnoredProvider,
                 destination = SettingsDestination.Sound,
                 onBack = onBack,
             )
         },
         permissionsSettingsScreen = { onBack ->
             SettingsRoute(
+                viewModel = settingsViewModel,
                 appContainer = appContainer,
-                notificationPermissionProvider = notificationPermissionProvider,
-                batteryOptimizationIgnoredProvider = batteryOptimizationIgnoredProvider,
                 destination = SettingsDestination.Permissions,
                 onBack = onBack,
             )
@@ -390,23 +397,12 @@ private fun AlarmEditorRoute(
 
 @Composable
 private fun SettingsRoute(
+    viewModel: SettingsViewModel,
     appContainer: AppContainer,
-    notificationPermissionProvider: () -> Boolean,
-    batteryOptimizationIgnoredProvider: () -> Boolean,
     destination: SettingsDestination,
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
-    val viewModel: SettingsViewModel = viewModel(
-        factory = factoryOf {
-            SettingsViewModel(
-                settingsRepository = appContainer.settingsRepository,
-                exactAlarmPermissionReader = appContainer.permissionStatusReader,
-                notificationPermissionProvider = notificationPermissionProvider,
-                batteryOptimizationIgnoredProvider = batteryOptimizationIgnoredProvider,
-            )
-        },
-    )
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
     ) {

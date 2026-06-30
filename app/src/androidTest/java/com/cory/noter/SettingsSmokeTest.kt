@@ -43,26 +43,35 @@ class SettingsSmokeTest {
     val composeRule = createAndroidComposeRule<ComponentActivity>()
 
     @Test
-    fun settings_routes_navigate_from_directory_to_each_detail_page() {
+    fun settings_route_navigates_to_appearance_detail() {
         setSettingsRouteTestContent()
         composeRule.onNodeWithTag(SettingsTestTags.AppearanceRow).performClick()
         composeRule.onNodeWithTag(SettingsTestTags.AppearanceDetail).assertIsDisplayed()
+    }
 
+    @Test
+    fun settings_route_navigates_to_ai_voice_detail() {
         setSettingsRouteTestContent()
         composeRule.onNodeWithTag(SettingsTestTags.AiVoiceRow).performClick()
         composeRule.onNodeWithTag(SettingsTestTags.AiVoiceDetail).assertIsDisplayed()
+    }
 
+    @Test
+    fun settings_route_navigates_to_sound_detail() {
         setSettingsRouteTestContent()
         composeRule.onNodeWithTag(SettingsTestTags.SoundRow).performClick()
         composeRule.onNodeWithTag(SettingsTestTags.SoundDetail).assertIsDisplayed()
+    }
 
+    @Test
+    fun settings_route_navigates_to_permissions_detail() {
         setSettingsRouteTestContent()
         composeRule.onNodeWithTag(SettingsTestTags.PermissionsRow).performClick()
         composeRule.onNodeWithTag(SettingsTestTags.PermissionsDetail).assertIsDisplayed()
     }
 
     @Test
-    fun settings_detail_pages_expose_route_specific_controls() {
+    fun appearance_settings_detail_exposes_route_specific_controls() {
         val state = SettingsViewModelPreviewStates.default
 
         composeRule.setContent {
@@ -84,6 +93,11 @@ class SettingsSmokeTest {
         composeRule.onNodeWithTag(SettingsTestTags.ThemePresetAction("neutral_gray")).assertIsDisplayed()
         composeRule.onNodeWithTag(SettingsTestTags.CustomThemeSeedInput).assertIsDisplayed()
         composeRule.onNodeWithTag(SettingsTestTags.CustomThemeSeedSaveAction).assertIsDisplayed()
+    }
+
+    @Test
+    fun ai_voice_settings_detail_exposes_route_specific_controls() {
+        val state = SettingsViewModelPreviewStates.default
 
         composeRule.setContent {
             MaterialTheme {
@@ -102,6 +116,11 @@ class SettingsSmokeTest {
         composeRule.onNodeWithTag(SettingsTestTags.SaveApiKeyAction).assertIsDisplayed()
         composeRule.onNodeWithTag(SettingsTestTags.ModelAction(OpenRouterModel.builtInIds[0])).assertIsDisplayed()
         composeRule.onNodeWithTag(SettingsTestTags.AsrModelAction(AsrModel.builtInIds[0])).assertIsDisplayed()
+    }
+
+    @Test
+    fun sound_settings_detail_exposes_route_specific_controls() {
+        val state = SettingsViewModelPreviewStates.default
 
         composeRule.setContent {
             MaterialTheme {
@@ -114,6 +133,11 @@ class SettingsSmokeTest {
         }
         composeRule.onNodeWithTag(SettingsTestTags.SoundDetail).assertIsDisplayed()
         composeRule.onNodeWithTag(SettingsTestTags.DefaultRingtoneAction).assertIsDisplayed()
+    }
+
+    @Test
+    fun permissions_settings_detail_exposes_route_specific_controls() {
+        val state = SettingsViewModelPreviewStates.default
 
         composeRule.setContent {
             MaterialTheme {
