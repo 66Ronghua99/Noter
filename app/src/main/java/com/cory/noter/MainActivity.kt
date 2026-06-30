@@ -40,8 +40,12 @@ import com.cory.noter.ui.alarm_list.AlarmListScreen
 import com.cory.noter.ui.alarm_list.AlarmListViewModel
 import com.cory.noter.ui.editor.AlarmEditorScreen
 import com.cory.noter.ui.editor.AlarmEditorViewModel
+import com.cory.noter.ui.settings.AiVoiceSettingsScreen
+import com.cory.noter.ui.settings.AppearanceSettingsScreen
+import com.cory.noter.ui.settings.PermissionsSettingsScreen
 import com.cory.noter.ui.settings.SettingsScreen
 import com.cory.noter.ui.settings.SettingsViewModel
+import com.cory.noter.ui.settings.SoundSettingsScreen
 import com.cory.noter.ui.theme.NoterTheme
 import com.cory.noter.ui.voice.VoiceHomeScreen
 import com.cory.noter.ui.voice.VoiceHomeViewModel
@@ -129,11 +133,53 @@ private fun NoterRoot(
                 onDone = onDone,
             )
         },
-        settingsScreen = { onBack ->
+        settingsScreen = { onOpenAppearance, onOpenAiVoice, onOpenSound, onOpenPermissions, onBack ->
             SettingsRoute(
                 appContainer = appContainer,
                 notificationPermissionProvider = notificationPermissionProvider,
                 batteryOptimizationIgnoredProvider = batteryOptimizationIgnoredProvider,
+                destination = SettingsDestination.Home(
+                    onOpenAppearance = onOpenAppearance,
+                    onOpenAiVoice = onOpenAiVoice,
+                    onOpenSound = onOpenSound,
+                    onOpenPermissions = onOpenPermissions,
+                ),
+                onBack = onBack,
+            )
+        },
+        appearanceSettingsScreen = { onBack ->
+            SettingsRoute(
+                appContainer = appContainer,
+                notificationPermissionProvider = notificationPermissionProvider,
+                batteryOptimizationIgnoredProvider = batteryOptimizationIgnoredProvider,
+                destination = SettingsDestination.Appearance,
+                onBack = onBack,
+            )
+        },
+        aiVoiceSettingsScreen = { onBack ->
+            SettingsRoute(
+                appContainer = appContainer,
+                notificationPermissionProvider = notificationPermissionProvider,
+                batteryOptimizationIgnoredProvider = batteryOptimizationIgnoredProvider,
+                destination = SettingsDestination.AiVoice,
+                onBack = onBack,
+            )
+        },
+        soundSettingsScreen = { onBack ->
+            SettingsRoute(
+                appContainer = appContainer,
+                notificationPermissionProvider = notificationPermissionProvider,
+                batteryOptimizationIgnoredProvider = batteryOptimizationIgnoredProvider,
+                destination = SettingsDestination.Sound,
+                onBack = onBack,
+            )
+        },
+        permissionsSettingsScreen = { onBack ->
+            SettingsRoute(
+                appContainer = appContainer,
+                notificationPermissionProvider = notificationPermissionProvider,
+                batteryOptimizationIgnoredProvider = batteryOptimizationIgnoredProvider,
+                destination = SettingsDestination.Permissions,
                 onBack = onBack,
             )
         },
@@ -345,6 +391,7 @@ private fun SettingsRoute(
     appContainer: AppContainer,
     notificationPermissionProvider: () -> Boolean,
     batteryOptimizationIgnoredProvider: () -> Boolean,
+    destination: SettingsDestination,
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -385,45 +432,98 @@ private fun SettingsRoute(
         }
     }
 
-    SettingsScreen(
-        state = state,
-        onApiKeyChanged = viewModel::onApiKeyChanged,
-        onSaveApiKey = viewModel::saveApiKey,
-        onModelSelected = viewModel::onModelSelected,
-        onAsrModelSelected = viewModel::onAsrModelSelected,
-        onPickDefaultRingtone = {
-            ringtonePicker.launch(
-                createRingtonePickerIntent(
-                    currentRingtoneUri = state.defaultRingtoneUri,
-                    title = ringtonePickerTitle,
-                ),
+    when (destination) {
+        is SettingsDestination.Home -> {
+            SettingsScreen(
+                state = state,
+                onOpenAppearance = destination.onOpenAppearance,
+                onOpenAiVoice = destination.onOpenAiVoice,
+                onOpenSound = destination.onOpenSound,
+                onOpenPermissions = destination.onOpenPermissions,
+                onBack = onBack,
             )
-        },
-        onPermissionAction = { permissionId ->
-            when (permissionId) {
-                "notifications" -> {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+
+        SettingsDestination.Appearance -> {
+            AppearanceSettingsScreen(
+                state = state,
+                onThemePresetSelected = viewModel::onThemePresetSelected,
+                onCustomThemeSeedColorChanged = viewModel::onCustomThemeSeedColorChanged,
+                onSaveCustomThemeSeedColor = viewModel::saveCustomThemeSeedColor,
+                onBack = onBack,
+            )
+        }
+
+        SettingsDestination.AiVoice -> {
+            AiVoiceSettingsScreen(
+                state = state,
+                onApiKeyChanged = viewModel::onApiKeyChanged,
+                onSaveApiKey = viewModel::saveApiKey,
+                onModelSelected = viewModel::onModelSelected,
+                onAsrModelSelected = viewModel::onAsrModelSelected,
+                onBack = onBack,
+            )
+        }
+
+        SettingsDestination.Sound -> {
+            SoundSettingsScreen(
+                state = state,
+                onPickDefaultRingtone = {
+                    ringtonePicker.launch(
+                        createRingtonePickerIntent(
+                            currentRingtoneUri = state.defaultRingtoneUri,
+                            title = ringtonePickerTitle,
+                        ),
+                    )
+                },
+                onBack = onBack,
+            )
+        }
+
+        SettingsDestination.Permissions -> {
+            PermissionsSettingsScreen(
+                state = state,
+                onPermissionAction = { permissionId ->
+                    when (permissionId) {
+                        "notifications" -> {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                            }
+                        }
+
+                        "exact_alarms" -> {
+                            exactAlarmSettingsLauncher.launch(
+                                Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
+                                    data = Uri.parse("package:${context.packageName}")
+                                },
+                            )
+                        }
+
+                        "battery_optimization" -> {
+                            batteryOptimizationLauncher.launch(
+                                Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS),
+                            )
+                        }
                     }
-                }
+                },
+                onBack = onBack,
+            )
+        }
+    }
+}
 
-                "exact_alarms" -> {
-                    exactAlarmSettingsLauncher.launch(
-                        Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
-                            data = Uri.parse("package:${context.packageName}")
-                        },
-                    )
-                }
+private sealed interface SettingsDestination {
+    data class Home(
+        val onOpenAppearance: () -> Unit,
+        val onOpenAiVoice: () -> Unit,
+        val onOpenSound: () -> Unit,
+        val onOpenPermissions: () -> Unit,
+    ) : SettingsDestination
 
-                "battery_optimization" -> {
-                    batteryOptimizationLauncher.launch(
-                        Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS),
-                    )
-                }
-            }
-        },
-        onBack = onBack,
-    )
+    data object Appearance : SettingsDestination
+    data object AiVoice : SettingsDestination
+    data object Sound : SettingsDestination
+    data object Permissions : SettingsDestination
 }
 
 private fun createRingtonePickerIntent(

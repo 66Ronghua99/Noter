@@ -14,6 +14,10 @@ object Routes {
     const val EDIT_EXISTING = "alarms/{alarmId}/edit"
     const val AI_CREATE = "alarms/ai"
     const val SETTINGS = "settings"
+    const val SETTINGS_APPEARANCE = "settings/appearance"
+    const val SETTINGS_AI_VOICE = "settings/ai"
+    const val SETTINGS_SOUND = "settings/sound"
+    const val SETTINGS_PERMISSIONS = "settings/permissions"
     const val ALARM_ID_ARG = "alarmId"
 
     fun editExisting(alarmId: Long): String = "alarms/$alarmId/edit"
@@ -33,7 +37,17 @@ fun NoterApp(
         onOpenSettings: () -> Unit,
     ) -> Unit,
     alarmEditorScreen: @Composable (alarmId: Long?, onDone: () -> Unit) -> Unit,
-    settingsScreen: @Composable (onBack: () -> Unit) -> Unit,
+    settingsScreen: @Composable (
+        onOpenAppearance: () -> Unit,
+        onOpenAiVoice: () -> Unit,
+        onOpenSound: () -> Unit,
+        onOpenPermissions: () -> Unit,
+        onBack: () -> Unit,
+    ) -> Unit,
+    appearanceSettingsScreen: @Composable (onBack: () -> Unit) -> Unit,
+    aiVoiceSettingsScreen: @Composable (onBack: () -> Unit) -> Unit,
+    soundSettingsScreen: @Composable (onBack: () -> Unit) -> Unit,
+    permissionsSettingsScreen: @Composable (onBack: () -> Unit) -> Unit,
     modifier: Modifier = Modifier,
     startDestination: String = Routes.AI_CREATE,
 ) {
@@ -78,6 +92,30 @@ fun NoterApp(
         }
         composable(route = Routes.SETTINGS) {
             settingsScreen(
+                { navController.navigate(Routes.SETTINGS_APPEARANCE) },
+                { navController.navigate(Routes.SETTINGS_AI_VOICE) },
+                { navController.navigate(Routes.SETTINGS_SOUND) },
+                { navController.navigate(Routes.SETTINGS_PERMISSIONS) },
+                { navController.popBackStack() },
+            )
+        }
+        composable(route = Routes.SETTINGS_APPEARANCE) {
+            appearanceSettingsScreen(
+                { navController.popBackStack() },
+            )
+        }
+        composable(route = Routes.SETTINGS_AI_VOICE) {
+            aiVoiceSettingsScreen(
+                { navController.popBackStack() },
+            )
+        }
+        composable(route = Routes.SETTINGS_SOUND) {
+            soundSettingsScreen(
+                { navController.popBackStack() },
+            )
+        }
+        composable(route = Routes.SETTINGS_PERMISSIONS) {
+            permissionsSettingsScreen(
                 { navController.popBackStack() },
             )
         }

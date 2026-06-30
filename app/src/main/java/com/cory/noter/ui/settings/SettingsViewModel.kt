@@ -7,6 +7,7 @@ import com.cory.noter.R
 import com.cory.noter.ai.AsrModel
 import com.cory.noter.ai.OpenRouterModel
 import com.cory.noter.data.settings.SettingsRepository
+import com.cory.noter.domain.settings.AppSettings
 import com.cory.noter.permissions.PermissionStatusReader
 import com.cory.noter.ui.text.UiText
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,13 +25,24 @@ data class PermissionGuidanceUiModel(
     @param:StringRes val actionLabelResId: Int?,
 )
 
+data class SettingsDirectoryRowUiModel(
+    val id: String,
+    @param:StringRes val titleResId: Int,
+    val summary: UiText,
+)
+
 data class SettingsUiState(
     val openRouterApiKey: String = "",
     val selectedModelId: String = OpenRouterModel.DefaultId,
     val selectedAsrModelId: String = AsrModel.DefaultId,
     val defaultRingtoneUri: String = "",
+    val themePresetId: String = AppSettings.DefaultThemePresetId,
+    val customThemeSeedColor: String? = null,
+    val customThemeSeedColorInput: String = "",
     val modelOptions: List<String> = OpenRouterModel.builtInIds,
     val asrModelOptions: List<String> = AsrModel.builtInIds,
+    val themePresetOptions: List<String> = AppSettings.BuiltInThemePresetIds.toList(),
+    val directoryRows: List<SettingsDirectoryRowUiModel> = emptyList(),
     val permissionRows: List<PermissionGuidanceUiModel> = emptyList(),
     val errorMessage: UiText? = null,
 )
@@ -51,12 +63,17 @@ class SettingsViewModel(
         viewModelScope.launch {
             settingsRepository.settings.collect { settings ->
                 mutableUiState.update { current ->
-                    current.copy(
+                    val updated = current.copy(
                         openRouterApiKey = settings.openRouterApiKey,
                         selectedModelId = settings.selectedModelId,
                         selectedAsrModelId = settings.selectedAsrModelId,
                         defaultRingtoneUri = settings.defaultRingtoneUri,
+                        themePresetId = settings.themePresetId,
+                        customThemeSeedColor = settings.customThemeSeedColor,
+                        customThemeSeedColorInput = settings.customThemeSeedColor
+                            ?: current.customThemeSeedColorInput,
                     )
+                    updated.copy(directoryRows = buildDirectoryRows(updated))
                 }
             }
         }
@@ -64,9 +81,10 @@ class SettingsViewModel(
 
     fun refreshPermissionRows() {
         mutableUiState.update { current ->
-            current.copy(
+            val updated = current.copy(
                 permissionRows = buildPermissionRows(),
             )
+            updated.copy(directoryRows = buildDirectoryRows(updated))
         }
     }
 
@@ -114,6 +132,61 @@ class SettingsViewModel(
             }
         }
     }
+
+    fun onThemePresetSelected(presetId: String) {
+        viewModelScope.launch {
+            val result = settingsRepository.setThemePreset(presetId)
+            mutableUiState.update {
+                it.copy(errorMessage = result.exceptionOrNull()?.message?.let(UiText::Raw))
+            }
+        }
+    }
+
+    fun onCustomThemeSeedColorChanged(seedColor: String) {
+        mutableUiState.update {
+            it.copy(
+                customThemeSeedColorInput = seedColor,
+                errorMessage = null,
+            )
+        }
+    }
+
+    fun saveCustomThemeSeedColor() {
+        viewModelScope.launch {
+            val result = settingsRepository.setCustomThemeSeedColor(
+                uiState.value.customThemeSeedColorInput,
+            )
+            mutableUiState.update {
+                it.copy(errorMessage = result.exceptionOrNull()?.message?.let(UiText::Raw))
+            }
+        }
+    }
+
+    private fun buildDirectoryRows(state: SettingsUiState): List<SettingsDirectoryRowUiModel> =
+        listOf(
+            SettingsDirectoryRowUiModel(
+                id = "appearance",
+                titleResId = R.string.settings_directory_appearance,
+                summary = UiText.Raw(state.themePresetId),
+            ),
+            SettingsDirectoryRowUiModel(
+                id = "ai_voice",
+                titleResId = R.string.settings_directory_ai_voice,
+                summary = UiText.Raw("${state.selectedModelId} / ${state.selectedAsrModelId}"),
+            ),
+            SettingsDirectoryRowUiModel(
+                id = "sound",
+                titleResId = R.string.settings_directory_sound,
+                summary = UiText.Raw(state.defaultRingtoneUri),
+            ),
+            SettingsDirectoryRowUiModel(
+                id = "permissions",
+                titleResId = R.string.settings_directory_permissions,
+                summary = UiText.Raw(
+                    state.permissionRows.count { !it.granted }.toString(),
+                ),
+            ),
+        )
 
     private fun buildPermissionRows(): List<PermissionGuidanceUiModel> = listOf(
         PermissionGuidanceUiModel(

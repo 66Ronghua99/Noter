@@ -3,18 +3,144 @@ package com.cory.noter.ui.settings
 import com.cory.noter.ai.AsrModel
 import com.cory.noter.ai.OpenRouterModel
 import com.cory.noter.data.settings.FakeSettingsRepository
+import com.cory.noter.domain.settings.AppSettings
 import com.cory.noter.permissions.PermissionStatusReader
 import com.cory.noter.ui.MainDispatcherRule
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class SettingsViewModelTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
+
+    @Test
+    fun `directory summaries expose appearance ai sound and permissions state`() = runTest {
+        val repository = FakeSettingsRepository(
+            initialSettings = AppSettings(
+                openRouterApiKey = "sk-demo",
+                selectedModelId = OpenRouterModel.builtInIds[1],
+                selectedAsrModelId = AsrModel.builtInIds[1],
+                defaultRingtoneUri = "content://ringtone/demo",
+                themePresetId = "fresh_green",
+            ),
+        )
+        val viewModel = SettingsViewModel(
+            settingsRepository = repository,
+            exactAlarmPermissionReader = PermissionStatusReader { false },
+            notificationPermissionProvider = { true },
+            batteryOptimizationIgnoredProvider = { false },
+        )
+
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertThat(state.directoryRows.map { it.id })
+            .containsExactly("appearance", "ai_voice", "sound", "permissions")
+            .inOrder()
+        assertThat(state.directoryRows.first { it.id == "appearance" }.summary.asStringForTest())
+            .contains("fresh_green")
+        assertThat(state.directoryRows.first { it.id == "ai_voice" }.summary.asStringForTest())
+            .contains(OpenRouterModel.builtInIds[1])
+        assertThat(state.directoryRows.first { it.id == "sound" }.summary.asStringForTest())
+            .contains("content://ringtone/demo")
+        assertThat(state.directoryRows.first { it.id == "permissions" }.summary.asStringForTest())
+            .contains("2")
+    }
+
+    @Test
+    fun `theme state follows repository settings`() = runTest {
+        val repository = FakeSettingsRepository(
+            initialSettings = AppSettings(
+                openRouterApiKey = "",
+                selectedModelId = OpenRouterModel.DefaultId,
+                selectedAsrModelId = AsrModel.DefaultId,
+                defaultRingtoneUri = AppSettings.DefaultRingtoneUri,
+                themePresetId = AppSettings.CustomThemePresetId,
+                customThemeSeedColor = "#b65b70",
+            ),
+        )
+        val viewModel = SettingsViewModel(
+            settingsRepository = repository,
+            exactAlarmPermissionReader = PermissionStatusReader { true },
+            notificationPermissionProvider = { true },
+            batteryOptimizationIgnoredProvider = { true },
+        )
+
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.themePresetId).isEqualTo(AppSettings.CustomThemePresetId)
+        assertThat(viewModel.uiState.value.customThemeSeedColor).isEqualTo("#b65b70")
+        assertThat(viewModel.uiState.value.customThemeSeedColorInput).isEqualTo("#b65b70")
+    }
+
+    @Test
+    fun `selecting theme preset saves repository value`() = runTest {
+        val repository = FakeSettingsRepository()
+        val viewModel = SettingsViewModel(
+            settingsRepository = repository,
+            exactAlarmPermissionReader = PermissionStatusReader { true },
+            notificationPermissionProvider = { true },
+            batteryOptimizationIgnoredProvider = { true },
+        )
+
+        advanceUntilIdle()
+        viewModel.onThemePresetSelected("soft_rose")
+        advanceUntilIdle()
+
+        assertThat(repository.settings.first().themePresetId).isEqualTo("soft_rose")
+        assertThat(repository.settings.first().customThemeSeedColor).isNull()
+        assertThat(viewModel.uiState.value.errorMessage).isNull()
+    }
+
+    @Test
+    fun `saving custom theme seed color saves repository value`() = runTest {
+        val repository = FakeSettingsRepository()
+        val viewModel = SettingsViewModel(
+            settingsRepository = repository,
+            exactAlarmPermissionReader = PermissionStatusReader { true },
+            notificationPermissionProvider = { true },
+            batteryOptimizationIgnoredProvider = { true },
+        )
+
+        advanceUntilIdle()
+        viewModel.onCustomThemeSeedColorChanged("#4A6EA9")
+        viewModel.saveCustomThemeSeedColor()
+        advanceUntilIdle()
+
+        assertThat(repository.settings.first().themePresetId).isEqualTo(AppSettings.CustomThemePresetId)
+        assertThat(repository.settings.first().customThemeSeedColor).isEqualTo("#4a6ea9")
+        assertThat(viewModel.uiState.value.errorMessage).isNull()
+    }
+
+    @Test
+    fun `invalid appearance writes surface explicit errors`() = runTest {
+        val repository = FakeSettingsRepository()
+        val viewModel = SettingsViewModel(
+            settingsRepository = repository,
+            exactAlarmPermissionReader = PermissionStatusReader { true },
+            notificationPermissionProvider = { true },
+            batteryOptimizationIgnoredProvider = { true },
+        )
+
+        advanceUntilIdle()
+        viewModel.onThemePresetSelected("electric_ultraviolet")
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.errorMessage?.asStringForTest())
+            .contains("UNKNOWN_THEME_PRESET_ID")
+
+        viewModel.onCustomThemeSeedColorChanged("not-a-color")
+        viewModel.saveCustomThemeSeedColor()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.errorMessage?.asStringForTest())
+            .contains("INVALID_THEME_SEED_COLOR")
+    }
 
     @Test
     fun `selecting model saves settings value`() = runTest {

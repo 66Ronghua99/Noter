@@ -1,11 +1,15 @@
 package com.cory.noter
 
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
@@ -15,10 +19,17 @@ import com.cory.noter.ai.AiAlarmPromptBuilder
 import com.cory.noter.ai.AsrModel
 import com.cory.noter.ai.OpenRouterModel
 import com.cory.noter.alarm.AlarmSchedulingUseCase
+import com.cory.noter.ui.NoterApp
+import com.cory.noter.ui.Routes
 import com.cory.noter.ui.ai.AiCreateScreen
 import com.cory.noter.ui.ai.AiCreateViewModel
+import com.cory.noter.ui.settings.AiVoiceSettingsScreen
+import com.cory.noter.ui.settings.AppearanceSettingsScreen
+import com.cory.noter.ui.settings.PermissionsSettingsScreen
 import com.cory.noter.ui.settings.SettingsScreen
+import com.cory.noter.ui.settings.SettingsTestTags
 import com.cory.noter.ui.settings.SettingsViewModel
+import com.cory.noter.ui.settings.SoundSettingsScreen
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneId
@@ -30,6 +41,94 @@ import org.junit.Test
 class SettingsSmokeTest {
     @get:Rule
     val composeRule = createAndroidComposeRule<ComponentActivity>()
+
+    @Test
+    fun settings_routes_navigate_from_directory_to_each_detail_page() {
+        setSettingsRouteTestContent()
+        composeRule.onNodeWithTag(SettingsTestTags.AppearanceRow).performClick()
+        composeRule.onNodeWithTag(SettingsTestTags.AppearanceDetail).assertIsDisplayed()
+
+        setSettingsRouteTestContent()
+        composeRule.onNodeWithTag(SettingsTestTags.AiVoiceRow).performClick()
+        composeRule.onNodeWithTag(SettingsTestTags.AiVoiceDetail).assertIsDisplayed()
+
+        setSettingsRouteTestContent()
+        composeRule.onNodeWithTag(SettingsTestTags.SoundRow).performClick()
+        composeRule.onNodeWithTag(SettingsTestTags.SoundDetail).assertIsDisplayed()
+
+        setSettingsRouteTestContent()
+        composeRule.onNodeWithTag(SettingsTestTags.PermissionsRow).performClick()
+        composeRule.onNodeWithTag(SettingsTestTags.PermissionsDetail).assertIsDisplayed()
+    }
+
+    @Test
+    fun settings_detail_pages_expose_route_specific_controls() {
+        val state = SettingsViewModelPreviewStates.default
+
+        composeRule.setContent {
+            MaterialTheme {
+                AppearanceSettingsScreen(
+                    state = state,
+                    onThemePresetSelected = {},
+                    onCustomThemeSeedColorChanged = {},
+                    onSaveCustomThemeSeedColor = {},
+                    onBack = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag(SettingsTestTags.AppearanceDetail).assertIsDisplayed()
+        composeRule.onNodeWithTag(SettingsTestTags.ThemePresetAction("calm_blue")).assertIsDisplayed()
+        composeRule.onNodeWithTag(SettingsTestTags.ThemePresetAction("fresh_green")).assertIsDisplayed()
+        composeRule.onNodeWithTag(SettingsTestTags.ThemePresetAction("soft_rose")).assertIsDisplayed()
+        composeRule.onNodeWithTag(SettingsTestTags.ThemePresetAction("neutral_gray")).assertIsDisplayed()
+        composeRule.onNodeWithTag(SettingsTestTags.CustomThemeSeedInput).assertIsDisplayed()
+        composeRule.onNodeWithTag(SettingsTestTags.CustomThemeSeedSaveAction).assertIsDisplayed()
+
+        composeRule.setContent {
+            MaterialTheme {
+                AiVoiceSettingsScreen(
+                    state = state,
+                    onApiKeyChanged = {},
+                    onSaveApiKey = {},
+                    onModelSelected = {},
+                    onAsrModelSelected = {},
+                    onBack = {},
+                )
+            }
+        }
+        composeRule.onNodeWithTag(SettingsTestTags.AiVoiceDetail).assertIsDisplayed()
+        composeRule.onNodeWithTag(SettingsTestTags.ApiKeyInput).assertIsDisplayed()
+        composeRule.onNodeWithTag(SettingsTestTags.SaveApiKeyAction).assertIsDisplayed()
+        composeRule.onNodeWithTag(SettingsTestTags.ModelAction(OpenRouterModel.builtInIds[0])).assertIsDisplayed()
+        composeRule.onNodeWithTag(SettingsTestTags.AsrModelAction(AsrModel.builtInIds[0])).assertIsDisplayed()
+
+        composeRule.setContent {
+            MaterialTheme {
+                SoundSettingsScreen(
+                    state = state,
+                    onPickDefaultRingtone = {},
+                    onBack = {},
+                )
+            }
+        }
+        composeRule.onNodeWithTag(SettingsTestTags.SoundDetail).assertIsDisplayed()
+        composeRule.onNodeWithTag(SettingsTestTags.DefaultRingtoneAction).assertIsDisplayed()
+
+        composeRule.setContent {
+            MaterialTheme {
+                PermissionsSettingsScreen(
+                    state = state,
+                    onPermissionAction = {},
+                    onBack = {},
+                )
+            }
+        }
+        composeRule.onNodeWithTag(SettingsTestTags.PermissionsDetail).assertIsDisplayed()
+        composeRule.onNodeWithTag(SettingsTestTags.PermissionAction("notifications")).assertIsDisplayed()
+        composeRule.onNodeWithTag(SettingsTestTags.PermissionAction("exact_alarms")).assertIsDisplayed()
+        composeRule.onNodeWithTag(SettingsTestTags.PermissionAction("battery_optimization")).assertIsDisplayed()
+    }
 
     @Test
     fun settings_save_flow_persists_api_key_and_model_choice() {
@@ -44,14 +143,12 @@ class SettingsSmokeTest {
         composeRule.setContent {
             val state by viewModel.uiState.collectAsState()
             MaterialTheme {
-                SettingsScreen(
+                AiVoiceSettingsScreen(
                     state = state,
                     onApiKeyChanged = viewModel::onApiKeyChanged,
                     onSaveApiKey = viewModel::saveApiKey,
                     onModelSelected = viewModel::onModelSelected,
                     onAsrModelSelected = viewModel::onAsrModelSelected,
-                    onPickDefaultRingtone = {},
-                    onPermissionAction = {},
                     onBack = {},
                 )
             }
@@ -107,4 +204,93 @@ class SettingsSmokeTest {
             "Add an OpenRouter API key in Settings before using AI create.",
         ).assertIsDisplayed()
     }
+
+    private fun setSettingsRouteTestContent() {
+        composeRule.setContent {
+            MaterialTheme {
+                NoterApp(
+                    unifiedAiCreateScreen = { _, _, _ -> Box(Modifier.testTag("ai-create")) },
+                    alarmListScreen = { _, _, _, _ -> Box(Modifier.testTag("alarms")) },
+                    alarmEditorScreen = { _, _ -> Box(Modifier.testTag("editor")) },
+                    settingsScreen = { onOpenAppearance, onOpenAiVoice, onOpenSound, onOpenPermissions, _ ->
+                        SettingsScreen(
+                            state = SettingsViewModelPreviewStates.default,
+                            onOpenAppearance = onOpenAppearance,
+                            onOpenAiVoice = onOpenAiVoice,
+                            onOpenSound = onOpenSound,
+                            onOpenPermissions = onOpenPermissions,
+                            onBack = {},
+                        )
+                    },
+                    appearanceSettingsScreen = {
+                        Box(Modifier.testTag(SettingsTestTags.AppearanceDetail))
+                    },
+                    aiVoiceSettingsScreen = {
+                        Box(Modifier.testTag(SettingsTestTags.AiVoiceDetail))
+                    },
+                    soundSettingsScreen = {
+                        Box(Modifier.testTag(SettingsTestTags.SoundDetail))
+                    },
+                    permissionsSettingsScreen = {
+                        Box(Modifier.testTag(SettingsTestTags.PermissionsDetail))
+                    },
+                    startDestination = Routes.SETTINGS,
+                )
+            }
+        }
+    }
+}
+
+private object SettingsViewModelPreviewStates {
+    val default = com.cory.noter.ui.settings.SettingsUiState(
+        openRouterApiKey = "sk-demo",
+        selectedModelId = OpenRouterModel.builtInIds[0],
+        selectedAsrModelId = AsrModel.builtInIds[0],
+        defaultRingtoneUri = "content://ringtone/demo",
+        directoryRows = listOf(
+            com.cory.noter.ui.settings.SettingsDirectoryRowUiModel(
+                id = "appearance",
+                titleResId = R.string.settings_directory_appearance,
+                summary = com.cory.noter.ui.text.UiText.Raw("calm_blue"),
+            ),
+            com.cory.noter.ui.settings.SettingsDirectoryRowUiModel(
+                id = "ai_voice",
+                titleResId = R.string.settings_directory_ai_voice,
+                summary = com.cory.noter.ui.text.UiText.Raw(OpenRouterModel.builtInIds[0]),
+            ),
+            com.cory.noter.ui.settings.SettingsDirectoryRowUiModel(
+                id = "sound",
+                titleResId = R.string.settings_directory_sound,
+                summary = com.cory.noter.ui.text.UiText.Raw("content://ringtone/demo"),
+            ),
+            com.cory.noter.ui.settings.SettingsDirectoryRowUiModel(
+                id = "permissions",
+                titleResId = R.string.settings_directory_permissions,
+                summary = com.cory.noter.ui.text.UiText.Raw("3"),
+            ),
+        ),
+        permissionRows = listOf(
+            com.cory.noter.ui.settings.PermissionGuidanceUiModel(
+                id = "notifications",
+                titleResId = R.string.settings_permission_notifications_title,
+                granted = false,
+                summaryResId = R.string.settings_permission_notifications_summary,
+                actionLabelResId = R.string.settings_permission_notifications_action,
+            ),
+            com.cory.noter.ui.settings.PermissionGuidanceUiModel(
+                id = "exact_alarms",
+                titleResId = R.string.settings_permission_exact_alarms_title,
+                granted = false,
+                summaryResId = R.string.settings_permission_exact_alarms_summary,
+                actionLabelResId = R.string.settings_permission_exact_alarms_action,
+            ),
+            com.cory.noter.ui.settings.PermissionGuidanceUiModel(
+                id = "battery_optimization",
+                titleResId = R.string.settings_permission_battery_title,
+                granted = false,
+                summaryResId = R.string.settings_permission_battery_summary,
+                actionLabelResId = R.string.settings_permission_battery_action,
+            ),
+        ),
+    )
 }
