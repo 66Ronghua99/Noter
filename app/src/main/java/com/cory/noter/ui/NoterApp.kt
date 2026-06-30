@@ -9,7 +9,6 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 
 object Routes {
-    const val VOICE_HOME = "voice"
     const val LIST = "alarms"
     const val EDIT_NEW = "alarms/new"
     const val EDIT_EXISTING = "alarms/{alarmId}/edit"
@@ -22,10 +21,10 @@ object Routes {
 
 @Composable
 fun NoterApp(
-    voiceHomeScreen: @Composable (
+    unifiedAiCreateScreen: @Composable (
         onOpenAlarmList: () -> Unit,
         onOpenSettings: () -> Unit,
-        onOpenTextInput: () -> Unit,
+        onOpenManualCreate: () -> Unit,
     ) -> Unit,
     alarmListScreen: @Composable (
         onOpenManualCreate: () -> Unit,
@@ -34,10 +33,9 @@ fun NoterApp(
         onOpenSettings: () -> Unit,
     ) -> Unit,
     alarmEditorScreen: @Composable (alarmId: Long?, onDone: () -> Unit) -> Unit,
-    aiCreateScreen: @Composable (onBack: () -> Unit, onOpenManualCreate: () -> Unit) -> Unit,
     settingsScreen: @Composable (onBack: () -> Unit) -> Unit,
     modifier: Modifier = Modifier,
-    startDestination: String = Routes.VOICE_HOME,
+    startDestination: String = Routes.AI_CREATE,
 ) {
     val navController = rememberNavController()
 
@@ -46,11 +44,11 @@ fun NoterApp(
         startDestination = startDestination,
         modifier = modifier,
     ) {
-        composable(route = Routes.VOICE_HOME) {
-            voiceHomeScreen(
+        composable(route = Routes.AI_CREATE) {
+            unifiedAiCreateScreen(
                 { navController.navigate(Routes.LIST) },
                 { navController.navigate(Routes.SETTINGS) },
-                { navController.navigate(Routes.AI_CREATE) },
+                { navController.navigate(Routes.EDIT_NEW) },
             )
         }
         composable(route = Routes.LIST) {
@@ -76,12 +74,6 @@ fun NoterApp(
             alarmEditorScreen(
                 backStackEntry.arguments?.getLong(Routes.ALARM_ID_ARG),
                 { navController.popBackStack() },
-            )
-        }
-        composable(route = Routes.AI_CREATE) {
-            aiCreateScreen(
-                { navController.popBackStack() },
-                { navController.navigate(Routes.EDIT_NEW) },
             )
         }
         composable(route = Routes.SETTINGS) {

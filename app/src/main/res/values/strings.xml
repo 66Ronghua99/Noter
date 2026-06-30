@@ -25,6 +25,8 @@
     <string name="alarm_list_schedule_permission_deleted_error">Alarm deleted but scheduler reported a permission issue: %1$s</string>
 
     <string name="ai_create_title">AI create</string>
+    <string name="ai_create_mode_voice">Voice</string>
+    <string name="ai_create_mode_text">Text</string>
     <string name="ai_create_selected_model">Selected model</string>
     <string name="ai_create_no_model_selected">No model selected</string>
     <string name="ai_create_prompt_label">Describe the alarm</string>

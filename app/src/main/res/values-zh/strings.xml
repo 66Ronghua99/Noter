@@ -25,6 +25,8 @@
     <string name="alarm_list_schedule_permission_deleted_error">闹钟已删除，但调度器报告权限问题：%1$s</string>
 
     <string name="ai_create_title">AI 创建</string>
+    <string name="ai_create_mode_voice">语音</string>
+    <string name="ai_create_mode_text">输入</string>
     <string name="ai_create_selected_model">当前模型</string>
     <string name="ai_create_no_model_selected">未选择模型</string>
     <string name="ai_create_prompt_label">描述你想创建的闹钟</string>

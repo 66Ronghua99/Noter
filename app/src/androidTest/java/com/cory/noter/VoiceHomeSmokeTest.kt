@@ -2,6 +2,9 @@ package com.cory.noter
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.Button
+import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -12,10 +15,15 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.platform.testTag
 import com.cory.noter.ui.NoterApp
+import com.cory.noter.ui.ai.AiCreateScreen
+import com.cory.noter.ui.ai.AiCreateUiState
+import com.cory.noter.ui.ai.UnifiedAiCreateScreen
+import com.cory.noter.ui.ai.UnifiedAiCreateTestTags
 import com.cory.noter.ui.text.UiText
 import com.cory.noter.ui.voice.VoiceHomeScreen
 import com.cory.noter.ui.voice.VoiceHomeStatus
@@ -30,13 +38,65 @@ class VoiceHomeSmokeTest {
     val composeRule = createComposeRule()
 
     @Test
-    fun noter_app_default_start_destination_is_voice_home() {
+    fun noter_app_default_start_destination_is_unified_voice_mode() {
         composeRule.setContent {
             MaterialTheme {
                 TestNoterApp()
             }
         }
 
+        composeRule.onNodeWithTag(UnifiedAiCreateTestTags.Root)
+            .assertIsDisplayed()
+        composeRule.onNodeWithTag(UnifiedAiCreateTestTags.VoiceModeAction)
+            .assertIsDisplayed()
+        composeRule.onNodeWithTag(VoiceHomeTestTags.RecordButton)
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun noter_app_unified_create_switches_to_text_and_back_to_voice() {
+        composeRule.setContent {
+            MaterialTheme {
+                TestNoterApp()
+            }
+        }
+
+        composeRule.onNodeWithTag(UnifiedAiCreateTestTags.TextModeAction)
+            .assertIsDisplayed()
+            .performClick()
+
+        composeRule.onNodeWithTag(AppRouteTestTags.AiCreate)
+            .assertIsDisplayed()
+        composeRule.onNodeWithText("Describe the alarm")
+            .assertIsDisplayed()
+        composeRule.onNodeWithText("Create with AI")
+            .assertIsDisplayed()
+
+        composeRule.onNodeWithTag(UnifiedAiCreateTestTags.VoiceModeAction)
+            .assertIsDisplayed()
+            .performClick()
+
+        composeRule.onNodeWithTag(VoiceHomeTestTags.RecordButton)
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun noter_app_alarm_list_ai_create_action_reaches_unified_voice_mode() {
+        composeRule.setContent {
+            MaterialTheme {
+                TestNoterApp()
+            }
+        }
+
+        composeRule.onNodeWithTag(VoiceHomeTestTags.ListAction)
+            .assertIsDisplayed()
+            .performClick()
+        composeRule.onNodeWithTag(AppRouteTestTags.AlarmListAiCreateAction)
+            .assertIsDisplayed()
+            .performClick()
+
+        composeRule.onNodeWithTag(UnifiedAiCreateTestTags.Root)
+            .assertIsDisplayed()
         composeRule.onNodeWithTag(VoiceHomeTestTags.RecordButton)
             .assertIsDisplayed()
     }
@@ -74,7 +134,7 @@ class VoiceHomeSmokeTest {
     }
 
     @Test
-    fun noter_app_voice_home_text_fallback_reaches_ai_create() {
+    fun noter_app_voice_home_text_fallback_switches_to_text_mode_in_place() {
         composeRule.setContent {
             MaterialTheme {
                 TestNoterApp(
@@ -340,27 +400,46 @@ class VoiceHomeSmokeTest {
         voiceState: VoiceHomeUiState = VoiceHomeUiState(status = VoiceHomeStatus.Idle),
     ) {
         NoterApp(
-            voiceHomeScreen = { onOpenAlarmList, onOpenSettings, onOpenTextInput ->
-                VoiceHomeScreen(
-                    state = voiceState,
-                    onRecordPressed = {},
-                    onRecordReleased = {},
-                    onRecordCancelled = {},
-                    onRetry = {},
-                    onOpenPermissionSettings = {},
-                    onOpenTextInput = onOpenTextInput,
-                    onOpenAlarmList = onOpenAlarmList,
-                    onOpenSettings = onOpenSettings,
+            unifiedAiCreateScreen = { onOpenAlarmList, onOpenSettings, onOpenManualCreate ->
+                UnifiedAiCreateScreen(
+                    voiceContent = { onSwitchToText ->
+                        VoiceHomeScreen(
+                            state = voiceState,
+                            onRecordPressed = {},
+                            onRecordReleased = {},
+                            onRecordCancelled = {},
+                            onRetry = {},
+                            onOpenPermissionSettings = {},
+                            onOpenTextInput = onSwitchToText,
+                            onOpenAlarmList = onOpenAlarmList,
+                            onOpenSettings = onOpenSettings,
+                        )
+                    },
+                    textContent = {
+                        Box(modifier = Modifier.testTag(AppRouteTestTags.AiCreate))
+                        AiCreateScreen(
+                            state = AiCreateUiState(selectedModelId = "demo-model"),
+                            onPromptChanged = {},
+                            onSubmit = {},
+                            onOpenExactAlarmSettings = {},
+                            onOpenManualCreate = onOpenManualCreate,
+                            onBack = {},
+                        )
+                    },
                 )
             },
-            alarmListScreen = { _, _, _, _ ->
-                Box(modifier = Modifier.testTag(AppRouteTestTags.AlarmList))
+            alarmListScreen = { _, onOpenAiCreate, _, _ ->
+                Column(modifier = Modifier.testTag(AppRouteTestTags.AlarmList)) {
+                    Button(
+                        modifier = Modifier.testTag(AppRouteTestTags.AlarmListAiCreateAction),
+                        onClick = onOpenAiCreate,
+                    ) {
+                        Text(text = "AI create")
+                    }
+                }
             },
             alarmEditorScreen = { _, _ ->
                 Box(modifier = Modifier.testTag(AppRouteTestTags.Editor))
-            },
-            aiCreateScreen = { _, _ ->
-                Box(modifier = Modifier.testTag(AppRouteTestTags.AiCreate))
             },
             settingsScreen = {
                 Box(modifier = Modifier.testTag(AppRouteTestTags.Settings))
@@ -370,6 +449,7 @@ class VoiceHomeSmokeTest {
 
     private object AppRouteTestTags {
         const val AlarmList = "NoterAppAlarmListRoute"
+        const val AlarmListAiCreateAction = "NoterAppAlarmListAiCreateAction"
         const val Editor = "NoterAppEditorRoute"
         const val AiCreate = "NoterAppAiCreateRoute"
         const val Settings = "NoterAppSettingsRoute"

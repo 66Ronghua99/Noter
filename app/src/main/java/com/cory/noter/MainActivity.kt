@@ -35,6 +35,7 @@ import com.cory.noter.domain.settings.AppSettings
 import com.cory.noter.ui.NoterApp
 import com.cory.noter.ui.ai.AiCreateScreen
 import com.cory.noter.ui.ai.AiCreateViewModel
+import com.cory.noter.ui.ai.UnifiedAiCreateScreen
 import com.cory.noter.ui.alarm_list.AlarmListScreen
 import com.cory.noter.ui.alarm_list.AlarmListViewModel
 import com.cory.noter.ui.editor.AlarmEditorScreen
@@ -102,12 +103,13 @@ private fun NoterRoot(
     onOpenExactAlarmSettings: () -> Unit,
 ) {
     NoterApp(
-        voiceHomeScreen = { onOpenAlarmList, onOpenSettings, onOpenTextInput ->
-            VoiceHomeRoute(
+        unifiedAiCreateScreen = { onOpenAlarmList, onOpenSettings, onOpenManualCreate ->
+            UnifiedAiCreateRoute(
                 appContainer = appContainer,
                 onOpenAlarmList = onOpenAlarmList,
                 onOpenSettings = onOpenSettings,
-                onOpenTextInput = onOpenTextInput,
+                onOpenExactAlarmSettings = onOpenExactAlarmSettings,
+                onOpenManualCreate = onOpenManualCreate,
             )
         },
         alarmListScreen = { onOpenManualCreate, onOpenAiCreate, onEditAlarm, onOpenSettings ->
@@ -127,14 +129,6 @@ private fun NoterRoot(
                 onDone = onDone,
             )
         },
-        aiCreateScreen = { onBack, onOpenManualCreate ->
-            AiCreateRoute(
-                appContainer = appContainer,
-                onBack = onBack,
-                onOpenExactAlarmSettings = onOpenExactAlarmSettings,
-                onOpenManualCreate = onOpenManualCreate,
-            )
-        },
         settingsScreen = { onBack ->
             SettingsRoute(
                 appContainer = appContainer,
@@ -147,14 +141,16 @@ private fun NoterRoot(
 }
 
 @Composable
-private fun VoiceHomeRoute(
+private fun UnifiedAiCreateRoute(
     appContainer: AppContainer,
     onOpenAlarmList: () -> Unit,
     onOpenSettings: () -> Unit,
-    onOpenTextInput: () -> Unit,
+    onOpenExactAlarmSettings: () -> Unit,
+    onOpenManualCreate: () -> Unit,
 ) {
     val context = LocalContext.current
-    val viewModel: VoiceHomeViewModel = viewModel(
+    val voiceViewModel: VoiceHomeViewModel = viewModel(
+        key = "unified-voice",
         factory = factoryOf {
             VoiceHomeViewModel(
                 microphonePermissionChecker = appContainer.microphonePermissionChecker,
@@ -162,7 +158,18 @@ private fun VoiceHomeRoute(
             )
         },
     )
-    val state by viewModel.uiState.collectAsState()
+    val voiceState by voiceViewModel.uiState.collectAsState()
+    val aiViewModel: AiCreateViewModel = viewModel(
+        key = "unified-text-ai",
+        factory = factoryOf {
+            AiCreateViewModel(
+                creator = appContainer.aiAlarmCreator,
+                settingsRepository = appContainer.settingsRepository,
+                backgroundScheduler = appContainer.aiCreateBackgroundScheduler,
+            )
+        },
+    )
+    val aiState by aiViewModel.uiState.collectAsState()
     var recordPressActive by remember { mutableStateOf(false) }
     val microphonePermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
@@ -170,41 +177,61 @@ private fun VoiceHomeRoute(
         when (resolveMicrophonePermissionResult(granted, recordPressActive)) {
             VoiceMicrophonePermissionAction.StartCapture,
             VoiceMicrophonePermissionAction.ShowPermissionNeeded,
-            -> viewModel.onRecordPressed()
+            -> voiceViewModel.onRecordPressed()
 
             VoiceMicrophonePermissionAction.WaitForNewPress -> Unit
         }
     }
 
-    VoiceHomeScreen(
-        state = state,
-        onRecordPressed = {
-            recordPressActive = true
-            if (appContainer.microphonePermissionChecker.isGranted()) {
-                viewModel.onRecordPressed()
-            } else {
-                microphonePermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-            }
-        },
-        onRecordReleased = {
-            recordPressActive = false
-            viewModel.onRecordReleased()
-        },
-        onRecordCancelled = {
-            recordPressActive = false
-            viewModel.onRecordCancelled()
-        },
-        onRetry = viewModel::onRetry,
-        onOpenPermissionSettings = {
-            context.startActivity(
-                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                    data = Uri.parse("package:${context.packageName}")
+    LaunchedEffect(aiState.createdAlarmId) {
+        if (aiState.createdAlarmId != null) {
+            onOpenAlarmList()
+        }
+    }
+
+    UnifiedAiCreateScreen(
+        voiceContent = { onSwitchToText ->
+            VoiceHomeScreen(
+                state = voiceState,
+                onRecordPressed = {
+                    recordPressActive = true
+                    if (appContainer.microphonePermissionChecker.isGranted()) {
+                        voiceViewModel.onRecordPressed()
+                    } else {
+                        microphonePermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                    }
                 },
+                onRecordReleased = {
+                    recordPressActive = false
+                    voiceViewModel.onRecordReleased()
+                },
+                onRecordCancelled = {
+                    recordPressActive = false
+                    voiceViewModel.onRecordCancelled()
+                },
+                onRetry = voiceViewModel::onRetry,
+                onOpenPermissionSettings = {
+                    context.startActivity(
+                        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                            data = Uri.parse("package:${context.packageName}")
+                        },
+                    )
+                },
+                onOpenTextInput = onSwitchToText,
+                onOpenAlarmList = onOpenAlarmList,
+                onOpenSettings = onOpenSettings,
             )
         },
-        onOpenTextInput = onOpenTextInput,
-        onOpenAlarmList = onOpenAlarmList,
-        onOpenSettings = onOpenSettings,
+        textContent = {
+            AiCreateScreen(
+                state = aiState,
+                onPromptChanged = aiViewModel::onPromptChanged,
+                onSubmit = aiViewModel::submit,
+                onOpenExactAlarmSettings = onOpenExactAlarmSettings,
+                onOpenManualCreate = onOpenManualCreate,
+                onBack = onOpenAlarmList,
+            )
+        },
     )
 }
 
@@ -310,40 +337,6 @@ private fun AlarmEditorRoute(
         onOpenExactAlarmSettings = onOpenExactAlarmSettings,
         onSave = viewModel::save,
         onDelete = viewModel::delete,
-    )
-}
-
-@Composable
-private fun AiCreateRoute(
-    appContainer: AppContainer,
-    onBack: () -> Unit,
-    onOpenExactAlarmSettings: () -> Unit,
-    onOpenManualCreate: () -> Unit,
-) {
-    val viewModel: AiCreateViewModel = viewModel(
-        factory = factoryOf {
-            AiCreateViewModel(
-                creator = appContainer.aiAlarmCreator,
-                settingsRepository = appContainer.settingsRepository,
-                backgroundScheduler = appContainer.aiCreateBackgroundScheduler,
-            )
-        },
-    )
-    val state by viewModel.uiState.collectAsState()
-
-    LaunchedEffect(state.createdAlarmId) {
-        if (state.createdAlarmId != null) {
-            onBack()
-        }
-    }
-
-    AiCreateScreen(
-        state = state,
-        onPromptChanged = viewModel::onPromptChanged,
-        onSubmit = viewModel::submit,
-        onOpenExactAlarmSettings = onOpenExactAlarmSettings,
-        onOpenManualCreate = onOpenManualCreate,
-        onBack = onBack,
     )
 }
 
