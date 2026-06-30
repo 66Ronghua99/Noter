@@ -127,6 +127,30 @@ class AndroidTestSettingsRepository(
     override suspend fun setDefaultRingtoneUri(ringtoneUri: String): Result<Unit> = runCatching {
         mutableSettings.update { it.copy(defaultRingtoneUri = ringtoneUri) }
     }
+
+    override suspend fun setThemePreset(presetId: String): Result<Unit> = runCatching {
+        require(presetId in AppSettings.BuiltInThemePresetIds) {
+            "UNKNOWN_THEME_PRESET_ID: $presetId"
+        }
+        mutableSettings.update {
+            it.copy(
+                themePresetId = presetId,
+                customThemeSeedColor = null,
+            )
+        }
+    }
+
+    override suspend fun setCustomThemeSeedColor(seedColor: String): Result<Unit> = runCatching {
+        require(AppSettings.isValidThemeSeedColor(seedColor)) {
+            "INVALID_THEME_SEED_COLOR: $seedColor"
+        }
+        mutableSettings.update {
+            it.copy(
+                themePresetId = AppSettings.CustomThemePresetId,
+                customThemeSeedColor = seedColor.lowercase(),
+            )
+        }
+    }
 }
 
 class AndroidTestAlarmScheduler : AlarmScheduler {

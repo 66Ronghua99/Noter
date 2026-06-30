@@ -13,7 +13,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -29,7 +28,10 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.cory.noter.ai.AsrModel
+import com.cory.noter.ai.OpenRouterModel
 import com.cory.noter.di.AppContainer
+import com.cory.noter.domain.settings.AppSettings
 import com.cory.noter.ui.NoterApp
 import com.cory.noter.ui.ai.AiCreateScreen
 import com.cory.noter.ui.ai.AiCreateViewModel
@@ -39,6 +41,7 @@ import com.cory.noter.ui.editor.AlarmEditorScreen
 import com.cory.noter.ui.editor.AlarmEditorViewModel
 import com.cory.noter.ui.settings.SettingsScreen
 import com.cory.noter.ui.settings.SettingsViewModel
+import com.cory.noter.ui.theme.NoterTheme
 import com.cory.noter.ui.voice.VoiceHomeScreen
 import com.cory.noter.ui.voice.VoiceHomeViewModel
 
@@ -48,7 +51,15 @@ class MainActivity : ComponentActivity() {
         val appContainer = (application as NoterApplication).appContainer
 
         setContent {
-            MaterialTheme {
+            val settings by appContainer.settingsRepository.settings.collectAsState(
+                initial = AppSettings(
+                    openRouterApiKey = "",
+                    selectedModelId = OpenRouterModel.DefaultId,
+                    selectedAsrModelId = AsrModel.DefaultId,
+                    defaultRingtoneUri = AppSettings.DefaultRingtoneUri,
+                ),
+            )
+            NoterTheme(settings = settings) {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     NoterRoot(
                         appContainer = appContainer,
