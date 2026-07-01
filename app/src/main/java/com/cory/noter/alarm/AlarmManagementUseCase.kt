@@ -133,7 +133,8 @@ class AlarmManagementUseCase(
         if (anchor != currentTrigger) {
             return AlarmManagementResult.InvalidState("Alarm ${alarm.id} paused occurrence does not match its trigger.")
         }
-        val nextTriggerAtMillis = if (Instant.ofEpochMilli(currentTrigger) <= clock.instant()) {
+        val currentTriggerInstant = Instant.ofEpochMilli(currentTrigger)
+        val nextTriggerAtMillis = if (currentTriggerInstant <= clock.instant()) {
             calculateNextTriggerAtMillis(alarm, clock.instant())
                 ?: return clearPausedNextAsIndefinite(alarm)
         } else {

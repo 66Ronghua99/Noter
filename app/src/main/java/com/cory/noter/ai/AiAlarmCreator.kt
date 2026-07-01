@@ -314,7 +314,7 @@ class AiAlarmCreator(
         val normalized = lowercase()
         val mentionsAlarm = listOf("alarm", "alarms", "闹钟").any { it in normalized }
         val asksToList = listOf("list", "show", "display", "what", "which")
-            .any { normalized.containsWordOrPhrase(it) } ||
+            .anyWordOrPhraseIn(normalized) ||
             listOf(
                 "do i have any",
                 "have any",
@@ -322,10 +322,10 @@ class AiAlarmCreator(
                 "any alarm",
                 "my alarms",
                 "all alarms",
-            ).any { normalized.containsWordOrPhrase(it) } ||
+            ).anyWordOrPhraseIn(normalized) ||
             listOf("列出", "显示", "有哪些").any { it in normalized }
         val asksToManageInEnglish = listOf("pause", "resume", "stop", "disable", "enable", "turn off", "turn on")
-            .any { normalized.containsWordOrPhrase(it) } ||
+            .anyWordOrPhraseIn(normalized) ||
             listOf("恢复", "开启").any { it in normalized }
         val hasCjkPauseOrDisableTerm = listOf("暂停", "关闭", "停用", "禁用").any { it in normalized }
         val hasCjkReadOnlyPauseOrDisableFilter = listOf(
@@ -345,13 +345,16 @@ class AiAlarmCreator(
             return null
         }
         val hasEnglishPausedOrDisabledFilter = listOf("paused", "disabled")
-            .any { normalized.containsWordOrPhrase(it) }
+            .anyWordOrPhraseIn(normalized)
         return if (hasEnglishPausedOrDisabledFilter || hasCjkReadOnlyPauseOrDisableFilter) {
             AlarmListFilter.PAUSED_OR_DISABLED
         } else {
             AlarmListFilter.ALL
         }
     }
+
+    private fun List<String>.anyWordOrPhraseIn(value: String): Boolean =
+        any { value.containsWordOrPhrase(it) }
 
     private fun String.containsWordOrPhrase(term: String): Boolean =
         Regex("""\b${Regex.escape(term)}\b""").containsMatchIn(this)
