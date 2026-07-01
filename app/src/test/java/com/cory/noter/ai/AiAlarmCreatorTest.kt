@@ -405,6 +405,53 @@ class AiAlarmCreatorTest {
     }
 
     @Test
+    fun `agent can list alarms and return user visible list result`() = runTest {
+        settingsRepository.set(validSettings())
+        val alarm = repository.create(activeDailyDraft())
+        fakeAgentGateway.results += AgentLlmResult.Message(
+            AgentMessage(
+                role = AgentMessageRole.ASSISTANT,
+                content = "",
+                toolCalls = listOf(
+                    AgentToolCall(
+                        id = "call-list",
+                        name = "list_alarms",
+                        arguments = "{}",
+                    ),
+                ),
+            ),
+        )
+        fakeAgentGateway.results += AgentLlmResult.Message(
+            AgentMessage(
+                role = AgentMessageRole.ASSISTANT,
+                content = "",
+                toolCalls = listOf(
+                    AgentToolCall(
+                        id = "call-end",
+                        name = "end_task",
+                        arguments = """{"reason":"Alarms listed."}""",
+                    ),
+                ),
+            ),
+        )
+
+        val result = creator.createFromText("list my alarms")
+
+        assertThat(result).isInstanceOf(AiCreateResult.AlarmsListed::class.java)
+        val listed = result as AiCreateResult.AlarmsListed
+        assertThat(listed.alarms).containsExactly(
+            AiListedAlarm(
+                id = alarm.id,
+                title = "Take medicine",
+                localTime = "08:30",
+                repeatSummary = "daily",
+                nextTriggerAtMillis = alarm.nextTriggerAtMillis,
+                pauseState = "none",
+            ),
+        )
+    }
+
+    @Test
     fun `reject unclear request returns clarification without creating or scheduling alarm`() = runTest {
         settingsRepository.set(validSettings())
         fakeAgentGateway.results += AgentLlmResult.Message(

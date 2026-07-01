@@ -41,6 +41,7 @@ class AiAlarmPromptBuilderTest {
         assertThat(prompt).contains("Monday is 1")
         assertThat(prompt).contains("Sunday is 7")
         assertThat(prompt).contains("Call create_alarm")
+        assertThat(prompt).contains("Call list_alarms when the user asks to list alarms")
         assertThat(prompt).contains("Call list_alarms before pause_alarm or resume_alarm when the target alarm is unknown")
         assertThat(prompt).contains("Call pause_alarm")
         assertThat(prompt).contains("Call resume_alarm")

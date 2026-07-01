@@ -120,10 +120,14 @@ class AiCreateViewModel(
 
         is AiCreateResult.ScheduleFailed -> UiText.Raw(reason)
         is AiCreateResult.ManagementSucceeded -> null
+        is AiCreateResult.AlarmsListed -> null
         is AiCreateResult.Created -> null
     }
 
     private fun AiCreateResult.toStatusMessage(): UiText? = when (this) {
+        is AiCreateResult.AlarmsListed ->
+            UiText.Resource(R.string.ai_create_listed_alarms_status, listOf(alarms.size))
+
         is AiCreateResult.ManagementSucceeded -> when (action) {
             AiAlarmManagementAction.PAUSED_NEXT_OCCURRENCE ->
                 UiText.Resource(R.string.ai_create_management_paused_next_status, listOf(alarm.title))

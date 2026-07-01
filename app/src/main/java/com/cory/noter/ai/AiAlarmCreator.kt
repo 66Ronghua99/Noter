@@ -24,7 +24,10 @@ import com.cory.noter.domain.alarm.Alarm
 import java.time.Clock
 import java.time.ZonedDateTime
 import kotlinx.coroutines.flow.first
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.longOrNull
 
@@ -40,8 +43,18 @@ sealed interface AiCreateResult {
     data class MissingSchedulingPermission(val alarm: Alarm, val permission: String) : AiCreateResult
     data class ScheduleFailed(val alarm: Alarm, val reason: String) : AiCreateResult
     data class ManagementSucceeded(val alarm: Alarm, val action: AiAlarmManagementAction) : AiCreateResult
+    data class AlarmsListed(val alarms: List<AiListedAlarm>) : AiCreateResult
     data class Created(val alarm: Alarm) : AiCreateResult
 }
+
+data class AiListedAlarm(
+    val id: Long,
+    val title: String,
+    val localTime: String,
+    val repeatSummary: String,
+    val nextTriggerAtMillis: Long?,
+    val pauseState: String,
+)
 
 enum class AiAlarmManagementAction {
     PAUSED_NEXT_OCCURRENCE,
@@ -139,6 +152,10 @@ class AiAlarmCreator(
             return AiCreateResult.ClarificationRequired(reason)
         }
 
+        if (status == "listed_alarms") {
+            return content.toAlarmsListedResult()
+        }
+
         val alarmId = content.requiredLong("alarmId")
             ?: return AiCreateResult.InvalidResponse("Agent tool result referenced a missing alarm.")
         val alarm = alarmRepository.get(alarmId)
@@ -202,6 +219,35 @@ class AiAlarmCreator(
         }
     }
 
+    private fun Map<String, JsonElement>.toAlarmsListedResult(): AiCreateResult {
+        val alarmsElement = get("alarms") as? JsonArray
+            ?: return AiCreateResult.InvalidResponse("Agent list result did not include alarms.")
+        val alarms = alarmsElement.mapIndexed { index, element ->
+            val alarmObject = element as? JsonObject
+                ?: return AiCreateResult.InvalidResponse("Agent list result alarm[$index] was not an object.")
+            val id = alarmObject.requiredLong("id")
+                ?: return AiCreateResult.InvalidResponse("Agent list result alarm[$index] did not include an id.")
+            val title = alarmObject.requiredString("title")
+                ?: return AiCreateResult.InvalidResponse("Agent list result alarm[$index] did not include a title.")
+            val localTime = alarmObject.requiredString("localTime")
+                ?: return AiCreateResult.InvalidResponse("Agent list result alarm[$index] did not include local time.")
+            val repeatSummary = alarmObject.requiredString("repeatSummary")
+                ?: return AiCreateResult.InvalidResponse("Agent list result alarm[$index] did not include repeat summary.")
+            val pauseState = alarmObject.requiredString("pauseState")
+                ?: return AiCreateResult.InvalidResponse("Agent list result alarm[$index] did not include pause state.")
+
+            AiListedAlarm(
+                id = id,
+                title = title,
+                localTime = localTime,
+                repeatSummary = repeatSummary,
+                nextTriggerAtMillis = alarmObject.optionalLong("nextTriggerAtMillis"),
+                pauseState = pauseState,
+            )
+        }
+        return AiCreateResult.AlarmsListed(alarms)
+    }
+
     private fun AgentToolResult.toClarificationRequiredOrNull(): AiCreateResult.ClarificationRequired? {
         val status = content.requiredString("status") ?: return null
         if (status != "rejected" || committed) {
@@ -235,4 +281,12 @@ class AiAlarmCreator(
 
     private fun Map<String, JsonElement>.requiredLong(key: String): Long? =
         (get(key) as? JsonPrimitive)?.longOrNull
+
+    private fun Map<String, JsonElement>.optionalLong(key: String): Long? {
+        val element = get(key) ?: return null
+        if (element is JsonNull) {
+            return null
+        }
+        return (element as? JsonPrimitive)?.longOrNull
+    }
 }

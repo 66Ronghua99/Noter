@@ -63,6 +63,7 @@
     <string name="ai_create_management_paused_next_status">已暂停 %1$s 的下一次响铃。</string>
     <string name="ai_create_management_paused_indefinitely_status">已无限期暂停 %1$s。</string>
     <string name="ai_create_management_resumed_status">已恢复 %1$s。</string>
+    <string name="ai_create_listed_alarms_status">已列出 %1$d 个闹钟。</string>
 
     <string name="voice_home_title">语音闹钟</string>
     <string name="voice_home_idle_prompt">按住按钮，说出你想创建的闹钟。</string>
@@ -185,6 +186,7 @@
     <string name="notification_ai_creating_body">AI 正在后台创建闹钟。</string>
     <string name="notification_ai_created_title">闹钟已创建</string>
     <string name="notification_ai_managed_title">闹钟已更新</string>
+    <string name="notification_ai_listed_title">闹钟已列出</string>
     <string name="notification_ai_saved_title">闹钟已保存</string>
     <string name="notification_ai_permission_needed">需要精准闹钟权限，闹钟才能可靠响铃。</string>
     <string name="notification_ai_permission_big_text">闹钟“%1$s”已保存，但 Android 需要精准闹钟权限后才能可靠响铃。</string>
@@ -199,6 +201,7 @@
     <string name="notification_ai_paused_next">已暂停 %1$s 的下一次响铃。</string>
     <string name="notification_ai_paused_indefinitely">已无限期暂停 %1$s。</string>
     <string name="notification_ai_resumed">已恢复 %1$s。</string>
+    <string name="notification_ai_listed">已列出 %1$d 个闹钟。</string>
 
     <string name="notification_ringing_channel_name">响铃闹钟</string>
     <string name="notification_ringing_channel_description">正在响铃流程的闹钟通知。</string>

@@ -151,6 +151,81 @@ class AiCreateViewModelTest {
             .isEqualTo(UiText.Resource(R.string.ai_create_background_status))
     }
 
+    @Test
+    fun `list only result becomes visible status instead of error`() = runTest {
+        val settingsRepository = FakeSettingsRepository(
+            initialSettings = AppSettings(
+                openRouterApiKey = "sk-or-v1-test",
+                selectedModelId = "deepseek/deepseek-v3.2",
+                selectedAsrModelId = AsrModel.DefaultId,
+                defaultRingtoneUri = AppSettings.DefaultRingtoneUri,
+            ),
+        )
+        val agentGateway = FakeAgentLlmGateway().apply {
+            results += AgentLlmResult.Message(
+                AgentMessage(
+                    role = AgentMessageRole.ASSISTANT,
+                    content = "",
+                    toolCalls = listOf(
+                        AgentToolCall(
+                            id = "call-list",
+                            name = "list_alarms",
+                            arguments = "{}",
+                        ),
+                    ),
+                ),
+            )
+            results += AgentLlmResult.Message(
+                AgentMessage(
+                    role = AgentMessageRole.ASSISTANT,
+                    content = "",
+                    toolCalls = listOf(
+                        AgentToolCall(
+                            id = "call-end",
+                            name = "end_task",
+                            arguments = """{"reason":"Alarms listed."}""",
+                        ),
+                    ),
+                ),
+            )
+        }
+        val alarmRepository = FakeAlarmRepository(clock = clock, zoneId = zoneId).apply {
+            create(
+                com.cory.noter.data.alarm.AlarmDraft(
+                    title = "Take medicine",
+                    hour = 8,
+                    minute = 0,
+                    repeatRule = com.cory.noter.domain.alarm.RepeatRule.Daily,
+                    enabled = true,
+                    ringtoneUri = AppSettings.DefaultRingtoneUri,
+                    source = com.cory.noter.domain.alarm.AlarmSource.AI,
+                    aiOriginalText = "take medicine",
+                ),
+            )
+        }
+        val viewModel = AiCreateViewModel(
+            creator = AiAlarmCreator(
+                settingsRepository = settingsRepository,
+                agentLoopRunner = AgentLoopRunner(agentGateway),
+                alarmRepository = alarmRepository,
+                schedulingUseCase = AlarmSchedulingUseCase(FakeAlarmScheduler()),
+                managementUseCase = managementUseCase(alarmRepository),
+                promptBuilder = AiAlarmPromptBuilder(),
+                clock = clock,
+            ),
+            settingsRepository = settingsRepository,
+        )
+
+        advanceUntilIdle()
+        viewModel.onPromptChanged("list my alarms")
+        viewModel.submit()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.errorMessage).isNull()
+        assertThat(viewModel.uiState.value.statusMessage)
+            .isEqualTo(UiText.Resource(R.string.ai_create_listed_alarms_status, listOf(1)))
+    }
+
     private class RecordingBackgroundScheduler : com.cory.noter.ai.AiCreateBackgroundScheduler {
         val prompts = mutableListOf<String>()
 

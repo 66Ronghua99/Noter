@@ -86,6 +86,15 @@ class AndroidAiCreateResultNotifier(
                     .build(),
             )
 
+            is AiCreateResult.AlarmsListed -> notify(
+                id = RESULT_NOTIFICATION_ID,
+                notification = builder
+                    .setContentTitle(context.getString(R.string.notification_ai_listed_title))
+                    .setContentText(context.getString(R.string.notification_ai_listed, result.alarms.size))
+                    .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                    .build(),
+            )
+
             else -> {
                 val reason = result.failureText()
                 notify(
@@ -167,6 +176,7 @@ class AndroidAiCreateResultNotifier(
         is AiCreateResult.CreateFailed -> reason
         is AiCreateResult.ScheduleFailed -> reason
         is AiCreateResult.ManagementSucceeded -> managementText()
+        is AiCreateResult.AlarmsListed -> context.getString(R.string.notification_ai_listed, alarms.size)
         is AiCreateResult.MissingSchedulingPermission,
         is AiCreateResult.Created,
         -> context.getString(R.string.notification_ai_finished)

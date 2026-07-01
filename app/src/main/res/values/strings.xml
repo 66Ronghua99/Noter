@@ -63,6 +63,7 @@
     <string name="ai_create_management_paused_next_status">Paused next occurrence for %1$s.</string>
     <string name="ai_create_management_paused_indefinitely_status">Paused %1$s indefinitely.</string>
     <string name="ai_create_management_resumed_status">Resumed %1$s.</string>
+    <string name="ai_create_listed_alarms_status">Listed %1$d alarms.</string>
 
     <string name="voice_home_title">Voice alarm</string>
     <string name="voice_home_idle_prompt">Hold the button and say the alarm.</string>
@@ -185,6 +186,7 @@
     <string name="notification_ai_creating_body">AI alarm creation is running in the background.</string>
     <string name="notification_ai_created_title">Alarm created</string>
     <string name="notification_ai_managed_title">Alarm updated</string>
+    <string name="notification_ai_listed_title">Alarms listed</string>
     <string name="notification_ai_saved_title">Alarm saved</string>
     <string name="notification_ai_permission_needed">Exact alarm permission is needed before it can ring reliably.</string>
     <string name="notification_ai_permission_big_text">Alarm \"%1$s\" was saved, but Android needs exact alarm permission before it can ring reliably.</string>
@@ -199,6 +201,7 @@
     <string name="notification_ai_paused_next">Paused next occurrence for %1$s.</string>
     <string name="notification_ai_paused_indefinitely">Paused %1$s indefinitely.</string>
     <string name="notification_ai_resumed">Resumed %1$s.</string>
+    <string name="notification_ai_listed">Listed %1$d alarms.</string>
 
     <string name="notification_ringing_channel_name">Ringing alarms</string>
     <string name="notification_ringing_channel_description">Alarm notifications for active ringing flows.</string>

@@ -26,6 +26,7 @@ class AiAlarmPromptBuilder {
             For weekly_interval alarms, include repeatRule.startDate as yyyy-MM-dd, repeatRule.intervalWeeks as a positive integer, and repeatRule.daysOfWeek as the active weekdays.
             For weekly_interval alarms, include repeatRule.endDate as yyyy-MM-dd when the user gives an end date; if the user does not mention an end date, set repeatRule.endDate to one year after repeatRule.startDate.
             Call create_alarm with the alarm arguments when the request has enough alarm details.
+            Call list_alarms when the user asks to list alarms.
             Call list_alarms before pause_alarm or resume_alarm when the target alarm is unknown.
             Call pause_alarm with mode next_occurrence or indefinite when the user asks to pause a known alarm.
             Call resume_alarm when the user asks to resume a known paused alarm.

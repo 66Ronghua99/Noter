@@ -52,3 +52,12 @@
 - Fixed missing Chinese translations for new Round 3 and Round 4 strings so lint can pass.
 - Fresh evidence: `artifacts/2026-07-02-alarm-management-pause-resume/round-4-final-gates.log` from `./gradlew testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest --rerun-tasks` with JDK 17 and local Android SDK.
 - Remaining mainline work: no original acceptance criteria remain open; await Humanize review/finalization.
+
+## 2026-07-02 Alarm Management Pause/Resume RLCR Round 5
+
+- Closed the Humanize review gap for direct list-only alarm-agent requests.
+- Added `AiCreateResult.AlarmsListed` and typed `AiListedAlarm` parsing so `status = listed_alarms` is handled before requiring a single `alarmId`.
+- Updated the agent prompt, foreground AI-create status, background worker success handling, and notifications so "list my alarms" is a user-visible successful outcome.
+- Added focused tests for list-only creator mapping, direct list prompt instruction, committed background outcomes, and ViewModel visible status.
+- Fresh evidence: `artifacts/2026-07-02-alarm-management-pause-resume/round-5-final-gates.log` from `./gradlew testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest --rerun-tasks` with JDK 17 and local Android SDK.
+- Remaining mainline work: await Humanize review/finalization; do not declare the full RLCR loop complete before the hook-managed review allows it.

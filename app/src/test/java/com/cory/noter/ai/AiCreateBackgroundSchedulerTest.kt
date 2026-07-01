@@ -137,6 +137,18 @@ class AiCreateBackgroundSchedulerTest {
                 alarm = sampleAlarm(id = 14L),
                 action = AiAlarmManagementAction.RESUMED,
             ),
+            AiCreateResult.AlarmsListed(
+                alarms = listOf(
+                    AiListedAlarm(
+                        id = 15L,
+                        title = "Take medicine",
+                        localTime = "08:00",
+                        repeatSummary = "once:2026-06-22",
+                        nextTriggerAtMillis = 1_719_014_400_000,
+                        pauseState = "none",
+                    ),
+                ),
+            ),
         )
 
         committedOutcomes.forEach { aiResult ->
