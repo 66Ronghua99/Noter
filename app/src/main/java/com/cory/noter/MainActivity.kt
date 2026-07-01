@@ -318,6 +318,7 @@ private fun AlarmListRoute(
             AlarmListViewModel(
                 repository = appContainer.alarmRepository,
                 schedulingUseCase = appContainer.alarmSchedulingUseCase,
+                managementUseCase = appContainer.alarmManagementUseCase,
             )
         },
     )
@@ -326,6 +327,9 @@ private fun AlarmListRoute(
     AlarmListScreen(
         state = state,
         onAlarmEnabledChanged = viewModel::onAlarmEnabledChanged,
+        onConfirmPauseNextOccurrence = viewModel::onConfirmPauseNextOccurrence,
+        onConfirmPauseIndefinitely = viewModel::onConfirmPauseIndefinitely,
+        onCancelPauseChoice = viewModel::onCancelPauseChoice,
         onEditAlarm = onEditAlarm,
         onDeleteAlarm = viewModel::onDeleteAlarm,
         onOpenSettings = onOpenSettings,

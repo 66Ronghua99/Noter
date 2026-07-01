@@ -8,8 +8,12 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.cory.noter.ui.alarm_list.AlarmListScreen
+import com.cory.noter.ui.alarm_list.AlarmListItemUiModel
+import com.cory.noter.ui.alarm_list.AlarmPauseChoiceDialogUiModel
+import com.cory.noter.ui.alarm_list.AlarmPauseStatusUiModel
 import com.cory.noter.ui.alarm_list.AlarmListTestTags
 import com.cory.noter.ui.alarm_list.AlarmListUiState
+import com.cory.noter.domain.alarm.RepeatRule
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -27,6 +31,9 @@ class AlarmListSmokeTest {
                 AlarmListScreen(
                     state = AlarmListUiState(),
                     onAlarmEnabledChanged = { _, _ -> },
+                    onConfirmPauseNextOccurrence = {},
+                    onConfirmPauseIndefinitely = {},
+                    onCancelPauseChoice = {},
                     onEditAlarm = {},
                     onDeleteAlarm = {},
                     onOpenSettings = { openedSettings += 1 },
@@ -44,5 +51,45 @@ class AlarmListSmokeTest {
         composeRule.onNodeWithText("Create one manually or ask AI to draft it for you.")
             .assertIsDisplayed()
         assertEquals(1, openedSettings)
+    }
+
+    @Test
+    fun alarm_list_shows_pause_dialog_and_status() {
+        composeRule.setContent {
+            MaterialTheme {
+                AlarmListScreen(
+                    state = AlarmListUiState(
+                        alarms = listOf(
+                            AlarmListItemUiModel(
+                                id = 7L,
+                                title = "Wake up",
+                                nextTriggerAtMillis = null,
+                                repeatRule = RepeatRule.Daily,
+                                enabled = false,
+                                pauseStatus = AlarmPauseStatusUiModel.PausedIndefinitely,
+                            ),
+                        ),
+                        pauseChoiceDialog = AlarmPauseChoiceDialogUiModel(
+                            alarmId = 7L,
+                            alarmTitle = "Wake up",
+                        ),
+                    ),
+                    onAlarmEnabledChanged = { _, _ -> },
+                    onConfirmPauseNextOccurrence = {},
+                    onConfirmPauseIndefinitely = {},
+                    onCancelPauseChoice = {},
+                    onEditAlarm = {},
+                    onDeleteAlarm = {},
+                    onOpenSettings = {},
+                    onOpenManualCreate = {},
+                    onOpenAiCreate = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Paused indefinitely").assertIsDisplayed()
+        composeRule.onNodeWithText("Pause alarm").assertIsDisplayed()
+        composeRule.onNodeWithText("Next occurrence").assertIsDisplayed()
+        composeRule.onNodeWithText("Indefinitely").assertIsDisplayed()
     }
 }

@@ -3,10 +3,13 @@ package com.cory.noter.ui.alarm_list
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cory.noter.R
+import com.cory.noter.alarm.AlarmManagementResult
+import com.cory.noter.alarm.AlarmManagementUseCase
 import com.cory.noter.alarm.AlarmSchedulingUseCase
 import com.cory.noter.alarm.ScheduleResult
 import com.cory.noter.data.alarm.AlarmRepository
 import com.cory.noter.domain.alarm.Alarm
+import com.cory.noter.domain.alarm.AlarmPauseMode
 import com.cory.noter.domain.alarm.RepeatRule
 import com.cory.noter.ui.text.UiText
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,8 +21,19 @@ import kotlinx.coroutines.launch
 
 data class AlarmListUiState(
     val alarms: List<AlarmListItemUiModel> = emptyList(),
+    val pauseChoiceDialog: AlarmPauseChoiceDialogUiModel? = null,
     val errorMessage: UiText? = null,
 )
+
+data class AlarmPauseChoiceDialogUiModel(
+    val alarmId: Long,
+    val alarmTitle: String,
+)
+
+sealed interface AlarmPauseStatusUiModel {
+    data class PausedNext(val pausedOccurrenceAtMillis: Long) : AlarmPauseStatusUiModel
+    data object PausedIndefinitely : AlarmPauseStatusUiModel
+}
 
 data class AlarmListItemUiModel(
     val id: Long,
@@ -27,11 +41,13 @@ data class AlarmListItemUiModel(
     val nextTriggerAtMillis: Long?,
     val repeatRule: RepeatRule,
     val enabled: Boolean,
+    val pauseStatus: AlarmPauseStatusUiModel?,
 )
 
 class AlarmListViewModel(
     private val repository: AlarmRepository,
     private val schedulingUseCase: AlarmSchedulingUseCase,
+    private val managementUseCase: AlarmManagementUseCase,
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(AlarmListUiState())
     val uiState: StateFlow<AlarmListUiState> = mutableUiState.asStateFlow()
@@ -53,17 +69,44 @@ class AlarmListViewModel(
         enabled: Boolean,
     ) {
         viewModelScope.launch {
-            val updatedAlarm = if (enabled) {
-                repository.enable(alarmId)
+            val alarm = repository.get(alarmId) ?: return@launch
+            if (enabled) {
+                if (alarm.pauseMode == AlarmPauseMode.NONE) {
+                    enableLegacyDisabledAlarm(alarmId)
+                } else {
+                    handleManagementResult(managementUseCase.resume(alarmId))
+                }
             } else {
-                repository.disable(alarmId)
-            } ?: return@launch
-
-            handleScheduleResult(
-                result = schedulingUseCase.syncSchedule(updatedAlarm),
-                missingPermissionResId = R.string.alarm_list_schedule_permission_saved_error,
-            )
+                if (alarm.pauseMode == AlarmPauseMode.NONE && alarm.enabled) {
+                    mutableUiState.update {
+                        it.copy(
+                            pauseChoiceDialog = AlarmPauseChoiceDialogUiModel(
+                                alarmId = alarm.id,
+                                alarmTitle = alarm.title,
+                            ),
+                        )
+                    }
+                }
+            }
         }
+    }
+
+    fun onConfirmPauseNextOccurrence() {
+        val alarmId = mutableUiState.value.pauseChoiceDialog?.alarmId ?: return
+        viewModelScope.launch {
+            handleManagementResult(managementUseCase.pauseNextOccurrence(alarmId))
+        }
+    }
+
+    fun onConfirmPauseIndefinitely() {
+        val alarmId = mutableUiState.value.pauseChoiceDialog?.alarmId ?: return
+        viewModelScope.launch {
+            handleManagementResult(managementUseCase.pauseIndefinitely(alarmId))
+        }
+    }
+
+    fun onCancelPauseChoice() {
+        mutableUiState.update { it.copy(pauseChoiceDialog = null) }
     }
 
     fun onDeleteAlarm(alarmId: Long) {
@@ -72,6 +115,36 @@ class AlarmListViewModel(
             handleScheduleResult(
                 result = schedulingUseCase.cancel(alarmId),
                 missingPermissionResId = R.string.alarm_list_schedule_permission_deleted_error,
+            )
+        }
+    }
+
+    private suspend fun enableLegacyDisabledAlarm(alarmId: Long) {
+        val updatedAlarm = repository.enable(alarmId) ?: return
+        handleScheduleResult(
+            result = schedulingUseCase.syncSchedule(updatedAlarm),
+            missingPermissionResId = R.string.alarm_list_schedule_permission_saved_error,
+        )
+    }
+
+    private fun handleManagementResult(result: AlarmManagementResult) {
+        val errorMessage = when (result) {
+            is AlarmManagementResult.Updated -> null
+            AlarmManagementResult.MissingAlarm -> UiText.Resource(R.string.alarm_list_management_missing_alarm)
+            is AlarmManagementResult.InvalidState -> UiText.Raw(result.reason)
+            is AlarmManagementResult.MissingSchedulingPermission -> {
+                UiText.Resource(R.string.alarm_list_schedule_permission_saved_error, listOf(result.permission))
+            }
+
+            is AlarmManagementResult.SchedulerFailed -> UiText.Raw(result.reason)
+            is AlarmManagementResult.StaleOrMismatchedTrigger -> {
+                UiText.Resource(R.string.alarm_list_management_stale_trigger)
+            }
+        }
+        mutableUiState.update {
+            it.copy(
+                pauseChoiceDialog = if (errorMessage == null) null else it.pauseChoiceDialog,
+                errorMessage = errorMessage,
             )
         }
     }
@@ -100,6 +173,13 @@ class AlarmListViewModel(
         title = alarm.title,
         nextTriggerAtMillis = alarm.nextTriggerAtMillis,
         repeatRule = alarm.repeatRule,
-        enabled = alarm.enabled,
+        enabled = alarm.enabled && alarm.pauseMode == AlarmPauseMode.NONE,
+        pauseStatus = alarm.toPauseStatusUiModel(),
     )
+
+    private fun Alarm.toPauseStatusUiModel(): AlarmPauseStatusUiModel? = when (pauseMode) {
+        AlarmPauseMode.NONE -> null
+        AlarmPauseMode.NEXT_OCCURRENCE -> pausedOccurrenceAtMillis?.let(AlarmPauseStatusUiModel::PausedNext)
+        AlarmPauseMode.INDEFINITE -> AlarmPauseStatusUiModel.PausedIndefinitely
+    }
 }

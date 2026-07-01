@@ -558,6 +558,9 @@ class VoiceHomeSmokeTest {
                 AlarmListScreen(
                     state = AlarmListUiState(),
                     onAlarmEnabledChanged = { _, _ -> },
+                    onConfirmPauseNextOccurrence = {},
+                    onConfirmPauseIndefinitely = {},
+                    onCancelPauseChoice = {},
                     onEditAlarm = {},
                     onDeleteAlarm = {},
                     onOpenSettings = {},

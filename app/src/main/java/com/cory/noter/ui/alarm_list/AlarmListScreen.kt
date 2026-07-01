@@ -15,6 +15,7 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -54,6 +55,9 @@ object AlarmListTestTags {
 fun AlarmListScreen(
     state: AlarmListUiState,
     onAlarmEnabledChanged: (Long, Boolean) -> Unit,
+    onConfirmPauseNextOccurrence: () -> Unit,
+    onConfirmPauseIndefinitely: () -> Unit,
+    onCancelPauseChoice: () -> Unit,
     onEditAlarm: (Long) -> Unit,
     onDeleteAlarm: (Long) -> Unit,
     onOpenSettings: () -> Unit,
@@ -93,6 +97,14 @@ fun AlarmListScreen(
             )
         },
     ) { padding ->
+        state.pauseChoiceDialog?.let { dialog ->
+            PauseChoiceDialog(
+                dialog = dialog,
+                onConfirmPauseNextOccurrence = onConfirmPauseNextOccurrence,
+                onConfirmPauseIndefinitely = onConfirmPauseIndefinitely,
+                onCancel = onCancelPauseChoice,
+            )
+        }
         if (state.alarms.isEmpty()) {
             Column(
                 modifier = Modifier
@@ -145,6 +157,42 @@ fun AlarmListScreen(
 }
 
 @Composable
+private fun PauseChoiceDialog(
+    dialog: AlarmPauseChoiceDialogUiModel,
+    onConfirmPauseNextOccurrence: () -> Unit,
+    onConfirmPauseIndefinitely: () -> Unit,
+    onCancel: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onCancel,
+        title = { Text(text = stringResource(R.string.alarm_list_pause_dialog_title)) },
+        text = {
+            Text(
+                text = stringResource(
+                    R.string.alarm_list_pause_dialog_body,
+                    dialog.alarmTitle,
+                ),
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirmPauseNextOccurrence) {
+                Text(text = stringResource(R.string.alarm_list_pause_next_occurrence))
+            }
+        },
+        dismissButton = {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(onClick = onConfirmPauseIndefinitely) {
+                    Text(text = stringResource(R.string.alarm_list_pause_indefinitely))
+                }
+                TextButton(onClick = onCancel) {
+                    Text(text = stringResource(R.string.common_cancel))
+                }
+            }
+        },
+    )
+}
+
+@Composable
 private fun BottomCreateListBar(
     selectedCreate: Boolean,
     onCreateClick: () -> Unit,
@@ -190,6 +238,7 @@ private fun AlarmRow(
     val locale = currentConfigurationLocale()
     val nextTriggerText = formatNextTrigger(alarm.nextTriggerAtMillis, locale)
     val repeatLabel = alarm.repeatRule.toLabel(locale)
+    val pauseStatusText = alarm.pauseStatus?.toLabel(locale)
 
     Card(
         modifier = Modifier
@@ -219,6 +268,13 @@ private fun AlarmRow(
                         text = stringResource(R.string.alarm_list_repeat_format, repeatLabel),
                         style = MaterialTheme.typography.bodySmall,
                     )
+                    pauseStatusText?.let {
+                        Text(
+                            text = it,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
                 }
                 Switch(
                     checked = alarm.enabled,
@@ -237,6 +293,16 @@ private fun AlarmRow(
             }
         }
     }
+}
+
+@Composable
+private fun AlarmPauseStatusUiModel.toLabel(locale: Locale): String = when (this) {
+    is AlarmPauseStatusUiModel.PausedNext -> stringResource(
+        R.string.alarm_list_paused_next_format,
+        formatTimestamp(pausedOccurrenceAtMillis, locale),
+    )
+
+    AlarmPauseStatusUiModel.PausedIndefinitely -> stringResource(R.string.alarm_list_paused_indefinitely)
 }
 
 @Composable
@@ -262,6 +328,16 @@ private fun formatNextTrigger(
     val formatter = DateTimeFormatter.ofPattern("MMM d, HH:mm", locale)
     return formatter.format(
         Instant.ofEpochMilli(nextTriggerAtMillis).atZone(ZoneId.systemDefault()),
+    )
+}
+
+private fun formatTimestamp(
+    timestampAtMillis: Long,
+    locale: Locale,
+): String {
+    val formatter = DateTimeFormatter.ofPattern("MMM d, HH:mm", locale)
+    return formatter.format(
+        Instant.ofEpochMilli(timestampAtMillis).atZone(ZoneId.systemDefault()),
     )
 }
 

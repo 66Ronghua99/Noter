@@ -32,3 +32,12 @@
 - Preserved ringing Stop behavior by leaving `AlarmRingingCoordinator`/`RingingService` Stop flow unchanged and re-running the ringing coordinator/service policy tests.
 - Fresh evidence: `artifacts/2026-07-02-alarm-management-pause-resume/round-2-testDebugUnitTest.log` from `./gradlew testDebugUnitTest --rerun-tasks` with JDK 17 and local Android SDK.
 - Remaining mainline work: alarm list UI, agent tools/prompt/result mapping, and final Android gates.
+
+## 2026-07-02 Alarm Management Pause/Resume RLCR Round 3
+
+- Completed AC-6 alarm-list UI integration through the existing switch.
+- `AlarmListViewModel` now routes active-alarm switch-off into a pause-choice dialog, routes pause confirmations and paused-alarm resume through `AlarmManagementUseCase`, and exposes paused status in row UI state.
+- `AlarmListScreen` now displays the pause-choice dialog and paused status text; `MainActivity` wires the shared management use case into the list ViewModel.
+- Added focused ViewModel coverage for dialog open/cancel, pause-next, pause-indefinitely, direct resume, and user-facing paused row state; updated Compose smoke coverage for the new dialog/status surface.
+- Fresh evidence: `artifacts/2026-07-02-alarm-management-pause-resume/round-3-testDebugUnitTest-assembleDebugAndroidTest.log` from `./gradlew testDebugUnitTest assembleDebugAndroidTest --rerun-tasks` with JDK 17 and local Android SDK.
+- Remaining mainline work: agent tools/prompt/result mapping and final Android gates.

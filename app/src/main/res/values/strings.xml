@@ -24,6 +24,14 @@
     <string name="alarm_list_repeat_daily">Daily</string>
     <string name="alarm_list_repeat_weekdays">Weekdays</string>
     <string name="alarm_list_repeat_weekly_interval_format">Every %1$d weeks: %2$s</string>
+    <string name="alarm_list_pause_dialog_title">Pause alarm</string>
+    <string name="alarm_list_pause_dialog_body">Pause “%1$s”?</string>
+    <string name="alarm_list_pause_next_occurrence">Next occurrence</string>
+    <string name="alarm_list_pause_indefinitely">Indefinitely</string>
+    <string name="alarm_list_paused_next_format">Paused next: %1$s</string>
+    <string name="alarm_list_paused_indefinitely">Paused indefinitely</string>
+    <string name="alarm_list_management_missing_alarm">Alarm no longer exists.</string>
+    <string name="alarm_list_management_stale_trigger">Alarm state changed before this action could finish.</string>
     <string name="alarm_list_schedule_permission_saved_error">Alarm saved but scheduling needs permission: %1$s</string>
     <string name="alarm_list_schedule_permission_deleted_error">Alarm deleted but scheduler reported a permission issue: %1$s</string>
 

@@ -1,9 +1,12 @@
 package com.cory.noter.ui.alarm_list
 
 import com.cory.noter.alarm.AlarmSchedulingUseCase
+import com.cory.noter.alarm.AlarmManagementUseCase
 import com.cory.noter.alarm.FakeAlarmScheduler
+import com.cory.noter.domain.alarm.AlarmPauseMode
 import com.cory.noter.domain.alarm.Alarm
 import com.cory.noter.domain.alarm.AlarmSource
+import com.cory.noter.domain.alarm.NextTriggerCalculator
 import com.cory.noter.domain.alarm.RepeatRule
 import com.cory.noter.ui.FakeAlarmRepository
 import com.cory.noter.ui.MainDispatcherRule
@@ -30,6 +33,7 @@ class AlarmListViewModelTest {
         val viewModel = AlarmListViewModel(
             repository = repository,
             schedulingUseCase = AlarmSchedulingUseCase(FakeAlarmScheduler()),
+            managementUseCase = managementUseCase(repository, FakeAlarmScheduler()),
         )
 
         advanceUntilIdle()
@@ -61,6 +65,7 @@ class AlarmListViewModelTest {
         val viewModel = AlarmListViewModel(
             repository = repository,
             schedulingUseCase = AlarmSchedulingUseCase(scheduler),
+            managementUseCase = managementUseCase(repository, scheduler),
         )
 
         viewModel.onAlarmEnabledChanged(alarmId = 7L, enabled = true)
@@ -70,4 +75,169 @@ class AlarmListViewModelTest {
         assertThat(scheduler.scheduledIds).contains(7L)
         assertThat(viewModel.uiState.value.errorMessage).isNull()
     }
+
+    @Test
+    fun `turning off active alarm opens pause dialog without mutating state`() = runTest {
+        val repository = FakeAlarmRepository(clock = clock, zoneId = zoneId)
+        repository.seed(activeDailyAlarm())
+        val viewModel = AlarmListViewModel(
+            repository = repository,
+            schedulingUseCase = AlarmSchedulingUseCase(FakeAlarmScheduler()),
+            managementUseCase = managementUseCase(repository, FakeAlarmScheduler()),
+        )
+        advanceUntilIdle()
+
+        viewModel.onAlarmEnabledChanged(alarmId = 7L, enabled = false)
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.pauseChoiceDialog?.alarmId).isEqualTo(7L)
+        assertThat(repository.get(7L)?.pauseMode).isEqualTo(AlarmPauseMode.NONE)
+        assertThat(repository.get(7L)?.enabled).isTrue()
+    }
+
+    @Test
+    fun `canceling pause dialog preserves alarm state`() = runTest {
+        val repository = FakeAlarmRepository(clock = clock, zoneId = zoneId)
+        repository.seed(activeDailyAlarm())
+        val viewModel = AlarmListViewModel(
+            repository = repository,
+            schedulingUseCase = AlarmSchedulingUseCase(FakeAlarmScheduler()),
+            managementUseCase = managementUseCase(repository, FakeAlarmScheduler()),
+        )
+        advanceUntilIdle()
+
+        viewModel.onAlarmEnabledChanged(alarmId = 7L, enabled = false)
+        viewModel.onCancelPauseChoice()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.pauseChoiceDialog).isNull()
+        assertThat(repository.get(7L)?.pauseMode).isEqualTo(AlarmPauseMode.NONE)
+        assertThat(repository.get(7L)?.enabled).isTrue()
+    }
+
+    @Test
+    fun `confirming pause next occurrence pauses through management use case`() = runTest {
+        val repository = FakeAlarmRepository(clock = clock, zoneId = zoneId)
+        repository.seed(activeDailyAlarm())
+        val scheduler = FakeAlarmScheduler()
+        val viewModel = AlarmListViewModel(
+            repository = repository,
+            schedulingUseCase = AlarmSchedulingUseCase(scheduler),
+            managementUseCase = managementUseCase(repository, scheduler),
+        )
+        advanceUntilIdle()
+
+        viewModel.onAlarmEnabledChanged(alarmId = 7L, enabled = false)
+        viewModel.onConfirmPauseNextOccurrence()
+        advanceUntilIdle()
+
+        val stored = repository.get(7L)!!
+        assertThat(stored.pauseMode).isEqualTo(AlarmPauseMode.NEXT_OCCURRENCE)
+        assertThat(stored.pausedOccurrenceAtMillis).isEqualTo(stored.nextTriggerAtMillis)
+        assertThat(viewModel.uiState.value.pauseChoiceDialog).isNull()
+        assertThat(viewModel.uiState.value.alarms.single().pauseStatus)
+            .isInstanceOf(AlarmPauseStatusUiModel.PausedNext::class.java)
+    }
+
+    @Test
+    fun `confirming pause indefinitely pauses through management use case`() = runTest {
+        val repository = FakeAlarmRepository(clock = clock, zoneId = zoneId)
+        repository.seed(activeDailyAlarm())
+        val scheduler = FakeAlarmScheduler()
+        val viewModel = AlarmListViewModel(
+            repository = repository,
+            schedulingUseCase = AlarmSchedulingUseCase(scheduler),
+            managementUseCase = managementUseCase(repository, scheduler),
+        )
+        advanceUntilIdle()
+
+        viewModel.onAlarmEnabledChanged(alarmId = 7L, enabled = false)
+        viewModel.onConfirmPauseIndefinitely()
+        advanceUntilIdle()
+
+        val stored = repository.get(7L)!!
+        assertThat(stored.pauseMode).isEqualTo(AlarmPauseMode.INDEFINITE)
+        assertThat(stored.enabled).isFalse()
+        assertThat(scheduler.cancelledIds).contains(7L)
+        assertThat(viewModel.uiState.value.alarms.single().pauseStatus)
+            .isEqualTo(AlarmPauseStatusUiModel.PausedIndefinitely)
+    }
+
+    @Test
+    fun `turning on paused alarm resumes directly without dialog`() = runTest {
+        val repository = FakeAlarmRepository(clock = clock, zoneId = zoneId)
+        repository.seed(
+            activeDailyAlarm().copy(
+                enabled = false,
+                nextTriggerAtMillis = null,
+                pauseMode = AlarmPauseMode.INDEFINITE,
+            ),
+        )
+        val scheduler = FakeAlarmScheduler()
+        val viewModel = AlarmListViewModel(
+            repository = repository,
+            schedulingUseCase = AlarmSchedulingUseCase(scheduler),
+            managementUseCase = managementUseCase(repository, scheduler),
+        )
+        advanceUntilIdle()
+
+        viewModel.onAlarmEnabledChanged(alarmId = 7L, enabled = true)
+        advanceUntilIdle()
+
+        val stored = repository.get(7L)!!
+        assertThat(stored.pauseMode).isEqualTo(AlarmPauseMode.NONE)
+        assertThat(stored.enabled).isTrue()
+        assertThat(scheduler.scheduledIds).contains(7L)
+        assertThat(viewModel.uiState.value.pauseChoiceDialog).isNull()
+    }
+
+    @Test
+    fun `paused row exposes user facing switch state and status`() = runTest {
+        val repository = FakeAlarmRepository(clock = clock, zoneId = zoneId)
+        repository.seed(
+            activeDailyAlarm().copy(
+                pauseMode = AlarmPauseMode.NEXT_OCCURRENCE,
+                pausedOccurrenceAtMillis = 1_777_020_000_000L,
+            ),
+        )
+        val viewModel = AlarmListViewModel(
+            repository = repository,
+            schedulingUseCase = AlarmSchedulingUseCase(FakeAlarmScheduler()),
+            managementUseCase = managementUseCase(repository, FakeAlarmScheduler()),
+        )
+        advanceUntilIdle()
+
+        val row = viewModel.uiState.value.alarms.single()
+
+        assertThat(row.enabled).isFalse()
+        assertThat(row.pauseStatus).isEqualTo(
+            AlarmPauseStatusUiModel.PausedNext(1_777_020_000_000L),
+        )
+    }
+
+    private fun managementUseCase(
+        repository: FakeAlarmRepository,
+        scheduler: FakeAlarmScheduler,
+    ) = AlarmManagementUseCase(
+        repository = repository,
+        schedulingUseCase = AlarmSchedulingUseCase(scheduler),
+        clock = clock,
+        nextTriggerCalculator = NextTriggerCalculator(),
+        zoneIdProvider = { zoneId },
+    )
+
+    private fun activeDailyAlarm() = Alarm(
+        id = 7L,
+        title = "Take medicine",
+        hour = 8,
+        minute = 30,
+        repeatRule = RepeatRule.Daily,
+        enabled = true,
+        ringtoneUri = "content://settings/system/alarm_alert",
+        source = AlarmSource.MANUAL,
+        aiOriginalText = null,
+        nextTriggerAtMillis = 1_777_020_000_000L,
+        createdAtMillis = clock.millis(),
+        updatedAtMillis = clock.millis(),
+    )
 }
