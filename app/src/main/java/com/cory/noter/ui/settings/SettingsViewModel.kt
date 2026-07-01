@@ -153,9 +153,17 @@ class SettingsViewModel(
 
     fun saveCustomThemeSeedColor() {
         viewModelScope.launch {
-            val result = settingsRepository.setCustomThemeSeedColor(
+            val normalizedSeedColor = AppSettings.normalizeThemeSeedColorInput(
                 uiState.value.customThemeSeedColorInput,
             )
+            if (normalizedSeedColor == null) {
+                mutableUiState.update {
+                    it.copy(errorMessage = UiText.Resource(R.string.common_invalid_theme_seed_color))
+                }
+                return@launch
+            }
+
+            val result = settingsRepository.setCustomThemeSeedColor(normalizedSeedColor)
             mutableUiState.update {
                 it.copy(errorMessage = result.exceptionOrNull()?.message?.let(UiText::Raw))
             }

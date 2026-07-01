@@ -179,8 +179,6 @@ fun AppearanceSettingsScreen(
             CustomColorRow(
                 seedColor = state.customThemeSeedColorInput,
                 onSeedColorChanged = onCustomThemeSeedColorChanged,
-                onSave = onSaveCustomThemeSeedColor,
-                modifier = Modifier.testTag(SettingsTestTags.CustomThemeSeedInput),
             )
 
             SectionLabel(text = stringResource(R.string.settings_theme_preview))
@@ -197,6 +195,7 @@ fun AppearanceSettingsScreen(
                 Button(
                     modifier = Modifier.testTag(SettingsTestTags.CustomThemeSeedSaveAction),
                     onClick = onSaveCustomThemeSeedColor,
+                    enabled = AppSettings.normalizeThemeSeedColorInput(state.customThemeSeedColorInput) != null,
                 ) {
                     Text(text = stringResource(R.string.common_save))
                 }
@@ -676,7 +675,6 @@ private fun PresetGrid(
 private fun CustomColorRow(
     seedColor: String,
     onSeedColorChanged: (String) -> Unit,
-    onSave: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val parsedColor = remember(seedColor) {
@@ -715,7 +713,9 @@ private fun CustomColorRow(
             OutlinedTextField(
                 value = seedColor,
                 onValueChange = onSeedColorChanged,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag(SettingsTestTags.CustomThemeSeedInput),
                 label = { Text(text = stringResource(R.string.settings_custom_theme_seed_label)) },
                 singleLine = true,
                 shape = MaterialTheme.shapes.medium,
@@ -729,8 +729,8 @@ private fun CustomColorRow(
 }
 
 private fun parsePreviewColor(seedColor: String): Color {
-    if (!AppSettings.isValidThemeSeedColor(seedColor)) return Color.Unspecified
-    val rgb = seedColor.removePrefix("#").toLong(16)
+    val normalizedSeedColor = AppSettings.normalizeThemeSeedColorInput(seedColor) ?: return Color.Unspecified
+    val rgb = normalizedSeedColor.removePrefix("#").toLong(16)
     return Color(0xFF000000 or rgb)
 }
 

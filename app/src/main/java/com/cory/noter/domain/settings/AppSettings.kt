@@ -23,6 +23,12 @@ data class AppSettings(
         fun isValidThemeSeedColor(seedColor: String): Boolean =
             THEME_SEED_COLOR_PATTERN.matches(seedColor)
 
+        fun normalizeThemeSeedColorInput(seedColor: String): String? {
+            val trimmed = seedColor.trim()
+            val normalized = if (trimmed.startsWith("#")) trimmed else "#$trimmed"
+            return normalized.lowercase().takeIf(::isValidThemeSeedColor)
+        }
+
         private val THEME_SEED_COLOR_PATTERN = Regex("^#[0-9a-fA-F]{6}$")
     }
 }

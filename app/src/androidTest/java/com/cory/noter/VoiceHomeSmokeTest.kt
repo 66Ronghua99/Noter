@@ -3,20 +3,24 @@ package com.cory.noter
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
-import androidx.compose.ui.platform.testTag
 import com.cory.noter.ui.NoterApp
 import com.cory.noter.ui.ai.AiCreateTestTags
 import com.cory.noter.ui.ai.AiCreateUiState
@@ -351,16 +355,14 @@ class VoiceHomeSmokeTest {
     }
 
     @Test
-    fun voice_home_recording_surface_exposes_cancel_action() {
-        var cancelled = 0
-
+    fun voice_home_recording_surface_exposes_move_away_cancel_hint_without_cancel_action() {
         composeRule.setContent {
             MaterialTheme {
                 VoiceHomeScreen(
                     state = VoiceHomeUiState(status = VoiceHomeStatus.Recording),
                     onRecordPressed = {},
                     onRecordReleased = {},
-                    onRecordCancelled = { cancelled += 1 },
+                    onRecordCancelled = {},
                     onRetry = {},
                     onOpenPermissionSettings = {},
                     onOpenTextInput = {},
@@ -370,11 +372,51 @@ class VoiceHomeSmokeTest {
             }
         }
 
-        composeRule.onNodeWithTag(VoiceHomeTestTags.CancelAction)
+        composeRule.onNodeWithText("Move away to cancel.")
             .assertIsDisplayed()
-            .performClick()
+        composeRule.onAllNodesWithTag(VoiceHomeTestTags.CancelAction)
+            .assertCountEquals(0)
+    }
 
-        assertEquals(1, cancelled)
+    @Test
+    fun voice_home_record_button_keeps_position_between_idle_and_recording() {
+        composeRule.setContent {
+            MaterialTheme {
+                var state by remember { mutableStateOf(VoiceHomeUiState(status = VoiceHomeStatus.Idle)) }
+                Column(Modifier.fillMaxSize()) {
+                    VoiceModeContent(
+                        state = state,
+                        onRecordPressed = {
+                            state = VoiceHomeUiState(status = VoiceHomeStatus.Recording)
+                        },
+                        onRecordReleased = {},
+                        onRecordCancelled = {},
+                        onRetry = {},
+                        onOpenPermissionSettings = {},
+                        onOpenTextInput = {},
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+        }
+
+        val idleCenterY = composeRule.onNodeWithTag(VoiceHomeTestTags.RecordButton)
+            .fetchSemanticsNode()
+            .boundsInRoot
+            .center
+            .y
+        composeRule.onNodeWithTag(VoiceHomeTestTags.RecordButton)
+            .performTouchInput {
+                down(center)
+            }
+        composeRule.waitForIdle()
+        val recordingCenterY = composeRule.onNodeWithTag(VoiceHomeTestTags.RecordButton)
+            .fetchSemanticsNode()
+            .boundsInRoot
+            .center
+            .y
+
+        assertEquals(idleCenterY, recordingCenterY, 1f)
     }
 
     @Test

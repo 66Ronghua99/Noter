@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -160,7 +161,6 @@ fun VoiceModeContent(
             onRetry = onRetry,
             onOpenPermissionSettings = onOpenPermissionSettings,
             onOpenTextInput = onOpenTextInput,
-            onRecordCancelled = onRecordCancelled,
         )
     }
 }
@@ -261,13 +261,10 @@ private fun VoiceHint(state: VoiceHomeUiState) {
         else -> stringResource(R.string.voice_home_idle_prompt)
     }
 
-    Text(
-        text = text,
-        style = MaterialTheme.typography.bodyLarge,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        textAlign = TextAlign.Center,
+    Box(
         modifier = Modifier
             .fillMaxWidth(0.85f)
+            .heightIn(min = 48.dp)
             .testTag(
                 when {
                     state.noticeMessage != null -> VoiceHomeTestTags.Notice
@@ -275,7 +272,15 @@ private fun VoiceHint(state: VoiceHomeUiState) {
                     else -> VoiceHomeTestTags.Notice
                 },
             ),
-    )
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
+    }
 }
 
 @Composable
@@ -444,10 +449,11 @@ private fun VoiceModeActions(
     onRetry: () -> Unit,
     onOpenPermissionSettings: () -> Unit,
     onOpenTextInput: () -> Unit,
-    onRecordCancelled: () -> Unit,
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -499,24 +505,6 @@ private fun VoiceModeActions(
             ) {
                 Text(
                     text = stringResource(R.string.voice_home_text_fallback),
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
-        }
-        if (state.status == VoiceHomeStatus.Recording) {
-            Card(
-                modifier = Modifier.testTag(VoiceHomeTestTags.CancelAction),
-                onClick = onRecordCancelled,
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                ),
-                shape = MaterialTheme.shapes.extraLarge,
-            ) {
-                Text(
-                    text = stringResource(R.string.voice_home_cancel),
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold,

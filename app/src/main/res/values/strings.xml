@@ -8,6 +8,7 @@
     <string name="common_save">Save</string>
     <string name="common_clear">Clear</string>
     <string name="common_cancel">Cancel</string>
+    <string name="common_invalid_theme_seed_color">Enter a color as #RRGGBB.</string>
 
     <string name="alarm_list_title">Alarms</string>
     <string name="alarm_list_create_alarm">Create alarm</string>
@@ -54,7 +55,7 @@
 
     <string name="voice_home_title">Voice alarm</string>
     <string name="voice_home_idle_prompt">Hold the button and say the alarm.</string>
-    <string name="voice_home_recording_prompt">Listening now.</string>
+    <string name="voice_home_recording_prompt">Move away to cancel.</string>
     <string name="voice_home_processing_notice">Noter is processing your alarm.</string>
     <string name="voice_home_permission_needed">Microphone permission is needed to record alarms.</string>
     <string name="voice_home_hold_button">Hold to speak</string>

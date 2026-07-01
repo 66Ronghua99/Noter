@@ -193,6 +193,38 @@ class SettingsSmokeTest {
     }
 
     @Test
+    fun appearance_settings_save_flow_normalizes_hashless_custom_seed_color() {
+        val repository = AndroidTestSettingsRepository()
+        val viewModel = SettingsViewModel(
+            settingsRepository = repository,
+            exactAlarmPermissionReader = { true },
+            notificationPermissionProvider = { true },
+            batteryOptimizationIgnoredProvider = { false },
+        )
+
+        composeRule.setContent {
+            val state by viewModel.uiState.collectAsState()
+            MaterialTheme {
+                AppearanceSettingsScreen(
+                    state = state,
+                    onThemePresetSelected = viewModel::onThemePresetSelected,
+                    onCustomThemeSeedColorChanged = viewModel::onCustomThemeSeedColorChanged,
+                    onSaveCustomThemeSeedColor = viewModel::saveCustomThemeSeedColor,
+                    onBack = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag(SettingsTestTags.CustomThemeSeedInput).performTextInput("4A6EA9")
+        composeRule.onNodeWithTag(SettingsTestTags.CustomThemeSeedSaveAction).performClick()
+        composeRule.waitForIdle()
+
+        val settings = runBlocking { repository.settings.first() }
+        assert(settings.themePresetId == com.cory.noter.domain.settings.AppSettings.CustomThemePresetId)
+        assert(settings.customThemeSeedColor == "#4a6ea9")
+    }
+
+    @Test
     fun ai_create_missing_api_key_error_is_visible() {
         val zoneId = ZoneId.of("Asia/Shanghai")
         val clock = Clock.fixed(Instant.parse("2026-04-23T01:00:00Z"), zoneId)

@@ -4,10 +4,12 @@ import android.content.Context
 import com.cory.noter.ai.AsrModel
 import com.cory.noter.ai.OpenRouterModel
 import com.cory.noter.data.settings.FakeSettingsRepository
+import com.cory.noter.data.settings.SettingsRepository
 import com.cory.noter.domain.settings.AppSettings
 import com.cory.noter.permissions.PermissionStatusReader
 import com.cory.noter.ui.MainDispatcherRule
 import com.google.common.truth.Truth.assertThat
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -124,6 +126,52 @@ class SettingsViewModelTest {
     }
 
     @Test
+    fun `saving custom theme seed color normalizes hashless and spaced input`() = runTest {
+        val repository = FakeSettingsRepository()
+        val viewModel = SettingsViewModel(
+            settingsRepository = repository,
+            exactAlarmPermissionReader = PermissionStatusReader { true },
+            notificationPermissionProvider = { true },
+            batteryOptimizationIgnoredProvider = { true },
+        )
+
+        advanceUntilIdle()
+        viewModel.onCustomThemeSeedColorChanged("4A6EA9")
+        viewModel.saveCustomThemeSeedColor()
+        advanceUntilIdle()
+
+        assertThat(repository.settings.first().customThemeSeedColor).isEqualTo("#4a6ea9")
+        assertThat(viewModel.uiState.value.errorMessage).isNull()
+
+        viewModel.onCustomThemeSeedColorChanged(" #B65B70 ")
+        viewModel.saveCustomThemeSeedColor()
+        advanceUntilIdle()
+
+        assertThat(repository.settings.first().customThemeSeedColor).isEqualTo("#b65b70")
+        assertThat(viewModel.uiState.value.errorMessage).isNull()
+    }
+
+    @Test
+    fun `invalid custom theme seed color is rejected before repository write`() = runTest {
+        val repository = RecordingThemeSettingsRepository()
+        val viewModel = SettingsViewModel(
+            settingsRepository = repository,
+            exactAlarmPermissionReader = PermissionStatusReader { true },
+            notificationPermissionProvider = { true },
+            batteryOptimizationIgnoredProvider = { true },
+        )
+
+        advanceUntilIdle()
+        viewModel.onCustomThemeSeedColorChanged("not-a-color")
+        viewModel.saveCustomThemeSeedColor()
+        advanceUntilIdle()
+
+        assertThat(repository.customThemeSeedColorWriteCount).isEqualTo(0)
+        assertThat(viewModel.uiState.value.errorMessage?.asStringForTest())
+            .isEqualTo("Enter a color as #RRGGBB.")
+    }
+
+    @Test
     fun `invalid appearance writes surface explicit errors`() = runTest {
         val repository = FakeSettingsRepository()
         val viewModel = SettingsViewModel(
@@ -144,7 +192,7 @@ class SettingsViewModelTest {
         advanceUntilIdle()
 
         assertThat(viewModel.uiState.value.errorMessage?.asStringForTest())
-            .contains("INVALID_THEME_SEED_COLOR")
+            .isEqualTo("Enter a color as #RRGGBB.")
     }
 
     @Test
@@ -280,6 +328,34 @@ class SettingsViewModelTest {
         is com.cory.noter.ui.text.UiText.Resource -> {
             RuntimeEnvironment.getApplication()
                 .getString(resId, *args.toTypedArray())
+        }
+    }
+
+    private class RecordingThemeSettingsRepository : SettingsRepository {
+        private val delegate = FakeSettingsRepository()
+        var customThemeSeedColorWriteCount = 0
+
+        override val settings: Flow<AppSettings> = delegate.settings
+        override val themeSettings: Flow<AppSettings> = delegate.themeSettings
+
+        override suspend fun setOpenRouterApiKey(apiKey: String): Result<Unit> =
+            delegate.setOpenRouterApiKey(apiKey)
+
+        override suspend fun setSelectedModel(modelId: String): Result<Unit> =
+            delegate.setSelectedModel(modelId)
+
+        override suspend fun setSelectedAsrModel(modelId: String): Result<Unit> =
+            delegate.setSelectedAsrModel(modelId)
+
+        override suspend fun setDefaultRingtoneUri(ringtoneUri: String): Result<Unit> =
+            delegate.setDefaultRingtoneUri(ringtoneUri)
+
+        override suspend fun setThemePreset(presetId: String): Result<Unit> =
+            delegate.setThemePreset(presetId)
+
+        override suspend fun setCustomThemeSeedColor(seedColor: String): Result<Unit> {
+            customThemeSeedColorWriteCount += 1
+            return delegate.setCustomThemeSeedColor(seedColor)
         }
     }
 }

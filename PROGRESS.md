@@ -38,3 +38,10 @@
   - replaced the appearance preset `LazyVerticalGrid` with a non-scrolling `FlowRow` grid
   - updated smoke tests to assert the new bottom-tab navigation and FAB behavior
   - fresh verification evidence recorded at `artifacts/2026-07-01-ai-create-ui-theme-settings/verification.md`
+- Fixed voice record press and appearance custom-color save regressions:
+  - changed the recording hint to "Move away to cancel." / "移开就可以取消"
+  - removed the recording-state cancel action that changed the voice layout height and added stable hint/action spacing
+  - normalized custom theme seed input before saving, accepting `RRGGBB`, `#RRGGBB`, and surrounding whitespace
+  - rejected invalid custom seed input in the ViewModel with a localized message before repository writes
+  - added ViewModel and smoke coverage for color normalization, voice hint text, missing cancel action, and stable record-button position
+  - fresh verification evidence recorded at `artifacts/2026-07-01-voice-color-bugfix/verification.md`
