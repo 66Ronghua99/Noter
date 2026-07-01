@@ -71,6 +71,12 @@ class AndroidTestAlarmRepository(
         return updated
     }
 
+    override suspend fun updateFromManagement(alarm: Alarm): Alarm {
+        val updated = alarm.copy(updatedAtMillis = clock.millis())
+        state.update { alarms -> alarms.map { existing -> if (existing.id == alarm.id) updated else existing } }
+        return updated
+    }
+
     override suspend fun enable(id: Long): Alarm? = get(id)?.let {
         update(
             it.copy(

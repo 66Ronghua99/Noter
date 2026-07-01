@@ -320,6 +320,8 @@ class CreateAlarmToolTest {
 
         override suspend fun update(alarm: Alarm): Alarm = delegate.update(alarm)
 
+        override suspend fun updateFromManagement(alarm: Alarm): Alarm = delegate.updateFromManagement(alarm)
+
         override suspend fun enable(id: Long): Alarm? = delegate.enable(id)
 
         override suspend fun disable(id: Long): Alarm? = delegate.disable(id)
@@ -335,6 +337,8 @@ class CreateAlarmToolTest {
         override suspend fun create(draft: AlarmDraft): Alarm = error("database write failed")
 
         override suspend fun update(alarm: Alarm): Alarm = alarm
+
+        override suspend fun updateFromManagement(alarm: Alarm): Alarm = alarm
 
         override suspend fun enable(id: Long): Alarm? = null
 

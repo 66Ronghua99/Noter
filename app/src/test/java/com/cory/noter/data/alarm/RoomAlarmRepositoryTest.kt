@@ -121,6 +121,25 @@ class RoomAlarmRepositoryTest {
     }
 
     @Test
+    fun `management update preserves provided next trigger and pause anchor`() = runTest {
+        val created = repository.create(dailyAlarmDraft(enabled = true))
+        val originalTriggerAtMillis = requireNotNull(created.nextTriggerAtMillis)
+        clock.set(ZonedDateTime.of(2026, 4, 25, 9, 0, 0, 0, zone).toInstant())
+
+        val updated = repository.updateFromManagement(
+            created.copy(
+                pauseMode = AlarmPauseMode.NEXT_OCCURRENCE,
+                pausedOccurrenceAtMillis = originalTriggerAtMillis,
+                nextTriggerAtMillis = originalTriggerAtMillis,
+            ),
+        )
+
+        assertThat(updated.pauseMode).isEqualTo(AlarmPauseMode.NEXT_OCCURRENCE)
+        assertThat(updated.pausedOccurrenceAtMillis).isEqualTo(originalTriggerAtMillis)
+        assertThat(updated.nextTriggerAtMillis).isEqualTo(originalTriggerAtMillis)
+    }
+
+    @Test
     fun `loading unknown stored pause mode fails explicitly`() = runTest {
         database.openHelper.writableDatabase.execSQL(
             """

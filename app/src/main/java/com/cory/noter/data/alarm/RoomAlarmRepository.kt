@@ -121,6 +121,46 @@ class RoomAlarmRepository(
         return requireNotNull(get(alarm.id)) { "Updated alarm ${alarm.id} could not be loaded." }
     }
 
+    override suspend fun updateFromManagement(alarm: Alarm): Alarm {
+        val existing = requireNotNull(alarmDao.getById(alarm.id)) {
+            "Alarm ${alarm.id} does not exist."
+        }
+        validateDraftOrThrow(
+            title = alarm.title,
+            hour = alarm.hour,
+            minute = alarm.minute,
+            repeatRule = alarm.repeatRule,
+            enabled = alarm.enabled,
+            zoneId = zoneIdProvider(),
+        )
+        val encodedRepeatRule = repeatRuleCodec.encode(alarm.repeatRule)
+        alarmDao.update(
+            AlarmEntity(
+                id = alarm.id,
+                title = alarm.title,
+                hour = alarm.hour,
+                minute = alarm.minute,
+                repeatType = encodedRepeatRule.repeatType,
+                daysOfWeekCsv = encodedRepeatRule.daysOfWeekCsv,
+                onceDate = encodedRepeatRule.onceDate,
+                startDate = encodedRepeatRule.startDate,
+                endDate = encodedRepeatRule.endDate,
+                intervalWeeks = encodedRepeatRule.intervalWeeks,
+                enabled = alarm.enabled,
+                ringtoneUri = alarm.ringtoneUri,
+                source = alarm.source.toStorageValue(),
+                aiOriginalText = alarm.aiOriginalText,
+                nextTriggerAtMillis = alarm.nextTriggerAtMillis,
+                createdAtMillis = existing.createdAtMillis,
+                updatedAtMillis = clock.millis(),
+                pauseMode = alarm.pauseMode.toStorageValue(),
+                pausedOccurrenceAtMillis = alarm.pausedOccurrenceAtMillis,
+            ),
+        )
+
+        return requireNotNull(get(alarm.id)) { "Updated alarm ${alarm.id} could not be loaded." }
+    }
+
     override suspend fun enable(id: Long): Alarm? {
         val alarm = get(id) ?: return null
         return update(

@@ -14,3 +14,12 @@
 - Added AC-1 tests for default active pause state, pause-state round-trip, unknown stored pause mode failure, and enabled/disabled v2 migration defaults.
 - Fresh evidence: `artifacts/2026-07-02-alarm-management-pause-resume/round-0-testDebugUnitTest.log` from `./gradlew testDebugUnitTest --rerun-tasks` with JDK 17 and local Android SDK.
 - Remaining mainline work: shared pause/resume use case, receiver/reconciliation, alarm list UI, agent tools/prompt/result mapping, and final Android gates.
+
+## 2026-07-02 Alarm Management Pause/Resume RLCR Round 1
+
+- Completed Milestone 2: added `AlarmManagementUseCase` with pause-next, pause-indefinitely, resume, and due paused-next consumption operations.
+- Added explicit `AlarmManagementResult` cases for updated alarm, missing alarm, invalid state, missing scheduling permission, scheduler failure, and stale/mismatched delivered trigger.
+- Added `AlarmRepository.updateFromManagement` and `RoomAlarmRepository.updateFromManagement` so management paths can preserve or advance `nextTriggerAtMillis` intentionally instead of using generic editor recomputation.
+- Added tests for the missing invalid paused-next invariant, repeating and one-time pause/resume transitions, scheduler failure/permission paths, due paused-next consumption, stale/mismatched consumption, and Room trigger-anchor preservation.
+- Fresh evidence: `artifacts/2026-07-02-alarm-management-pause-resume/round-1-testDebugUnitTest.log` from `./gradlew testDebugUnitTest --rerun-tasks` with JDK 17 and local Android SDK.
+- Remaining mainline work: receiver/reconciliation integration, alarm list UI, agent tools/prompt/result mapping, and final Android gates.

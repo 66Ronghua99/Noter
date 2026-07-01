@@ -16,6 +16,7 @@ import com.cory.noter.ai.WorkManagerAiCreateBackgroundScheduler
 import com.cory.noter.ai.OpenRouterAgentClient
 import com.cory.noter.ai.OpenRouterAsrClient
 import com.cory.noter.alarm.AlarmRingingCoordinator
+import com.cory.noter.alarm.AlarmManagementUseCase
 import com.cory.noter.alarm.AlarmScheduler
 import com.cory.noter.alarm.AlarmSchedulingUseCase
 import com.cory.noter.alarm.AndroidAlarmScheduler
@@ -90,6 +91,13 @@ class AppContainer(
 
     val alarmSchedulingUseCase: AlarmSchedulingUseCase by lazy {
         AlarmSchedulingUseCase(alarmScheduler)
+    }
+
+    val alarmManagementUseCase: AlarmManagementUseCase by lazy {
+        AlarmManagementUseCase(
+            repository = alarmRepository,
+            schedulingUseCase = alarmSchedulingUseCase,
+        )
     }
 
     val openRouterAgentClient: AgentLlmGateway by lazy {

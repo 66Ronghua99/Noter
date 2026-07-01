@@ -64,6 +64,12 @@ class FakeAlarmRepository(
         return updated
     }
 
+    override suspend fun updateFromManagement(alarm: Alarm): Alarm {
+        val updated = alarm.copy(updatedAtMillis = clock.millis())
+        state.update { alarms -> alarms.map { existing -> if (existing.id == alarm.id) updated else existing } }
+        return updated
+    }
+
     override suspend fun enable(id: Long): Alarm? {
         val alarm = get(id) ?: return null
         return update(

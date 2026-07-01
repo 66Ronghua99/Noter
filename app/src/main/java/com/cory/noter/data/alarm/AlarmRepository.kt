@@ -25,6 +25,8 @@ interface AlarmRepository {
 
     suspend fun update(alarm: Alarm): Alarm
 
+    suspend fun updateFromManagement(alarm: Alarm): Alarm
+
     suspend fun enable(id: Long): Alarm?
 
     suspend fun disable(id: Long): Alarm?
