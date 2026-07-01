@@ -167,26 +167,48 @@ class SettingsViewModel(
             SettingsDirectoryRowUiModel(
                 id = "appearance",
                 titleResId = R.string.settings_directory_appearance,
-                summary = UiText.Raw(state.themePresetId),
+                summary = appearanceSummary(state),
             ),
             SettingsDirectoryRowUiModel(
                 id = "ai_voice",
                 titleResId = R.string.settings_directory_ai_voice,
-                summary = UiText.Raw("${state.selectedModelId} / ${state.selectedAsrModelId}"),
+                summary = UiText.Resource(
+                    R.string.settings_summary_ai_voice,
+                    listOf(state.selectedModelId),
+                ),
             ),
             SettingsDirectoryRowUiModel(
                 id = "sound",
                 titleResId = R.string.settings_directory_sound,
-                summary = UiText.Raw(state.defaultRingtoneUri),
+                summary = UiText.Resource(
+                    R.string.settings_summary_sound,
+                    listOf(state.defaultRingtoneUri),
+                ),
             ),
             SettingsDirectoryRowUiModel(
                 id = "permissions",
                 titleResId = R.string.settings_directory_permissions,
-                summary = UiText.Raw(
-                    state.permissionRows.count { !it.granted }.toString(),
-                ),
+                summary = permissionsSummary(state.permissionRows),
             ),
         )
+
+    private fun appearanceSummary(state: SettingsUiState): UiText = when (state.themePresetId) {
+        AppSettings.CustomThemePresetId -> UiText.Resource(R.string.settings_theme_preset_custom)
+        "calm_blue" -> UiText.Resource(R.string.settings_theme_preset_calm_blue)
+        "fresh_green" -> UiText.Resource(R.string.settings_theme_preset_fresh_green)
+        "soft_rose" -> UiText.Resource(R.string.settings_theme_preset_soft_rose)
+        "neutral_gray" -> UiText.Resource(R.string.settings_theme_preset_neutral_gray)
+        else -> UiText.Resource(R.string.settings_theme_preset_calm_blue)
+    }
+
+    private fun permissionsSummary(rows: List<PermissionGuidanceUiModel>): UiText {
+        val deniedCount = rows.count { !it.granted }
+        return if (deniedCount == 0) {
+            UiText.Resource(R.string.settings_summary_permissions_all_set)
+        } else {
+            UiText.Resource(R.string.settings_summary_permissions, listOf(deniedCount))
+        }
+    }
 
     private fun buildPermissionRows(): List<PermissionGuidanceUiModel> = listOf(
         PermissionGuidanceUiModel(

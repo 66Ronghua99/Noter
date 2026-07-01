@@ -1,49 +1,28 @@
-# Verification Evidence: AI Create UI, Theme, And Settings
+# Verification Evidence: AI Create UI, Theme, And Settings Visual Refresh
 
 Date: 2026-07-01
 
 Environment:
 
-- `JAVA_HOME=/home/ronghua/.cache/codex-jdks/jdk-17`
-- `ANDROID_HOME=/home/ronghua/.cache/android-sdk`
-- Kotlin compiler execution: `-Dkotlin.compiler.execution.strategy=in-process`
+- Local JDK 17 installed at `./.jdk/jdk-17.0.14+7`
+- Local Android SDK installed at `./.android-sdk`
+- `local.properties` points `sdk.dir` to `./.android-sdk`
+- `.gitignore` updated to exclude `.jdk/` and `.android-sdk/`
+
+## Scope
+
+This verification covers the visual refresh that aligns the unified AI-create, settings, and theme surfaces with the static prototype under `artifacts/2026-07-01-ai-create-ui-theme-settings/`.
 
 ## Final Gates
 
 | Command | Result | Evidence |
 |---|---|---|
-| `JAVA_HOME=/home/ronghua/.cache/codex-jdks/jdk-17 ANDROID_HOME=/home/ronghua/.cache/android-sdk ./gradlew -Dkotlin.compiler.execution.strategy=in-process testDebugUnitTest` | Passed | `BUILD SUCCESSFUL in 21s` |
-| `JAVA_HOME=/home/ronghua/.cache/codex-jdks/jdk-17 ANDROID_HOME=/home/ronghua/.cache/android-sdk ./gradlew -Dkotlin.compiler.execution.strategy=in-process lintDebug` | Passed | `BUILD SUCCESSFUL in 1m 14s`; HTML report written to `app/build/reports/lint-results-debug.html` |
-| `JAVA_HOME=/home/ronghua/.cache/codex-jdks/jdk-17 ANDROID_HOME=/home/ronghua/.cache/android-sdk ./gradlew -Dkotlin.compiler.execution.strategy=in-process assembleDebug` | Passed | `BUILD SUCCESSFUL in 15s`; native strip warnings were informational and libraries were packaged as-is |
-| `JAVA_HOME=/home/ronghua/.cache/codex-jdks/jdk-17 ANDROID_HOME=/home/ronghua/.cache/android-sdk ./gradlew -Dkotlin.compiler.execution.strategy=in-process assembleDebugAndroidTest` | Passed | `BUILD SUCCESSFUL in 3s` |
-
-## Focused Round Evidence
-
-| Scope | Command | Result |
-|---|---|---|
-| Theme adapter hardening | `JAVA_HOME=/home/ronghua/.cache/codex-jdks/jdk-17 ANDROID_HOME=/home/ronghua/.cache/android-sdk ./gradlew -Dkotlin.compiler.execution.strategy=in-process testDebugUnitTest --tests com.cory.noter.ui.theme.NoterThemeTest` | Passed after correcting the dark custom `primaryContainer` expected value; final run `BUILD SUCCESSFUL in 6s` |
-| Settings hierarchy | `JAVA_HOME=/home/ronghua/.cache/codex-jdks/jdk-17 ANDROID_HOME=/home/ronghua/.cache/android-sdk ./gradlew -Dkotlin.compiler.execution.strategy=in-process testDebugUnitTest --tests com.cory.noter.ui.settings.SettingsViewModelTest` | Passed; `BUILD SUCCESSFUL in 8s` |
-| Settings and unified create smoke compile | `JAVA_HOME=/home/ronghua/.cache/codex-jdks/jdk-17 ANDROID_HOME=/home/ronghua/.cache/android-sdk ./gradlew -Dkotlin.compiler.execution.strategy=in-process assembleDebugAndroidTest` | Passed; final focused Round 4 run `BUILD SUCCESSFUL in 17s` |
+| `JAVA_HOME=$PWD/.jdk/jdk-17.0.14+7 ./gradlew testDebugUnitTest` | Passed | `BUILD SUCCESSFUL in 42s`; 250 tests completed |
+| `JAVA_HOME=$PWD/.jdk/jdk-17.0.14+7 ./gradlew lintDebug` | Passed | `BUILD SUCCESSFUL`; HTML report written to `app/build/reports/lint-results-debug.html` |
+| `JAVA_HOME=$PWD/.jdk/jdk-17.0.14+7 ./gradlew assembleDebug` | Passed | `BUILD SUCCESSFUL`; APK produced |
+| `JAVA_HOME=$PWD/.jdk/jdk-17.0.14+7 ./gradlew assembleDebugAndroidTest` | Passed | `BUILD SUCCESSFUL`; test APK produced |
 
 ## Notes
 
-- Instrumented tests were compiled with `assembleDebugAndroidTest`; they were not executed on a device/emulator in this local gate.
-- `assembleDebug` emitted informational native strip warnings for `libandroidx.graphics.path.so` and `libdatastore_shared_counter.so`; the build packaged those libraries as-is and completed successfully.
-
-## Final Completion Audit
-
-After Humanize review/finalize rounds through commit `27a2318`, the full local gates were rerun against the current worktree.
-
-| Command | Result | Evidence |
-|---|---|---|
-| `JAVA_HOME=/home/ronghua/.cache/codex-jdks/jdk-17 ANDROID_HOME=/home/ronghua/.cache/android-sdk ./gradlew -Dkotlin.compiler.execution.strategy=in-process testDebugUnitTest` | Passed | `BUILD SUCCESSFUL in 22s` |
-| `JAVA_HOME=/home/ronghua/.cache/codex-jdks/jdk-17 ANDROID_HOME=/home/ronghua/.cache/android-sdk ./gradlew -Dkotlin.compiler.execution.strategy=in-process lintDebug` | Passed | `BUILD SUCCESSFUL in 27s`; HTML report written to `app/build/reports/lint-results-debug.html` |
-| `JAVA_HOME=/home/ronghua/.cache/codex-jdks/jdk-17 ANDROID_HOME=/home/ronghua/.cache/android-sdk ./gradlew -Dkotlin.compiler.execution.strategy=in-process assembleDebug` | Passed | `BUILD SUCCESSFUL in 4s` |
-| `JAVA_HOME=/home/ronghua/.cache/codex-jdks/jdk-17 ANDROID_HOME=/home/ronghua/.cache/android-sdk ./gradlew -Dkotlin.compiler.execution.strategy=in-process assembleDebugAndroidTest` | Passed | `BUILD SUCCESSFUL in 1s` |
-
-Humanize evidence:
-
-- Code review passed with no remaining `[P?]` findings in Round 13.
-- Finalize phase completed after the code-simplifier pass.
-- Methodology analysis completion marker was written.
-- Final stop gate returned `ALLOW: stop gate passed`; state preserved at `.humanize/rlcr/2026-07-01_00-39-20/complete-state.md`.
+- Instrumented tests were compiled with `assembleDebugAndroidTest`; they were not executed on a device/emulator in this local gate because no emulator/device was available.
+- Alarm list and manual alarm editor screens were intentionally left untouched, as requested, and will inherit the updated Material3 theme tokens centrally.

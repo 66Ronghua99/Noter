@@ -6,6 +6,8 @@
     <string name="common_granted">已授权</string>
     <string name="common_needs_attention">需要处理</string>
     <string name="common_save">保存</string>
+    <string name="common_clear">清空</string>
+    <string name="common_cancel">取消</string>
 
     <string name="alarm_list_title">闹钟</string>
     <string name="alarm_list_create_alarm">创建闹钟</string>
@@ -25,9 +27,16 @@
     <string name="alarm_list_schedule_permission_deleted_error">闹钟已删除，但调度器报告权限问题：%1$s</string>
 
     <string name="ai_create_title">AI 创建</string>
+    <string name="ai_create_page_title">创建闹钟</string>
+    <string name="ai_create_page_subtitle">用语音或文字描述你想创建的闹钟。</string>
     <string name="ai_create_mode_voice">语音</string>
-    <string name="ai_create_mode_text">输入</string>
+    <string name="ai_create_mode_text">文字</string>
     <string name="ai_create_selected_model">当前模型</string>
+    <string name="ai_create_prompt_placeholder">例如：工作日早上 7:15 叫醒我，周末 8:30。</string>
+    <string name="ai_create_suggestion_morning">“明天早上 6:30”</string>
+    <string name="ai_create_suggestion_workday">“工作日 7 点”</string>
+    <string name="ai_create_suggestion_monday">“每周一 8 点”</string>
+    <string name="ai_create_status_creating">正在创建闹钟…</string>
     <string name="ai_create_no_model_selected">未选择模型</string>
     <string name="ai_create_prompt_label">描述你想创建的闹钟</string>
     <string name="ai_create_submit">用 AI 创建</string>
@@ -50,6 +59,9 @@
     <string name="voice_home_hold_button">按住说话</string>
     <string name="voice_home_recording_button">松开完成</string>
     <string name="voice_home_processing_button">处理中</string>
+    <string name="voice_home_status_ready">就绪</string>
+    <string name="voice_home_status_listening">聆听中</string>
+    <string name="voice_home_status_processing">处理中</string>
     <string name="voice_home_cancel">取消</string>
     <string name="voice_home_retry">再试一次</string>
     <string name="voice_home_permission_action">打开麦克风设置</string>
@@ -64,12 +76,15 @@
     <string name="voice_home_asr_failed">语音识别失败：%1$s</string>
 
     <string name="settings_title">设置</string>
+    <string name="settings_page_subtitle">自定义外观、AI 行为、声音和权限。</string>
     <string name="settings_openrouter_api_key">OpenRouter API 密钥</string>
     <string name="settings_api_key_label">API 密钥</string>
+    <string name="settings_api_key_hint">你的密钥仅保存在本地，不会上传。</string>
     <string name="settings_save_api_key">保存 API 密钥</string>
     <string name="settings_model">模型</string>
     <string name="settings_asr_model">语音识别模型</string>
     <string name="settings_default_ringtone">默认铃声</string>
+    <string name="settings_default_ringtone_hint">新建闹钟默认使用该铃声。</string>
     <string name="settings_choose_default_ringtone">选择默认铃声</string>
     <string name="settings_permissions">权限</string>
     <string name="settings_directory_appearance">外观</string>
@@ -77,15 +92,27 @@
     <string name="settings_directory_sound">声音</string>
     <string name="settings_directory_permissions">权限</string>
     <string name="settings_appearance_title">外观</string>
+    <string name="settings_appearance_subtitle">选择预设主题或自定义强调色。</string>
     <string name="settings_ai_voice_title">AI 与语音</string>
+    <string name="settings_ai_voice_subtitle">配置模型提供商和语音识别。</string>
     <string name="settings_sound_title">声音</string>
+    <string name="settings_sound_subtitle">选择新建闹钟的默认铃声。</string>
     <string name="settings_permissions_title">权限</string>
+    <string name="settings_permissions_subtitle">授予 Noter 可靠响铃所需的权限。</string>
+    <string name="settings_permissions_helper">电池优化可能导致闹钟无法准时触发。点击“修复”打开系统设置，允许应用在后台不受限制运行。</string>
     <string name="settings_theme_presets">主题预设</string>
+    <string name="settings_theme_preview">预览</string>
+    <string name="settings_theme_preview_subtitle">主题色将应用到整个应用。</string>
     <string name="settings_theme_preset_calm_blue">宁静蓝</string>
     <string name="settings_theme_preset_fresh_green">清新绿</string>
     <string name="settings_theme_preset_soft_rose">柔和玫瑰</string>
     <string name="settings_theme_preset_neutral_gray">中性灰</string>
+    <string name="settings_theme_preset_custom">自定义</string>
     <string name="settings_custom_theme_seed">自定义主题色</string>
+    <string name="settings_summary_ai_voice">OpenRouter · %1$s</string>
+    <string name="settings_summary_sound">%1$s</string>
+    <string name="settings_summary_permissions">%1$d 项权限需要处理</string>
+    <string name="settings_summary_permissions_all_set">所有权限已授权</string>
     <string name="settings_custom_theme_seed_label">种子颜色 #RRGGBB</string>
     <string name="settings_save_custom_theme_seed">保存自定义颜色</string>
     <string name="settings_permission_notifications_title">通知</string>

@@ -17,3 +17,13 @@
   - methodology-analysis marker was written locally under `.humanize/rlcr/2026-07-01_00-39-20/`
   - final stop gate returned `ALLOW: stop gate passed`
   - fresh completion-audit gates are recorded in `artifacts/2026-07-01-ai-create-ui-theme-settings/verification.md`
+- Refreshed the visual implementation to match the static prototype more closely:
+  - redesigned `UnifiedAiCreateScreen` with prototype-style top app bar, page header, segmented voice/text control, and card container
+  - split `VoiceHomeScreen` into a reusable `VoiceModeContent` and kept the standalone screen for direct tests
+  - split `AiCreateScreen` into a reusable `TextModeContent` with suggestion chips and inline status
+  - redesigned settings home with icon + summary rows and chevrons
+  - redesigned Appearance, AI and voice, Sound, and Permissions detail pages with prototype-style cards, preset grid, custom color row, preview card, form fields, dropdowns, and permission rows
+  - improved `NoterTheme` light palette generation using HSL to better match the prototype's pastel containers
+  - updated localized strings in English and Chinese for new labels and summaries
+  - updated smoke/unit tests to reflect the new composable structure and dropdown-based model selection
+  - reran local gates; verification evidence updated at `artifacts/2026-07-01-ai-create-ui-theme-settings/verification.md`

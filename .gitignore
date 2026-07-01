@@ -24,3 +24,7 @@ local.properties
 *.iml
 .idea/
 .env
+
+# Local JDK / Android SDK used for verification
+.jdk/
+.android-sdk/

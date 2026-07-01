@@ -36,8 +36,10 @@ import com.cory.noter.domain.settings.AppSettings
 import com.cory.noter.ui.NoterApp
 import com.cory.noter.ui.ai.AiCreateScreen
 import com.cory.noter.ui.ai.AiCreateViewModel
+import com.cory.noter.ui.ai.TextModeContent
 import com.cory.noter.ui.ai.UnifiedAiCreateScreen
 import com.cory.noter.ui.alarm_list.AlarmListScreen
+import com.cory.noter.ui.voice.VoiceModeContent
 import com.cory.noter.ui.alarm_list.AlarmListViewModel
 import com.cory.noter.ui.editor.AlarmEditorScreen
 import com.cory.noter.ui.editor.AlarmEditorViewModel
@@ -245,7 +247,7 @@ private fun UnifiedAiCreateRoute(
 
     UnifiedAiCreateScreen(
         voiceContent = { onSwitchToText ->
-            VoiceHomeScreen(
+            VoiceModeContent(
                 state = voiceState,
                 onRecordPressed = {
                     recordPressActive = true
@@ -272,20 +274,21 @@ private fun UnifiedAiCreateRoute(
                     )
                 },
                 onOpenTextInput = onSwitchToText,
-                onOpenAlarmList = onOpenAlarmList,
-                onOpenSettings = onOpenSettings,
             )
         },
         textContent = {
-            AiCreateScreen(
+            TextModeContent(
                 state = aiState,
                 onPromptChanged = aiViewModel::onPromptChanged,
                 onSubmit = aiViewModel::submit,
                 onOpenExactAlarmSettings = onOpenExactAlarmSettings,
                 onOpenManualCreate = onOpenManualCreate,
+                showBackNavigation = true,
                 onBack = onBackFromAiCreate,
             )
         },
+        onOpenAlarmList = onOpenAlarmList,
+        onOpenSettings = onOpenSettings,
     )
 }
 

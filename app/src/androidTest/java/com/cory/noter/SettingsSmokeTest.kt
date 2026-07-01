@@ -178,10 +178,12 @@ class SettingsSmokeTest {
             }
         }
 
-        composeRule.onNodeWithText("API key").performTextInput("sk-or-v1-demo")
-        composeRule.onNodeWithText("Save API key").performClick()
-        composeRule.onNodeWithText(OpenRouterModel.builtInIds[1]).performClick()
-        composeRule.onNodeWithText(AsrModel.builtInIds[1]).performClick()
+        composeRule.onNodeWithTag(SettingsTestTags.ApiKeyInput).performTextInput("sk-or-v1-demo")
+        composeRule.onNodeWithTag(SettingsTestTags.SaveApiKeyAction).performClick()
+        composeRule.onNodeWithTag(SettingsTestTags.ModelAction(OpenRouterModel.builtInIds[0])).performClick()
+        composeRule.onNodeWithTag(SettingsTestTags.ModelAction(OpenRouterModel.builtInIds[1])).performClick()
+        composeRule.onNodeWithTag(SettingsTestTags.AsrModelAction(AsrModel.builtInIds[0])).performClick()
+        composeRule.onNodeWithTag(SettingsTestTags.AsrModelAction(AsrModel.builtInIds[1])).performClick()
         composeRule.waitForIdle()
 
         val settings = runBlocking { repository.settings.first() }

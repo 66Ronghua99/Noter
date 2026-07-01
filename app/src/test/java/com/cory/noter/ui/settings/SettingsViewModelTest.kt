@@ -1,5 +1,6 @@
 package com.cory.noter.ui.settings
 
+import android.content.Context
 import com.cory.noter.ai.AsrModel
 import com.cory.noter.ai.OpenRouterModel
 import com.cory.noter.data.settings.FakeSettingsRepository
@@ -11,9 +12,13 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
 import org.junit.Rule
 import org.junit.Test
 
+@RunWith(RobolectricTestRunner::class)
 @OptIn(ExperimentalCoroutinesApi::class)
 class SettingsViewModelTest {
     @get:Rule
@@ -44,7 +49,7 @@ class SettingsViewModelTest {
             .containsExactly("appearance", "ai_voice", "sound", "permissions")
             .inOrder()
         assertThat(state.directoryRows.first { it.id == "appearance" }.summary.asStringForTest())
-            .contains("fresh_green")
+            .contains("Fresh Green")
         assertThat(state.directoryRows.first { it.id == "ai_voice" }.summary.asStringForTest())
             .contains(OpenRouterModel.builtInIds[1])
         assertThat(state.directoryRows.first { it.id == "sound" }.summary.asStringForTest())
@@ -272,6 +277,9 @@ class SettingsViewModelTest {
 
     private fun com.cory.noter.ui.text.UiText.asStringForTest(): String = when (this) {
         is com.cory.noter.ui.text.UiText.Raw -> value
-        is com.cory.noter.ui.text.UiText.Resource -> resId.toString()
+        is com.cory.noter.ui.text.UiText.Resource -> {
+            RuntimeEnvironment.getApplication()
+                .getString(resId, *args.toTypedArray())
+        }
     }
 }

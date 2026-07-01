@@ -6,6 +6,8 @@
     <string name="common_granted">Granted</string>
     <string name="common_needs_attention">Needs attention</string>
     <string name="common_save">Save</string>
+    <string name="common_clear">Clear</string>
+    <string name="common_cancel">Cancel</string>
 
     <string name="alarm_list_title">Alarms</string>
     <string name="alarm_list_create_alarm">Create alarm</string>
@@ -25,9 +27,16 @@
     <string name="alarm_list_schedule_permission_deleted_error">Alarm deleted but scheduler reported a permission issue: %1$s</string>
 
     <string name="ai_create_title">AI create</string>
+    <string name="ai_create_page_title">Create an alarm</string>
+    <string name="ai_create_page_subtitle">Use your voice or type a request.</string>
     <string name="ai_create_mode_voice">Voice</string>
     <string name="ai_create_mode_text">Text</string>
     <string name="ai_create_selected_model">Selected model</string>
+    <string name="ai_create_prompt_placeholder">e.g. Wake me up at 7:15 am on weekdays and 8:30 am on weekends.</string>
+    <string name="ai_create_suggestion_morning">“6:30 am tomorrow”</string>
+    <string name="ai_create_suggestion_workday">“Workday 7 am”</string>
+    <string name="ai_create_suggestion_monday">“Every Monday 8 am”</string>
+    <string name="ai_create_status_creating">Creating your alarm…</string>
     <string name="ai_create_no_model_selected">No model selected</string>
     <string name="ai_create_prompt_label">Describe the alarm</string>
     <string name="ai_create_submit">Create with AI</string>
@@ -50,6 +59,9 @@
     <string name="voice_home_hold_button">Hold to speak</string>
     <string name="voice_home_recording_button">Release when done</string>
     <string name="voice_home_processing_button">Processing</string>
+    <string name="voice_home_status_ready">Ready</string>
+    <string name="voice_home_status_listening">Listening</string>
+    <string name="voice_home_status_processing">Processing</string>
     <string name="voice_home_cancel">Cancel</string>
     <string name="voice_home_retry">Try again</string>
     <string name="voice_home_permission_action">Open microphone settings</string>
@@ -64,12 +76,15 @@
     <string name="voice_home_asr_failed">Speech recognition failed: %1$s</string>
 
     <string name="settings_title">Settings</string>
+    <string name="settings_page_subtitle">Customize appearance, AI behavior, sound, and permissions.</string>
     <string name="settings_openrouter_api_key">OpenRouter API key</string>
     <string name="settings_api_key_label">API key</string>
+    <string name="settings_api_key_hint">Your key is stored locally and never shared.</string>
     <string name="settings_save_api_key">Save API key</string>
     <string name="settings_model">Model</string>
     <string name="settings_asr_model">Speech recognition model</string>
     <string name="settings_default_ringtone">Default ringtone</string>
+    <string name="settings_default_ringtone_hint">Used for new alarms unless overridden.</string>
     <string name="settings_choose_default_ringtone">Choose default ringtone</string>
     <string name="settings_permissions">Permissions</string>
     <string name="settings_directory_appearance">Appearance</string>
@@ -77,15 +92,27 @@
     <string name="settings_directory_sound">Sound</string>
     <string name="settings_directory_permissions">Permissions</string>
     <string name="settings_appearance_title">Appearance</string>
+    <string name="settings_appearance_subtitle">Pick a preset theme or set your own accent color.</string>
     <string name="settings_ai_voice_title">AI and voice</string>
+    <string name="settings_ai_voice_subtitle">Configure the model provider and speech recognition.</string>
     <string name="settings_sound_title">Sound</string>
+    <string name="settings_sound_subtitle">Choose the default ringtone for new alarms.</string>
     <string name="settings_permissions_title">Permissions</string>
+    <string name="settings_permissions_subtitle">Grant the access Noter needs to ring alarms reliably.</string>
+    <string name="settings_permissions_helper">Battery optimization can prevent alarms from firing on time. Tap Fix to open system settings and allow unrestricted background use.</string>
     <string name="settings_theme_presets">Theme presets</string>
-    <string name="settings_theme_preset_calm_blue">Calm blue</string>
-    <string name="settings_theme_preset_fresh_green">Fresh green</string>
-    <string name="settings_theme_preset_soft_rose">Soft rose</string>
-    <string name="settings_theme_preset_neutral_gray">Neutral gray</string>
+    <string name="settings_theme_preview">Preview</string>
+    <string name="settings_theme_preview_subtitle">Primary color applied across the app.</string>
+    <string name="settings_theme_preset_calm_blue">Calm Blue</string>
+    <string name="settings_theme_preset_fresh_green">Fresh Green</string>
+    <string name="settings_theme_preset_soft_rose">Soft Rose</string>
+    <string name="settings_theme_preset_neutral_gray">Neutral Gray</string>
+    <string name="settings_theme_preset_custom">Custom</string>
     <string name="settings_custom_theme_seed">Custom theme color</string>
+    <string name="settings_summary_ai_voice">OpenRouter · %1$s</string>
+    <string name="settings_summary_sound">%1$s</string>
+    <string name="settings_summary_permissions">%1$d items need attention</string>
+    <string name="settings_summary_permissions_all_set">All permissions granted</string>
     <string name="settings_custom_theme_seed_label">Seed color #RRGGBB</string>
     <string name="settings_save_custom_theme_seed">Save custom color</string>
     <string name="settings_permission_notifications_title">Notifications</string>

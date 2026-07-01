@@ -23,6 +23,7 @@ import com.cory.noter.ui.NoterApp
 import com.cory.noter.ui.ai.AiCreateScreen
 import com.cory.noter.ui.ai.AiCreateTestTags
 import com.cory.noter.ui.ai.AiCreateUiState
+import com.cory.noter.ui.ai.TextModeContent
 import com.cory.noter.ui.ai.UnifiedAiCreateScreen
 import com.cory.noter.ui.ai.UnifiedAiCreateTestTags
 import com.cory.noter.ui.text.UiText
@@ -30,6 +31,7 @@ import com.cory.noter.ui.voice.VoiceHomeScreen
 import com.cory.noter.ui.voice.VoiceHomeStatus
 import com.cory.noter.ui.voice.VoiceHomeTestTags
 import com.cory.noter.ui.voice.VoiceHomeUiState
+import com.cory.noter.ui.voice.VoiceModeContent
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -162,7 +164,7 @@ class VoiceHomeSmokeTest {
             }
         }
 
-        composeRule.onNodeWithTag(VoiceHomeTestTags.ListAction)
+        composeRule.onNodeWithTag(UnifiedAiCreateTestTags.ListAction)
             .assertIsDisplayed()
             .performClick()
         composeRule.onNodeWithTag(AppRouteTestTags.AlarmListAiCreateAction)
@@ -183,7 +185,7 @@ class VoiceHomeSmokeTest {
             }
         }
 
-        composeRule.onNodeWithTag(VoiceHomeTestTags.ListAction)
+        composeRule.onNodeWithTag(UnifiedAiCreateTestTags.ListAction)
             .assertIsDisplayed()
             .performClick()
         composeRule.onNodeWithTag(AppRouteTestTags.AlarmListAiCreateAction)
@@ -208,7 +210,7 @@ class VoiceHomeSmokeTest {
             }
         }
 
-        composeRule.onNodeWithTag(VoiceHomeTestTags.ListAction)
+        composeRule.onNodeWithTag(UnifiedAiCreateTestTags.ListAction)
             .assertIsDisplayed()
             .performClick()
 
@@ -224,7 +226,7 @@ class VoiceHomeSmokeTest {
             }
         }
 
-        composeRule.onNodeWithTag(VoiceHomeTestTags.SettingsAction)
+        composeRule.onNodeWithTag(UnifiedAiCreateTestTags.SettingsAction)
             .assertIsDisplayed()
             .performClick()
 
@@ -506,7 +508,7 @@ class VoiceHomeSmokeTest {
             unifiedAiCreateScreen = { onOpenAlarmList, onOpenSettings, onOpenManualCreate, onBackFromAiCreate ->
                 UnifiedAiCreateScreen(
                     voiceContent = { onSwitchToText ->
-                        VoiceHomeScreen(
+                        VoiceModeContent(
                             state = voiceState,
                             onRecordPressed = {},
                             onRecordReleased = {},
@@ -514,21 +516,22 @@ class VoiceHomeSmokeTest {
                             onRetry = {},
                             onOpenPermissionSettings = {},
                             onOpenTextInput = onSwitchToText,
-                            onOpenAlarmList = onOpenAlarmList,
-                            onOpenSettings = onOpenSettings,
                         )
                     },
                     textContent = {
                         Box(modifier = Modifier.testTag(AppRouteTestTags.AiCreate))
-                        AiCreateScreen(
+                        TextModeContent(
                             state = textState,
                             onPromptChanged = onPromptChanged,
                             onSubmit = onSubmit,
                             onOpenExactAlarmSettings = onOpenExactAlarmSettings,
                             onOpenManualCreate = onOpenManualCreate,
+                            showBackNavigation = true,
                             onBack = onBackFromAiCreate,
                         )
                     },
+                    onOpenAlarmList = onOpenAlarmList,
+                    onOpenSettings = onOpenSettings,
                 )
             },
             alarmListScreen = { _, onOpenAiCreate, _, _ ->
