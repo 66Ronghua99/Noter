@@ -98,3 +98,12 @@
 - Added runner regressions for read-then-write success and second-write rejection, plus an `AiAlarmCreator` regression proving duplicate `create_alarm` tool calls commit only one alarm.
 - Fresh evidence: `artifacts/2026-07-02-alarm-management-pause-resume/round-9-final-gates.log` from `./gradlew testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest --rerun-tasks` with JDK 17 and local Android SDK.
 - Remaining mainline work: await Humanize review/finalization; do not declare the full RLCR loop complete before the hook-managed review allows it.
+
+## 2026-07-02 Alarm Management Pause/Resume RLCR Round 10 Review Fixes
+
+- Fixed review-blocking terminal paused-next cleanup: when a finite repeating paused-next alarm has no future trigger after the skipped checkpoint, `AlarmManagementUseCase` now clears the checkpoint and persists a terminal disabled/indefinite state through the management update path.
+- Updated `StartupReconciliation` to report `ConsumedFinalPausedNext` for that terminal cleanup instead of treating a successful no-future-trigger cleanup as a failure.
+- Fixed CJK direct-list intent classification so read-only filter requests such as `显示暂停的闹钟` can return `AiCreateResult.AlarmsListed`, while actual pause commands such as `暂停闹钟` remain protected from list-only success.
+- Added red/green regressions in `AlarmManagementUseCaseTest`, `StartupReconciliationTest`, and `AiAlarmCreatorTest`.
+- Fresh evidence: `artifacts/2026-07-02-alarm-management-pause-resume/round-10-final-gates.log` from `./gradlew testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest --rerun-tasks` with JDK 17 and local Android SDK; `git diff --check` also passed.
+- Remaining mainline work: await Humanize review/finalization; do not declare the full RLCR loop complete before the hook-managed review allows it.

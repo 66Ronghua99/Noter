@@ -12,6 +12,7 @@ import com.cory.noter.domain.alarm.NextTriggerCalculator
 import com.cory.noter.domain.alarm.RepeatRule
 import com.google.common.truth.Truth.assertThat
 import java.time.Clock
+import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -273,6 +274,47 @@ class StartupReconciliationTest {
                     skippedTriggerAtMillis = alarm.nextTriggerAtMillis!!,
                     nextTriggerAtMillis = stored.nextTriggerAtMillis!!,
                     scheduleResult = ScheduleResult.Scheduled,
+                ),
+            ),
+        )
+    }
+
+    @Test
+    fun `final stale paused next repeating alarm clears checkpoint without scheduling`() = runTest {
+        val alarm = repository.create(
+            alarmDraft(
+                hour = 8,
+                minute = 0,
+                repeatRule = RepeatRule.WeeklyInterval(
+                    startDate = LocalDate.of(2026, 4, 24),
+                    endDate = LocalDate.of(2026, 4, 24),
+                    intervalWeeks = 1,
+                    days = setOf(DayOfWeek.FRIDAY),
+                ),
+                enabled = true,
+            ),
+        )
+        repository.updateFromManagement(
+            alarm.copy(
+                pauseMode = AlarmPauseMode.NEXT_OCCURRENCE,
+                pausedOccurrenceAtMillis = alarm.nextTriggerAtMillis,
+            ),
+        )
+        clock.set(ZonedDateTime.of(2026, 4, 24, 8, 5, 0, 0, zoneId).toInstant())
+
+        val results = startupReconciliation.reconcile()
+        val stored = repository.get(alarm.id)!!
+
+        assertThat(stored.enabled).isFalse()
+        assertThat(stored.pauseMode).isEqualTo(AlarmPauseMode.INDEFINITE)
+        assertThat(stored.pausedOccurrenceAtMillis).isNull()
+        assertThat(stored.nextTriggerAtMillis).isNull()
+        assertThat(scheduler.scheduledAlarms).isEmpty()
+        assertThat(results).isEqualTo(
+            listOf(
+                StartupReconciliationResult.ConsumedFinalPausedNext(
+                    alarmId = alarm.id,
+                    skippedTriggerAtMillis = alarm.nextTriggerAtMillis!!,
                 ),
             ),
         )

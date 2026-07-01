@@ -34,6 +34,11 @@ sealed interface StartupReconciliationResult {
         val scheduleResult: ScheduleResult,
     ) : StartupReconciliationResult
 
+    data class ConsumedFinalPausedNext(
+        val alarmId: Long,
+        val skippedTriggerAtMillis: Long,
+    ) : StartupReconciliationResult
+
     data class Failed(
         val alarmId: Long,
         val reason: String,
@@ -95,11 +100,18 @@ class StartupReconciliation(
     ): StartupReconciliationResult =
         when (val result = managementUseCase.consumeDuePausedNext(alarm.id, triggerAtMillis)) {
             is AlarmManagementResult.Updated -> {
-                val nextTrigger = result.alarm.nextTriggerAtMillis
-                    ?: return StartupReconciliationResult.Failed(
+                val nextTrigger = result.alarm.nextTriggerAtMillis ?: return when {
+                    result.alarm.pauseMode == AlarmPauseMode.INDEFINITE && !result.alarm.enabled ->
+                        StartupReconciliationResult.ConsumedFinalPausedNext(
+                            alarmId = result.alarm.id,
+                            skippedTriggerAtMillis = triggerAtMillis,
+                        )
+
+                    else -> StartupReconciliationResult.Failed(
                         alarmId = result.alarm.id,
                         reason = "Alarm ${result.alarm.id} consumed paused-next state without a future trigger.",
                     )
+                }
                 StartupReconciliationResult.ConsumedPausedNext(
                     alarmId = result.alarm.id,
                     skippedTriggerAtMillis = triggerAtMillis,

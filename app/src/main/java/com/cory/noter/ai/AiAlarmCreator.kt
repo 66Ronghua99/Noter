@@ -301,9 +301,23 @@ class AiAlarmCreator(
         val asksToList = listOf("list", "show", "display", "what", "which")
             .any { normalized.containsWordOrPhrase(it) } ||
             listOf("列出", "显示", "有哪些").any { it in normalized }
-        val asksToManage = listOf("pause", "resume", "stop", "disable", "enable", "turn off", "turn on")
+        val asksToManageInEnglish = listOf("pause", "resume", "stop", "disable", "enable", "turn off", "turn on")
             .any { normalized.containsWordOrPhrase(it) } ||
-            listOf("暂停", "恢复", "关闭", "开启").any { it in normalized }
+            listOf("恢复", "开启").any { it in normalized }
+        val hasCjkPauseOrDisableTerm = listOf("暂停", "关闭", "停用", "禁用").any { it in normalized }
+        val hasCjkReadOnlyPauseOrDisableFilter = listOf(
+            "暂停的",
+            "已暂停",
+            "暂停状态",
+            "关闭的",
+            "已关闭",
+            "停用的",
+            "已停用",
+            "禁用的",
+            "已禁用",
+        ).any { it in normalized }
+        val asksToManage = asksToManageInEnglish ||
+            (hasCjkPauseOrDisableTerm && !(asksToList && hasCjkReadOnlyPauseOrDisableFilter))
         return mentionsAlarm && asksToList && !asksToManage
     }
 

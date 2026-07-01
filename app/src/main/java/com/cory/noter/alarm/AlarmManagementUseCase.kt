@@ -82,9 +82,7 @@ class AlarmManagementUseCase(
             alarm,
             maxOf(Instant.ofEpochMilli(anchor), clock.instant()),
         )
-            ?: return AlarmManagementResult.InvalidState(
-                "Alarm ${alarm.id} has no future trigger after paused occurrence.",
-            )
+            ?: return clearPausedNextAsIndefinite(alarm)
         val updated = alarm.copy(
             enabled = true,
             pauseMode = AlarmPauseMode.NONE,
@@ -92,6 +90,16 @@ class AlarmManagementUseCase(
             nextTriggerAtMillis = nextTriggerAtMillis,
         )
         return scheduleThenPersist(updated)
+    }
+
+    private suspend fun clearPausedNextAsIndefinite(alarm: Alarm): AlarmManagementResult {
+        val updated = alarm.copy(
+            enabled = false,
+            pauseMode = AlarmPauseMode.INDEFINITE,
+            pausedOccurrenceAtMillis = null,
+            nextTriggerAtMillis = null,
+        )
+        return AlarmManagementResult.Updated(repository.updateFromManagement(updated))
     }
 
     private suspend fun pauseOneTimeNextOccurrence(alarm: Alarm): AlarmManagementResult = pauseIndefinitely(alarm)

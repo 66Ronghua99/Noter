@@ -9,6 +9,7 @@ import com.cory.noter.domain.alarm.NextTriggerCalculator
 import com.cory.noter.domain.alarm.RepeatRule
 import com.google.common.truth.Truth.assertThat
 import java.time.Clock
+import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -266,6 +267,34 @@ class AlarmManagementUseCaseTest {
     }
 
     @Test
+    fun `consume final paused next clears checkpoint into indefinite pause`() = runTest {
+        val anchor = ZonedDateTime.of(2026, 4, 24, 8, 0, 0, 0, zone).toInstant().toEpochMilli()
+        val alarm = repeatingAlarm(
+            repeatRule = RepeatRule.WeeklyInterval(
+                startDate = LocalDate.of(2026, 4, 24),
+                endDate = LocalDate.of(2026, 4, 24),
+                intervalWeeks = 1,
+                days = setOf(DayOfWeek.FRIDAY),
+            ),
+            nextTriggerAtMillis = anchor,
+            pauseMode = AlarmPauseMode.NEXT_OCCURRENCE,
+            pausedOccurrenceAtMillis = anchor,
+        )
+        repository.seed(alarm)
+        clock.set(ZonedDateTime.of(2026, 4, 24, 8, 0, 1, 0, zone).toInstant())
+
+        val result = useCase.consumeDuePausedNext(alarm.id, anchor)
+
+        val updated = (result as AlarmManagementResult.Updated).alarm
+        assertThat(updated.enabled).isFalse()
+        assertThat(updated.pauseMode).isEqualTo(AlarmPauseMode.INDEFINITE)
+        assertThat(updated.pausedOccurrenceAtMillis).isNull()
+        assertThat(updated.nextTriggerAtMillis).isNull()
+        assertThat(scheduler.scheduledAlarms).isEmpty()
+        assertThat(repository.managementUpdates).containsExactly(updated)
+    }
+
+    @Test
     fun `consume due paused next rejects stale or mismatched trigger without mutating`() = runTest {
         val anchor = ZonedDateTime.of(2026, 4, 24, 8, 0, 0, 0, zone).toInstant().toEpochMilli()
         val alarm = repeatingAlarm(
@@ -284,13 +313,14 @@ class AlarmManagementUseCaseTest {
 
     private fun repeatingAlarm(
         id: Long = 1L,
+        repeatRule: RepeatRule = RepeatRule.Daily,
         enabled: Boolean = true,
         nextTriggerAtMillis: Long? = ZonedDateTime.of(2026, 4, 24, 8, 0, 0, 0, zone).toInstant().toEpochMilli(),
         pauseMode: AlarmPauseMode = AlarmPauseMode.NONE,
         pausedOccurrenceAtMillis: Long? = null,
     ): Alarm = alarm(
         id = id,
-        repeatRule = RepeatRule.Daily,
+        repeatRule = repeatRule,
         enabled = enabled,
         nextTriggerAtMillis = nextTriggerAtMillis,
         pauseMode = pauseMode,
