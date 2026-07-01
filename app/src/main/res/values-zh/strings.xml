@@ -31,6 +31,7 @@
     <string name="ai_create_page_subtitle">用语音或文字描述你想创建的闹钟。</string>
     <string name="ai_create_mode_voice">语音</string>
     <string name="ai_create_mode_text">文字</string>
+    <string name="ai_create_bottom_create">创建</string>
     <string name="ai_create_selected_model">当前模型</string>
     <string name="ai_create_prompt_placeholder">例如：工作日早上 7:15 叫醒我，周末 8:30。</string>
     <string name="ai_create_suggestion_morning">“明天早上 6:30”</string>

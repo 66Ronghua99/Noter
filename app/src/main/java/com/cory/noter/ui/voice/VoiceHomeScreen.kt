@@ -1,10 +1,16 @@
 package com.cory.noter.ui.voice
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -30,10 +36,16 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -278,6 +290,7 @@ private fun VoiceRecordButton(
     val currentOnRecordCancelled by rememberUpdatedState(onRecordCancelled)
 
     val isRecording = status == VoiceHomeStatus.Recording
+    val isProcessing = status == VoiceHomeStatus.Processing
     val containerColor = when (status) {
         VoiceHomeStatus.Recording -> MaterialTheme.colorScheme.primaryContainer
         VoiceHomeStatus.Processing -> MaterialTheme.colorScheme.secondaryContainer
@@ -288,56 +301,119 @@ private fun VoiceRecordButton(
         VoiceHomeStatus.Processing -> MaterialTheme.colorScheme.onSecondaryContainer
         else -> MaterialTheme.colorScheme.onPrimary
     }
+    val pulseColor = when (status) {
+        VoiceHomeStatus.Recording -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.primaryContainer
+    }
 
-    Surface(
-        modifier = Modifier
-            .size(132.dp)
-            .testTag(VoiceHomeTestTags.RecordButton)
-            .semantics { role = Role.Button }
-            .pointerInput(
-                voiceRecordPointerInputKey(
-                    onRecordPressed = onRecordPressed,
-                    onRecordReleased = onRecordReleased,
-                    onRecordCancelled = onRecordCancelled,
-                ),
-            ) {
-                detectTapGestures(
-                    onPress = {
-                        currentOnRecordPressed()
-                        handleRecordPressCompletion(
-                            wasReleased = tryAwaitRelease(),
-                            onRecordReleased = currentOnRecordReleased,
-                            onRecordCancelled = currentOnRecordCancelled,
-                        )
-                    },
-                )
-            },
-        shape = CircleShape,
-        color = containerColor,
-        contentColor = contentColor,
-        tonalElevation = if (isRecording) 0.dp else 4.dp,
-        shadowElevation = if (isRecording) 0.dp else 4.dp,
+    var pressed by remember { mutableStateOf(false) }
+    val scale = remember { Animatable(1f) }
+    LaunchedEffect(pressed || isRecording) {
+        scale.animateTo(
+            targetValue = if (pressed || isRecording) 0.92f else 1f,
+            animationSpec = tween(durationMillis = 120),
+        )
+    }
+
+    Box(
+        modifier = Modifier.size(156.dp),
+        contentAlignment = Alignment.Center,
     ) {
-        Box(contentAlignment = Alignment.Center) {
-            AnimatedContent(
-                targetState = status,
-                transitionSpec = {
-                    fadeIn(animationSpec = tween(180)) togetherWith
-                        fadeOut(animationSpec = tween(150))
+        if (isRecording || pressed) {
+            RecordingRippleRing(color = pulseColor)
+        }
+
+        Surface(
+            modifier = Modifier
+                .size(132.dp)
+                .testTag(VoiceHomeTestTags.RecordButton)
+                .semantics { role = Role.Button }
+                .graphicsLayer {
+                    scaleX = scale.value
+                    scaleY = scale.value
+                }
+                .pointerInput(
+                    voiceRecordPointerInputKey(
+                        onRecordPressed = onRecordPressed,
+                        onRecordReleased = onRecordReleased,
+                        onRecordCancelled = onRecordCancelled,
+                    ),
+                ) {
+                    detectTapGestures(
+                        onPress = {
+                            pressed = true
+                            currentOnRecordPressed()
+                            handleRecordPressCompletion(
+                                wasReleased = tryAwaitRelease(),
+                                onRecordReleased = {
+                                    pressed = false
+                                    currentOnRecordReleased()
+                                },
+                                onRecordCancelled = {
+                                    pressed = false
+                                    currentOnRecordCancelled()
+                                },
+                            )
+                        },
+                    )
                 },
-                label = "VoiceRecordButtonIcon",
-            ) { targetStatus ->
-                Icon(
-                    imageVector = Icons.Default.Mic,
-                    contentDescription = when (targetStatus) {
-                        VoiceHomeStatus.Recording -> stringResource(R.string.voice_home_recording_button)
-                        VoiceHomeStatus.Processing -> stringResource(R.string.voice_home_processing_button)
-                        else -> stringResource(R.string.voice_home_hold_button)
+            shape = CircleShape,
+            color = containerColor,
+            contentColor = contentColor,
+            tonalElevation = if (isRecording) 0.dp else 4.dp,
+            shadowElevation = if (isRecording || isProcessing) 0.dp else 4.dp,
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                AnimatedContent(
+                    targetState = status,
+                    transitionSpec = {
+                        fadeIn(animationSpec = tween(180)) togetherWith
+                            fadeOut(animationSpec = tween(150))
                     },
-                    modifier = Modifier.size(56.dp),
-                )
+                    label = "VoiceRecordButtonIcon",
+                ) { targetStatus ->
+                    Icon(
+                        imageVector = Icons.Default.Mic,
+                        contentDescription = when (targetStatus) {
+                            VoiceHomeStatus.Recording -> stringResource(R.string.voice_home_recording_button)
+                            VoiceHomeStatus.Processing -> stringResource(R.string.voice_home_processing_button)
+                            else -> stringResource(R.string.voice_home_hold_button)
+                        },
+                        modifier = Modifier.size(56.dp),
+                    )
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun RecordingRippleRing(color: Color) {
+    val infiniteTransition = androidx.compose.animation.core.rememberInfiniteTransition(label = "RecordRipple")
+    val rippleCount = 2
+    repeat(rippleCount) { index ->
+        val progress by infiniteTransition.animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 1400, delayMillis = index * 700),
+                repeatMode = RepeatMode.Restart,
+            ),
+            label = "RecordRipple$index",
+        )
+        Box(
+            modifier = Modifier
+                .size(156.dp)
+                .graphicsLayer {
+                    scaleX = 0.6f + (progress * 0.55f)
+                    scaleY = scaleX
+                    alpha = 0.45f * (1f - progress)
+                }
+                .background(
+                    color = color.copy(alpha = 0.35f),
+                    shape = CircleShape,
+                ),
+        )
     }
 }
 

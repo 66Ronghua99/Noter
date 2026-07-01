@@ -235,7 +235,7 @@ class SettingsSmokeTest {
         composeRule.setContent {
             MaterialTheme {
                 NoterApp(
-                    unifiedAiCreateScreen = { _, _, _, _ -> Box(Modifier.testTag("ai-create")) },
+                    unifiedAiCreateScreen = { _, _, _ -> Box(Modifier.testTag("ai-create")) },
                     alarmListScreen = { _, _, _, _ -> Box(Modifier.testTag("alarms")) },
                     alarmEditorScreen = { _, _ -> Box(Modifier.testTag("editor")) },
                     settingsScreen = { onOpenAppearance, onOpenAiVoice, onOpenSound, onOpenPermissions, _, _ ->

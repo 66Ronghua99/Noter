@@ -2,6 +2,7 @@ package com.cory.noter.ui.editor
 
 import android.os.Build
 import androidx.annotation.StringRes
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -26,13 +28,16 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -49,15 +54,15 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -72,8 +77,9 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.format.TextStyle
-import kotlinx.coroutines.launch
+import java.util.Locale
 import kotlin.math.abs
+import kotlinx.coroutines.launch
 
 @Composable
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
@@ -133,203 +139,239 @@ fun AlarmEditorScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp)
+                .padding(horizontal = 16.dp, vertical = 8.dp)
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            OutlinedTextField(
-                value = state.title,
-                onValueChange = onTitleChanged,
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text(text = stringResource(R.string.editor_title_label)) },
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
-            ) {
-                NumberWheelPicker(
-                    label = stringResource(R.string.editor_hours),
-                    values = 0..23,
-                    selectedValue = state.hourText.toIntOrNull()?.coerceIn(0, 23) ?: 0,
-                    onValueSelected = onHourSelected,
-                    tagPrefix = "HourWheel",
-                    displayText = { it.toString().padStart(2, '0') },
-                )
-                Text(
-                    text = ":",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.align(Alignment.CenterVertically),
-                )
-                NumberWheelPicker(
-                    label = stringResource(R.string.editor_minutes),
-                    values = 0..59,
-                    selectedValue = state.minuteText.toIntOrNull()?.coerceIn(0, 59) ?: 0,
-                    onValueSelected = onMinuteSelected,
-                    tagPrefix = "MinuteWheel",
-                    displayText = { it.toString().padStart(2, '0') },
-                )
-            }
-
-            Text(
-                text = stringResource(R.string.editor_repeat),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-            )
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                repeatOptions.forEach { (option, label) ->
-                    FilterChip(
-                        selected = state.repeatOption == option,
-                        onClick = { onRepeatRuleChanged(option) },
-                        label = { Text(text = label) },
+            EditorCard {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    OutlinedTextField(
+                        value = state.title,
+                        onValueChange = onTitleChanged,
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text(text = stringResource(R.string.editor_title_label)) },
+                        shape = MaterialTheme.shapes.medium,
                     )
-                }
-            }
 
-            if (state.repeatOption == EditorRepeatOption.ONCE) {
-                DateControl(
-                    label = stringResource(R.string.editor_date_once),
-                    valueText = state.onceDateText,
-                    tag = "OnceDateControl",
-                    onClick = { activeDatePicker = DatePickerTarget.Once },
-                )
-            }
-
-            if (state.repeatOption == EditorRepeatOption.CUSTOM) {
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    DayOfWeek.entries.forEach { day ->
-                        FilterChip(
-                            selected = day in state.customWeekdays,
-                            onClick = { onCustomWeekdayToggled(day) },
-                            label = {
-                                Text(
-                                    text = day.getDisplayName(
-                                        TextStyle.SHORT,
-                                        locale,
-                                    ),
-                                )
-                            },
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
+                    ) {
+                        NumberWheelPicker(
+                            label = stringResource(R.string.editor_hours),
+                            values = 0..23,
+                            selectedValue = state.hourText.toIntOrNull()?.coerceIn(0, 23) ?: 0,
+                            onValueSelected = onHourSelected,
+                            tagPrefix = "HourWheel",
+                            displayText = { it.toString().padStart(2, '0') },
+                        )
+                        Text(
+                            text = ":",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.align(Alignment.CenterVertically),
+                        )
+                        NumberWheelPicker(
+                            label = stringResource(R.string.editor_minutes),
+                            values = 0..59,
+                            selectedValue = state.minuteText.toIntOrNull()?.coerceIn(0, 59) ?: 0,
+                            onValueSelected = onMinuteSelected,
+                            tagPrefix = "MinuteWheel",
+                            displayText = { it.toString().padStart(2, '0') },
                         )
                     }
                 }
             }
 
-            if (state.repeatOption == EditorRepeatOption.INTERVAL) {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    DateControl(
-                        label = stringResource(R.string.editor_date_start),
-                        valueText = state.intervalStartDateText,
-                        tag = "IntervalStartDateControl",
-                        onClick = { activeDatePicker = DatePickerTarget.IntervalStart },
-                        modifier = Modifier.weight(1f),
-                    )
-                    DateControl(
-                        label = stringResource(R.string.editor_date_end),
-                        valueText = state.intervalEndDateText,
-                        tag = "IntervalEndDateControl",
-                        onClick = { activeDatePicker = DatePickerTarget.IntervalEnd },
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-                val weeksLabel = stringResource(R.string.editor_weeks)
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("IntervalWeeksRow"),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+            EditorCard {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     Text(
-                        text = weeksLabel,
+                        text = stringResource(R.string.editor_repeat),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.testTag("IntervalWeeksLabel"),
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
-                    NumberWheelPicker(
-                        label = weeksLabel,
-                        values = 1..104,
-                        selectedValue = state.intervalWeeksText.toIntOrNull()?.coerceIn(1, 104) ?: 1,
-                        onValueSelected = onIntervalWeeksSelected,
-                        tagPrefix = "IntervalWeeksWheel",
-                        displayText = { it.toString() },
-                        width = 88.dp,
-                        itemHeight = 40.dp,
-                        visibleItemCount = 3,
-                        showLabel = false,
-                    )
-                }
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    DayOfWeek.entries.forEach { day ->
-                        FilterChip(
-                            selected = day in state.customWeekdays,
-                            onClick = { onCustomWeekdayToggled(day) },
-                            label = {
-                                Text(
-                                    text = day.getDisplayName(
-                                        TextStyle.SHORT,
-                                        locale,
-                                    ),
-                                )
-                            },
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        repeatOptions.forEach { (option, label) ->
+                            SelectableChip(
+                                selected = state.repeatOption == option,
+                                onClick = { onRepeatRuleChanged(option) },
+                                label = label,
+                            )
+                        }
+                    }
+
+                    if (state.repeatOption == EditorRepeatOption.ONCE) {
+                        DateControl(
+                            label = stringResource(R.string.editor_date_once),
+                            valueText = state.onceDateText,
+                            tag = "OnceDateControl",
+                            onClick = { activeDatePicker = DatePickerTarget.Once },
+                        )
+                    }
+
+                    if (state.repeatOption == EditorRepeatOption.CUSTOM) {
+                        WeekdayChipGroup(
+                            selectedDays = state.customWeekdays,
+                            onToggle = onCustomWeekdayToggled,
+                            locale = locale,
+                        )
+                    }
+
+                    if (state.repeatOption == EditorRepeatOption.INTERVAL) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            DateControl(
+                                label = stringResource(R.string.editor_date_start),
+                                valueText = state.intervalStartDateText,
+                                tag = "IntervalStartDateControl",
+                                onClick = { activeDatePicker = DatePickerTarget.IntervalStart },
+                                modifier = Modifier.weight(1f),
+                            )
+                            DateControl(
+                                label = stringResource(R.string.editor_date_end),
+                                valueText = state.intervalEndDateText,
+                                tag = "IntervalEndDateControl",
+                                onClick = { activeDatePicker = DatePickerTarget.IntervalEnd },
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                        val weeksLabel = stringResource(R.string.editor_weeks)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("IntervalWeeksRow"),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = weeksLabel,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.testTag("IntervalWeeksLabel"),
+                            )
+                            NumberWheelPicker(
+                                label = weeksLabel,
+                                values = 1..104,
+                                selectedValue = state.intervalWeeksText.toIntOrNull()?.coerceIn(1, 104) ?: 1,
+                                onValueSelected = onIntervalWeeksSelected,
+                                tagPrefix = "IntervalWeeksWheel",
+                                displayText = { it.toString() },
+                                width = 88.dp,
+                                itemHeight = 40.dp,
+                                visibleItemCount = 3,
+                                showLabel = false,
+                            )
+                        }
+                        WeekdayChipGroup(
+                            selectedDays = state.customWeekdays,
+                            onToggle = onCustomWeekdayToggled,
+                            locale = locale,
                         )
                     }
                 }
             }
 
-            Text(
-                text = stringResource(R.string.editor_ringtone),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Text(
-                text = state.ringtoneUri,
-                style = MaterialTheme.typography.bodySmall,
-            )
-            Button(onClick = onPickRingtone) {
-                Text(text = stringResource(R.string.editor_choose_ringtone))
+            EditorCard {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Text(
+                        text = stringResource(R.string.editor_ringtone),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = state.ringtoneUri,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Button(onClick = onPickRingtone) {
+                            Text(text = stringResource(R.string.editor_choose_ringtone))
+                        }
+                    }
+                }
             }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(text = stringResource(R.string.common_enabled))
-                Switch(
-                    checked = state.enabled,
-                    onCheckedChange = onEnabledChanged,
-                )
+            EditorCard {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column {
+                        Text(
+                            text = stringResource(R.string.common_enabled),
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium,
+                        )
+                    }
+                    Switch(
+                        checked = state.enabled,
+                        onCheckedChange = onEnabledChanged,
+                    )
+                }
             }
 
             state.validationErrors.forEach { error ->
                 Text(
                     text = stringResource(error.toMessageResId()),
                     color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium,
                 )
             }
             state.errorMessage?.let { errorMessage ->
                 Text(
                     text = errorMessage.asString(),
                     color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium,
                 )
             }
             if (state.exactAlarmPermissionRequired) {
-                Button(onClick = onOpenExactAlarmSettings) {
+                Button(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = onOpenExactAlarmSettings,
+                ) {
                     Text(text = stringResource(R.string.editor_open_exact_alarm_settings))
                 }
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(onClick = onSave) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Button(
+                    modifier = Modifier.weight(1f),
+                    onClick = onSave,
+                ) {
                     Text(text = stringResource(R.string.common_save))
                 }
                 if (state.isExisting) {
-                    TextButton(onClick = onDelete) {
+                    OutlinedButton(onClick = onDelete) {
                         Text(text = stringResource(R.string.common_delete))
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(8.dp))
         }
     }
 
@@ -355,6 +397,76 @@ fun AlarmEditorScreen(
     }
 }
 
+@Composable
+private fun EditorCard(
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        ),
+        shape = MaterialTheme.shapes.large,
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    ) {
+        Box(modifier = Modifier.padding(16.dp)) {
+            content()
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SelectableChip(
+    selected: Boolean,
+    onClick: () -> Unit,
+    label: String,
+) {
+    FilterChip(
+        selected = selected,
+        onClick = onClick,
+        label = { Text(text = label) },
+        colors = FilterChipDefaults.filterChipColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+            labelColor = MaterialTheme.colorScheme.onSurface,
+            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            iconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        ),
+        border = FilterChipDefaults.filterChipBorder(
+            enabled = true,
+            selected = selected,
+            borderColor = MaterialTheme.colorScheme.outlineVariant,
+            selectedBorderColor = MaterialTheme.colorScheme.primary,
+            borderWidth = 1.dp,
+            selectedBorderWidth = 2.dp,
+        ),
+    )
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun WeekdayChipGroup(
+    selectedDays: Set<DayOfWeek>,
+    onToggle: (DayOfWeek) -> Unit,
+    locale: Locale,
+) {
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        DayOfWeek.entries.forEach { day ->
+            SelectableChip(
+                selected = day in selectedDays,
+                onClick = { onToggle(day) },
+                label = day.getDisplayName(TextStyle.SHORT, locale),
+            )
+        }
+    }
+}
+
 private enum class DatePickerTarget(
     val dialogTag: String,
 ) {
@@ -376,16 +488,24 @@ private fun DateControl(
         modifier = modifier
             .fillMaxWidth()
             .testTag(tag),
+        shape = MaterialTheme.shapes.medium,
+        border = BorderStroke(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.outlineVariant,
+        ),
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
                 text = valueText,
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Medium,
             )
         }
     }
@@ -509,6 +629,7 @@ private fun NumberWheelPicker(
                 text = label,
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
             )
         }
         Box(

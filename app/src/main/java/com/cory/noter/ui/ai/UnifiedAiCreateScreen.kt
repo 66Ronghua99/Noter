@@ -14,16 +14,20 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ListAlt
+import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.outlined.Chat
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -47,7 +51,9 @@ object UnifiedAiCreateTestTags {
     const val VoiceModeAction = "UnifiedAiCreateVoiceModeAction"
     const val TextModeAction = "UnifiedAiCreateTextModeAction"
     const val SettingsAction = "UnifiedAiCreateSettingsAction"
-    const val ListAction = "UnifiedAiCreateListAction"
+    const val CreateTabAction = "UnifiedAiCreateCreateTabAction"
+    const val ListTabAction = "UnifiedAiCreateListTabAction"
+    const val ManualCreateFabAction = "UnifiedAiCreateManualCreateFabAction"
 }
 
 private enum class UnifiedAiCreateMode {
@@ -62,6 +68,7 @@ fun UnifiedAiCreateScreen(
     textContent: @Composable () -> Unit,
     onOpenAlarmList: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenManualCreate: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var mode by remember { mutableStateOf(UnifiedAiCreateMode.Voice) }
@@ -81,15 +88,6 @@ fun UnifiedAiCreateScreen(
                 },
                 actions = {
                     IconButton(
-                        modifier = Modifier.testTag(UnifiedAiCreateTestTags.ListAction),
-                        onClick = onOpenAlarmList,
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ListAlt,
-                            contentDescription = stringResource(R.string.voice_home_open_list),
-                        )
-                    }
-                    IconButton(
                         modifier = Modifier.testTag(UnifiedAiCreateTestTags.SettingsAction),
                         onClick = onOpenSettings,
                     ) {
@@ -99,6 +97,24 @@ fun UnifiedAiCreateScreen(
                         )
                     }
                 },
+            )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                modifier = Modifier.testTag(UnifiedAiCreateTestTags.ManualCreateFabAction),
+                onClick = onOpenManualCreate,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = stringResource(R.string.ai_create_manual_instead),
+                )
+            }
+        },
+        bottomBar = {
+            BottomCreateListBar(
+                selectedCreate = true,
+                onCreateClick = {},
+                onListClick = onOpenAlarmList,
             )
         },
     ) { padding ->
@@ -149,6 +165,42 @@ fun UnifiedAiCreateScreen(
 }
 
 @Composable
+private fun BottomCreateListBar(
+    selectedCreate: Boolean,
+    onCreateClick: () -> Unit,
+    onListClick: () -> Unit,
+) {
+    NavigationBar {
+        NavigationBarItem(
+            selected = selectedCreate,
+            onClick = onCreateClick,
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.Mic,
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp),
+                )
+            },
+            label = { Text(text = stringResource(R.string.ai_create_bottom_create)) },
+            modifier = Modifier.testTag(UnifiedAiCreateTestTags.CreateTabAction),
+        )
+        NavigationBarItem(
+            selected = !selectedCreate,
+            onClick = onListClick,
+            icon = {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.List,
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp),
+                )
+            },
+            label = { Text(text = stringResource(R.string.alarm_list_title)) },
+            modifier = Modifier.testTag(UnifiedAiCreateTestTags.ListTabAction),
+        )
+    }
+}
+
+@Composable
 private fun PageHeader() {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -194,7 +246,7 @@ private fun SegmentedModeControl(
                 onClick = { onModeSelected(UnifiedAiCreateMode.Voice) },
             )
             ModeOption(
-                icon = Icons.Outlined.Chat,
+                icon = Icons.AutoMirrored.Filled.Chat,
                 label = stringResource(R.string.ai_create_mode_text),
                 selected = selectedMode == UnifiedAiCreateMode.Text,
                 modifier = Modifier

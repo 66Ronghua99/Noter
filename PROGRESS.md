@@ -27,3 +27,14 @@
   - updated localized strings in English and Chinese for new labels and summaries
   - updated smoke/unit tests to reflect the new composable structure and dropdown-based model selection
   - reran local gates; verification evidence updated at `artifacts/2026-07-01-ai-create-ui-theme-settings/verification.md`
+- Applied follow-up UI/UX fixes to the AI create, alarm list, editor, and appearance settings surfaces:
+  - added press-scale and outward ripple animation to the voice record button
+  - fixed text-AI suggestion chips to wrap with `FlowRow`
+  - removed the ambiguous back action from unified text AI create
+  - replaced the top-bar list icon and alarm-list FAB with a consistent bottom create/list tab bar on both routes
+  - added a manual-create floating action button on the unified create page
+  - fixed `NoterTheme` light-palette `onPrimaryContainer`/`onSecondaryContainer` contrast so selected text is readable
+  - redesigned the alarm editor with card sections and strongly-bordered selectable chips
+  - replaced the appearance preset `LazyVerticalGrid` with a non-scrolling `FlowRow` grid
+  - updated smoke tests to assert the new bottom-tab navigation and FAB behavior
+  - fresh verification evidence recorded at `artifacts/2026-07-01-ai-create-ui-theme-settings/verification.md`

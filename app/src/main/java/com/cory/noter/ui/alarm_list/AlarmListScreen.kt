@@ -7,27 +7,28 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -39,6 +40,11 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
+
+object AlarmListTestTags {
+    const val CreateTabAction = "AlarmListCreateTabAction"
+    const val ListTabAction = "AlarmListListTabAction"
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,41 +58,6 @@ fun AlarmListScreen(
     onOpenAiCreate: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var showCreateSheet by remember { mutableStateOf(false) }
-
-    if (showCreateSheet) {
-        ModalBottomSheet(onDismissRequest = { showCreateSheet = false }) {
-            Column(
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Text(
-                    text = stringResource(R.string.alarm_list_create_alarm),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                Button(
-                    modifier = Modifier.fillMaxWidth(),
-                    onClick = {
-                        showCreateSheet = false
-                        onOpenManualCreate()
-                    },
-                ) {
-                    Text(text = stringResource(R.string.alarm_list_create_manual))
-                }
-                Button(
-                    modifier = Modifier.fillMaxWidth(),
-                    onClick = {
-                        showCreateSheet = false
-                        onOpenAiCreate()
-                    },
-                ) {
-                    Text(text = stringResource(R.string.alarm_list_create_ai))
-                }
-            }
-        }
-    }
-
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
@@ -99,10 +70,12 @@ fun AlarmListScreen(
                 },
             )
         },
-        floatingActionButton = {
-            FloatingActionButton(onClick = { showCreateSheet = true }) {
-                Text(text = "+")
-            }
+        bottomBar = {
+            BottomCreateListBar(
+                selectedCreate = false,
+                onCreateClick = onOpenAiCreate,
+                onListClick = {},
+            )
         },
     ) { padding ->
         if (state.alarms.isEmpty()) {
@@ -153,6 +126,42 @@ fun AlarmListScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun BottomCreateListBar(
+    selectedCreate: Boolean,
+    onCreateClick: () -> Unit,
+    onListClick: () -> Unit,
+) {
+    NavigationBar {
+        NavigationBarItem(
+            selected = selectedCreate,
+            onClick = onCreateClick,
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.Mic,
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp),
+                )
+            },
+            label = { Text(text = stringResource(R.string.ai_create_bottom_create)) },
+            modifier = Modifier.testTag(AlarmListTestTags.CreateTabAction),
+        )
+        NavigationBarItem(
+            selected = !selectedCreate,
+            onClick = onListClick,
+            icon = {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.List,
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp),
+                )
+            },
+            label = { Text(text = stringResource(R.string.alarm_list_title)) },
+            modifier = Modifier.testTag(AlarmListTestTags.ListTabAction),
+        )
     }
 }
 

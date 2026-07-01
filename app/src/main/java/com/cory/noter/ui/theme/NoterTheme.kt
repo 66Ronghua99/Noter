@@ -106,7 +106,7 @@ private fun generateLightPalette(seed: Color): NoterPalette {
         Hsl(
             h = hsl.h,
             s = (hsl.s * 0.35f).clampRange(0.1f, 0.4f),
-            l = 0.94f,
+            l = 0.18f,
         )
     }.toColor().roundChannels()
 
@@ -126,7 +126,7 @@ private fun generateLightPalette(seed: Color): NoterPalette {
         Hsl(
             h = hsl.h,
             s = (hsl.s * 0.28f).clampRange(0.08f, 0.35f),
-            l = 0.92f,
+            l = 0.20f,
         )
     }.toColor().roundChannels()
 

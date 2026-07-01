@@ -110,14 +110,13 @@ private fun NoterRoot(
     onOpenExactAlarmSettings: () -> Unit,
 ) {
     NoterApp(
-        unifiedAiCreateScreen = { onOpenAlarmList, onOpenSettings, onOpenManualCreate, onBackFromAiCreate ->
+        unifiedAiCreateScreen = { onOpenAlarmList, onOpenSettings, onOpenManualCreate ->
             UnifiedAiCreateRoute(
                 appContainer = appContainer,
                 onOpenAlarmList = onOpenAlarmList,
                 onOpenSettings = onOpenSettings,
                 onOpenExactAlarmSettings = onOpenExactAlarmSettings,
                 onOpenManualCreate = onOpenManualCreate,
-                onBackFromAiCreate = onBackFromAiCreate,
             )
         },
         alarmListScreen = { onOpenManualCreate, onOpenAiCreate, onEditAlarm, onOpenSettings ->
@@ -202,7 +201,6 @@ private fun UnifiedAiCreateRoute(
     onOpenSettings: () -> Unit,
     onOpenExactAlarmSettings: () -> Unit,
     onOpenManualCreate: () -> Unit,
-    onBackFromAiCreate: () -> Unit,
 ) {
     val context = LocalContext.current
     val voiceViewModel: VoiceHomeViewModel = viewModel(
@@ -241,7 +239,7 @@ private fun UnifiedAiCreateRoute(
 
     LaunchedEffect(aiState.createdAlarmId) {
         if (aiState.createdAlarmId != null) {
-            onBackFromAiCreate()
+            onOpenAlarmList()
         }
     }
 
@@ -283,12 +281,11 @@ private fun UnifiedAiCreateRoute(
                 onSubmit = aiViewModel::submit,
                 onOpenExactAlarmSettings = onOpenExactAlarmSettings,
                 onOpenManualCreate = onOpenManualCreate,
-                showBackNavigation = true,
-                onBack = onBackFromAiCreate,
             )
         },
         onOpenAlarmList = onOpenAlarmList,
         onOpenSettings = onOpenSettings,
+        onOpenManualCreate = onOpenManualCreate,
     )
 }
 

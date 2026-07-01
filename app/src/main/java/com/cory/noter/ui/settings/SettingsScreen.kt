@@ -7,6 +7,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,9 +18,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -31,12 +30,12 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SmartToy
-import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material.icons.outlined.BatterySaver
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -510,7 +509,7 @@ private fun SettingsDirectoryRow(
     val icon = when (row.id) {
         "appearance" -> Icons.Default.Palette
         "ai_voice" -> Icons.Default.Psychology
-        "sound" -> Icons.Default.VolumeUp
+        "sound" -> Icons.AutoMirrored.Filled.VolumeUp
         "permissions" -> Icons.Default.Security
         else -> Icons.Default.Settings
     }
@@ -592,22 +591,23 @@ private val presetOptions: List<PresetOption> = listOf(
 )
 
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 private fun PresetGrid(
     selectedPresetId: String,
     onPresetSelected: (String) -> Unit,
 ) {
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(2),
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(160.dp),
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
+        maxItemsInEachRow = 2,
     ) {
-        items(presetOptions, key = { it.id }) { preset ->
+        presetOptions.forEach { preset ->
             val selected = selectedPresetId == preset.id
             Card(
-                modifier = Modifier.testTag(SettingsTestTags.ThemePresetAction(preset.id)),
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag(SettingsTestTags.ThemePresetAction(preset.id)),
                 onClick = { onPresetSelected(preset.id) },
                 colors = CardDefaults.cardColors(
                     containerColor = if (selected) {

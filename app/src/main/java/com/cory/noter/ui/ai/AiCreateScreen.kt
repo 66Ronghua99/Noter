@@ -3,6 +3,8 @@ package com.cory.noter.ui.ai
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -43,7 +45,6 @@ object AiCreateTestTags {
     const val PromptInput = "AiCreatePromptInput"
     const val SubmitAction = "AiCreateSubmitAction"
     const val ManualCreateAction = "AiCreateManualCreateAction"
-    const val BackAction = "AiCreateBackAction"
     const val ExactAlarmAction = "AiCreateExactAlarmAction"
     const val LoadingIndicator = "AiCreateLoadingIndicator"
     const val StatusMessage = "AiCreateStatusMessage"
@@ -70,7 +71,6 @@ fun AiCreateScreen(
                 title = { Text(text = stringResource(R.string.ai_create_title)) },
                 navigationIcon = {
                     TextButton(
-                        modifier = Modifier.testTag(AiCreateTestTags.BackAction),
                         onClick = onBack,
                     ) {
                         Text(text = stringResource(R.string.common_back))
@@ -85,7 +85,6 @@ fun AiCreateScreen(
             onSubmit = onSubmit,
             onOpenExactAlarmSettings = onOpenExactAlarmSettings,
             onOpenManualCreate = onOpenManualCreate,
-            showBackNavigation = false,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
@@ -102,13 +101,13 @@ fun TextModeContent(
     onOpenExactAlarmSettings: () -> Unit,
     onOpenManualCreate: () -> Unit,
     modifier: Modifier = Modifier,
-    showBackNavigation: Boolean = false,
-    onBack: () -> Unit = {},
 ) {
     val scrollState = rememberScrollState()
 
     Column(
-        modifier = modifier.verticalScroll(scrollState),
+        modifier = modifier
+            .verticalScroll(scrollState)
+            .testTag(AiCreateTestTags.Root),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Surface(
@@ -183,17 +182,6 @@ fun TextModeContent(
             }
         }
 
-        if (showBackNavigation) {
-            TextButton(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag(AiCreateTestTags.BackAction),
-                onClick = onBack,
-            ) {
-                Text(text = stringResource(R.string.common_back))
-            }
-        }
-
         TextButton(
             modifier = Modifier
                 .fillMaxWidth()
@@ -208,13 +196,15 @@ fun TextModeContent(
 }
 
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 private fun SuggestionChips(
     suggestions: List<String>,
     onSuggestionClicked: (String) -> Unit,
 ) {
-    Row(
+    FlowRow(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         suggestions.forEach { suggestion ->
             Card(

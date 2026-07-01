@@ -3,8 +3,6 @@ package com.cory.noter
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.material3.Button
-import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -20,12 +18,14 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.platform.testTag
 import com.cory.noter.ui.NoterApp
-import com.cory.noter.ui.ai.AiCreateScreen
 import com.cory.noter.ui.ai.AiCreateTestTags
 import com.cory.noter.ui.ai.AiCreateUiState
 import com.cory.noter.ui.ai.TextModeContent
 import com.cory.noter.ui.ai.UnifiedAiCreateScreen
 import com.cory.noter.ui.ai.UnifiedAiCreateTestTags
+import com.cory.noter.ui.alarm_list.AlarmListScreen
+import com.cory.noter.ui.alarm_list.AlarmListTestTags
+import com.cory.noter.ui.alarm_list.AlarmListUiState
 import com.cory.noter.ui.text.UiText
 import com.cory.noter.ui.voice.VoiceHomeScreen
 import com.cory.noter.ui.voice.VoiceHomeStatus
@@ -157,20 +157,22 @@ class VoiceHomeSmokeTest {
     }
 
     @Test
-    fun noter_app_alarm_list_ai_create_action_reaches_unified_voice_mode() {
+    fun noter_app_create_list_bottom_tabs_navigate_between_routes() {
         composeRule.setContent {
             MaterialTheme {
                 TestNoterApp()
             }
         }
 
-        composeRule.onNodeWithTag(UnifiedAiCreateTestTags.ListAction)
+        composeRule.onNodeWithTag(UnifiedAiCreateTestTags.ListTabAction)
             .assertIsDisplayed()
             .performClick()
-        composeRule.onNodeWithTag(AppRouteTestTags.AlarmListAiCreateAction)
+        composeRule.onNodeWithTag(AppRouteTestTags.AlarmList)
             .assertIsDisplayed()
-            .performClick()
 
+        composeRule.onNodeWithTag(AlarmListTestTags.CreateTabAction)
+            .assertIsDisplayed()
+            .performClick()
         composeRule.onNodeWithTag(UnifiedAiCreateTestTags.Root)
             .assertIsDisplayed()
         composeRule.onNodeWithTag(VoiceHomeTestTags.RecordButton)
@@ -178,44 +180,20 @@ class VoiceHomeSmokeTest {
     }
 
     @Test
-    fun noter_app_text_back_from_alarm_list_returns_to_alarm_list() {
+    fun noter_app_unified_manual_create_fab_opens_editor() {
+        var openedManualCreate = 0
+
         composeRule.setContent {
             MaterialTheme {
-                TestNoterApp()
+                TestNoterApp(onOpenManualCreate = { openedManualCreate += 1 })
             }
         }
 
-        composeRule.onNodeWithTag(UnifiedAiCreateTestTags.ListAction)
-            .assertIsDisplayed()
-            .performClick()
-        composeRule.onNodeWithTag(AppRouteTestTags.AlarmListAiCreateAction)
-            .assertIsDisplayed()
-            .performClick()
-        composeRule.onNodeWithTag(UnifiedAiCreateTestTags.TextModeAction)
-            .assertIsDisplayed()
-            .performClick()
-        composeRule.onNodeWithTag(AiCreateTestTags.BackAction)
+        composeRule.onNodeWithTag(UnifiedAiCreateTestTags.ManualCreateFabAction)
             .assertIsDisplayed()
             .performClick()
 
-        composeRule.onNodeWithTag(AppRouteTestTags.AlarmList)
-            .assertIsDisplayed()
-    }
-
-    @Test
-    fun noter_app_voice_home_list_action_reaches_alarm_list() {
-        composeRule.setContent {
-            MaterialTheme {
-                TestNoterApp()
-            }
-        }
-
-        composeRule.onNodeWithTag(UnifiedAiCreateTestTags.ListAction)
-            .assertIsDisplayed()
-            .performClick()
-
-        composeRule.onNodeWithTag(AppRouteTestTags.AlarmList)
-            .assertIsDisplayed()
+        assertEquals(1, openedManualCreate)
     }
 
     @Test
@@ -503,9 +481,10 @@ class VoiceHomeSmokeTest {
         onPromptChanged: (String) -> Unit = {},
         onSubmit: () -> Unit = {},
         onOpenExactAlarmSettings: () -> Unit = {},
+        onOpenManualCreate: () -> Unit = {},
     ) {
         NoterApp(
-            unifiedAiCreateScreen = { onOpenAlarmList, onOpenSettings, onOpenManualCreate, onBackFromAiCreate ->
+            unifiedAiCreateScreen = { onOpenAlarmList, onOpenSettings, _ ->
                 UnifiedAiCreateScreen(
                     voiceContent = { onSwitchToText ->
                         VoiceModeContent(
@@ -526,23 +505,24 @@ class VoiceHomeSmokeTest {
                             onSubmit = onSubmit,
                             onOpenExactAlarmSettings = onOpenExactAlarmSettings,
                             onOpenManualCreate = onOpenManualCreate,
-                            showBackNavigation = true,
-                            onBack = onBackFromAiCreate,
                         )
                     },
                     onOpenAlarmList = onOpenAlarmList,
                     onOpenSettings = onOpenSettings,
+                    onOpenManualCreate = onOpenManualCreate,
                 )
             },
             alarmListScreen = { _, onOpenAiCreate, _, _ ->
-                Column(modifier = Modifier.testTag(AppRouteTestTags.AlarmList)) {
-                    Button(
-                        modifier = Modifier.testTag(AppRouteTestTags.AlarmListAiCreateAction),
-                        onClick = onOpenAiCreate,
-                    ) {
-                        Text(text = "AI create")
-                    }
-                }
+                AlarmListScreen(
+                    state = AlarmListUiState(),
+                    onAlarmEnabledChanged = { _, _ -> },
+                    onEditAlarm = {},
+                    onDeleteAlarm = {},
+                    onOpenSettings = {},
+                    onOpenManualCreate = {},
+                    onOpenAiCreate = onOpenAiCreate,
+                    modifier = Modifier.testTag(AppRouteTestTags.AlarmList),
+                )
             },
             alarmEditorScreen = { _, _ ->
                 Box(modifier = Modifier.testTag(AppRouteTestTags.Editor))
@@ -567,7 +547,6 @@ class VoiceHomeSmokeTest {
 
     private object AppRouteTestTags {
         const val AlarmList = "NoterAppAlarmListRoute"
-        const val AlarmListAiCreateAction = "NoterAppAlarmListAiCreateAction"
         const val Editor = "NoterAppEditorRoute"
         const val AiCreate = "NoterAppAiCreateRoute"
         const val Settings = "NoterAppSettingsRoute"
