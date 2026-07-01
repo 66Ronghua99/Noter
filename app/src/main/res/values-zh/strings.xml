@@ -24,6 +24,14 @@
     <string name="alarm_list_repeat_daily">每天</string>
     <string name="alarm_list_repeat_weekdays">工作日</string>
     <string name="alarm_list_repeat_weekly_interval_format">每 %1$d 周：%2$s</string>
+    <string name="alarm_list_pause_dialog_title">暂停闹钟</string>
+    <string name="alarm_list_pause_dialog_body">要暂停“%1$s”吗？</string>
+    <string name="alarm_list_pause_next_occurrence">下一次</string>
+    <string name="alarm_list_pause_indefinitely">无限期</string>
+    <string name="alarm_list_paused_next_format">已暂停下一次：%1$s</string>
+    <string name="alarm_list_paused_indefinitely">已无限期暂停</string>
+    <string name="alarm_list_management_missing_alarm">闹钟已不存在。</string>
+    <string name="alarm_list_management_stale_trigger">操作完成前闹钟状态已变化。</string>
     <string name="alarm_list_schedule_permission_saved_error">闹钟已保存，但调度需要权限：%1$s</string>
     <string name="alarm_list_schedule_permission_deleted_error">闹钟已删除，但调度器报告权限问题：%1$s</string>
 
@@ -52,6 +60,9 @@
     <string name="ai_create_rate_limited_error">模型速率限制：%1$s</string>
     <string name="ai_create_remote_failure_error">OpenRouter 错误 %1$d：%2$s</string>
     <string name="ai_create_missing_permission_error">闹钟已保存，但调度需要权限：%1$s</string>
+    <string name="ai_create_management_paused_next_status">已暂停 %1$s 的下一次响铃。</string>
+    <string name="ai_create_management_paused_indefinitely_status">已无限期暂停 %1$s。</string>
+    <string name="ai_create_management_resumed_status">已恢复 %1$s。</string>
 
     <string name="voice_home_title">语音闹钟</string>
     <string name="voice_home_idle_prompt">按住按钮，说出你想创建的闹钟。</string>
@@ -173,6 +184,7 @@
     <string name="notification_ai_creating_title">正在创建闹钟</string>
     <string name="notification_ai_creating_body">AI 正在后台创建闹钟。</string>
     <string name="notification_ai_created_title">闹钟已创建</string>
+    <string name="notification_ai_managed_title">闹钟已更新</string>
     <string name="notification_ai_saved_title">闹钟已保存</string>
     <string name="notification_ai_permission_needed">需要精准闹钟权限，闹钟才能可靠响铃。</string>
     <string name="notification_ai_permission_big_text">闹钟“%1$s”已保存，但 Android 需要精准闹钟权限后才能可靠响铃。</string>
@@ -184,6 +196,9 @@
     <string name="notification_ai_rate_limited">模型速率限制：%1$s</string>
     <string name="notification_ai_remote_failure">OpenRouter 错误 %1$d：%2$s</string>
     <string name="notification_ai_finished">AI 闹钟创建已结束。</string>
+    <string name="notification_ai_paused_next">已暂停 %1$s 的下一次响铃。</string>
+    <string name="notification_ai_paused_indefinitely">已无限期暂停 %1$s。</string>
+    <string name="notification_ai_resumed">已恢复 %1$s。</string>
 
     <string name="notification_ringing_channel_name">响铃闹钟</string>
     <string name="notification_ringing_channel_description">正在响铃流程的闹钟通知。</string>

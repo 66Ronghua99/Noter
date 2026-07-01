@@ -104,7 +104,10 @@ class AgentLoopRunnerTest {
             ),
         )
 
-        val result = AgentLoopRunner(gateway).run(
+        val result = AgentLoopRunner(
+            gateway,
+            config = AgentLoopConfig(maxToolExecutions = 1),
+        ).run(
             basicRequest(toolRegistry = AgentToolRegistry(listOf(tool))),
         )
 

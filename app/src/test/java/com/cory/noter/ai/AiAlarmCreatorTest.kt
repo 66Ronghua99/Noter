@@ -10,13 +10,16 @@ import com.cory.noter.agent.AgentToolCall
 import com.cory.noter.agent.AgentToolChoice
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import com.cory.noter.alarm.AlarmManagementUseCase
 import com.cory.noter.alarm.AlarmSchedulingUseCase
 import com.cory.noter.alarm.FakeAlarmScheduler
 import com.cory.noter.alarm.ScheduleResult
+import com.cory.noter.data.alarm.AlarmDraft
 import com.cory.noter.data.alarm.AlarmDatabase
 import com.cory.noter.data.alarm.AlarmRepository
 import com.cory.noter.data.alarm.RoomAlarmRepository
 import com.cory.noter.data.settings.FakeSettingsRepository
+import com.cory.noter.domain.alarm.AlarmPauseMode
 import com.cory.noter.domain.alarm.AlarmSource
 import com.cory.noter.domain.alarm.NextTriggerCalculator
 import com.cory.noter.domain.alarm.RepeatRule
@@ -68,6 +71,7 @@ class AiAlarmCreatorTest {
             agentLoopRunner = AgentLoopRunner(fakeAgentGateway),
             alarmRepository = repository,
             schedulingUseCase = AlarmSchedulingUseCase(fakeScheduler),
+            managementUseCase = creatorManagementUseCase(),
             promptBuilder = AiAlarmPromptBuilder(),
             clock = Clock.fixed(now.toInstant(), zone),
         )
@@ -192,6 +196,7 @@ class AiAlarmCreatorTest {
             ),
             alarmRepository = repository,
             schedulingUseCase = AlarmSchedulingUseCase(fakeScheduler),
+            managementUseCase = creatorManagementUseCase(),
             promptBuilder = AiAlarmPromptBuilder(),
             clock = Clock.fixed(now.toInstant(), zone),
         )
@@ -269,7 +274,14 @@ class AiAlarmCreatorTest {
         assertThat(fakeAgentGateway.requests[0].messages.single().content)
             .contains("Current local date: 2026-04-23")
         assertThat(fakeAgentGateway.requests.first().tools.map { it.name })
-            .containsExactly("create_alarm", "reject_unclear_request", "end_task")
+            .containsExactly(
+                "create_alarm",
+                "list_alarms",
+                "pause_alarm",
+                "resume_alarm",
+                "reject_unclear_request",
+                "end_task",
+            )
             .inOrder()
         assertThat(fakeAgentGateway.requests.first().tools.map { it.name })
             .doesNotContain("submit_alarm_draft")
@@ -286,8 +298,110 @@ class AiAlarmCreatorTest {
         val request = fakeAgentGateway.requests.single()
         assertThat(request.toolChoice).isEqualTo(AgentToolChoice.RequiredAnyTool)
         assertThat(request.tools.map { it.name })
-            .containsExactly("create_alarm", "reject_unclear_request", "end_task")
+            .containsExactly(
+                "create_alarm",
+                "list_alarms",
+                "pause_alarm",
+                "resume_alarm",
+                "reject_unclear_request",
+                "end_task",
+            )
             .inOrder()
+    }
+
+    @Test
+    fun `agent can list then pause alarm and return management success`() = runTest {
+        settingsRepository.set(validSettings())
+        val alarm = repository.create(activeDailyDraft())
+        fakeAgentGateway.results += AgentLlmResult.Message(
+            AgentMessage(
+                role = AgentMessageRole.ASSISTANT,
+                content = "",
+                toolCalls = listOf(
+                    AgentToolCall(
+                        id = "call-list",
+                        name = "list_alarms",
+                        arguments = "{}",
+                    ),
+                ),
+            ),
+        )
+        fakeAgentGateway.results += AgentLlmResult.Message(
+            AgentMessage(
+                role = AgentMessageRole.ASSISTANT,
+                content = "",
+                toolCalls = listOf(
+                    AgentToolCall(
+                        id = "call-pause",
+                        name = "pause_alarm",
+                        arguments = """{"alarmId":${alarm.id},"mode":"next_occurrence"}""",
+                    ),
+                ),
+            ),
+        )
+        fakeAgentGateway.results += AgentLlmResult.Message(
+            AgentMessage(
+                role = AgentMessageRole.ASSISTANT,
+                content = "",
+                toolCalls = listOf(
+                    AgentToolCall(
+                        id = "call-end",
+                        name = "end_task",
+                        arguments = """{"reason":"Alarm paused."}""",
+                    ),
+                ),
+            ),
+        )
+
+        val result = creator.createFromText("pause my medicine alarm")
+
+        assertThat(result).isInstanceOf(AiCreateResult.ManagementSucceeded::class.java)
+        val managed = result as AiCreateResult.ManagementSucceeded
+        assertThat(managed.action).isEqualTo(AiAlarmManagementAction.PAUSED_NEXT_OCCURRENCE)
+        assertThat(managed.alarm.id).isEqualTo(alarm.id)
+        assertThat(repository.get(alarm.id)!!.pauseMode).isEqualTo(AlarmPauseMode.NEXT_OCCURRENCE)
+        assertThat(fakeAgentGateway.requests).hasSize(3)
+    }
+
+    @Test
+    fun `agent can resume alarm and return management success`() = runTest {
+        settingsRepository.set(validSettings())
+        val alarm = repository.create(activeDailyDraft())
+        creatorManagementUseCase().pauseIndefinitely(alarm.id)
+        fakeAgentGateway.results += AgentLlmResult.Message(
+            AgentMessage(
+                role = AgentMessageRole.ASSISTANT,
+                content = "",
+                toolCalls = listOf(
+                    AgentToolCall(
+                        id = "call-resume",
+                        name = "resume_alarm",
+                        arguments = """{"alarmId":${alarm.id}}""",
+                    ),
+                ),
+            ),
+        )
+        fakeAgentGateway.results += AgentLlmResult.Message(
+            AgentMessage(
+                role = AgentMessageRole.ASSISTANT,
+                content = "",
+                toolCalls = listOf(
+                    AgentToolCall(
+                        id = "call-end",
+                        name = "end_task",
+                        arguments = """{"reason":"Alarm resumed."}""",
+                    ),
+                ),
+            ),
+        )
+
+        val result = creator.createFromText("resume my medicine alarm")
+
+        assertThat(result).isInstanceOf(AiCreateResult.ManagementSucceeded::class.java)
+        val managed = result as AiCreateResult.ManagementSucceeded
+        assertThat(managed.action).isEqualTo(AiAlarmManagementAction.RESUMED)
+        assertThat(managed.alarm.id).isEqualTo(alarm.id)
+        assertThat(repository.get(alarm.id)!!.pauseMode).isEqualTo(AlarmPauseMode.NONE)
     }
 
     @Test
@@ -397,6 +511,7 @@ class AiAlarmCreatorTest {
             agentLoopRunner = AgentLoopRunner(fakeAgentGateway),
             alarmRepository = CreateFailingAlarmRepository(repository),
             schedulingUseCase = AlarmSchedulingUseCase(fakeScheduler),
+            managementUseCase = creatorManagementUseCase(),
             promptBuilder = AiAlarmPromptBuilder(),
             clock = Clock.fixed(now.toInstant(), zone),
         )
@@ -484,6 +599,7 @@ class AiAlarmCreatorTest {
             ),
             alarmRepository = repository,
             schedulingUseCase = AlarmSchedulingUseCase(fakeScheduler),
+            managementUseCase = creatorManagementUseCase(),
             promptBuilder = AiAlarmPromptBuilder(),
             clock = Clock.fixed(now.toInstant(), zone),
         )
@@ -542,6 +658,25 @@ class AiAlarmCreatorTest {
           "clarificationReason": ""
         }
     """.trimIndent()
+
+    private fun activeDailyDraft(): AlarmDraft = AlarmDraft(
+        title = "Take medicine",
+        hour = 8,
+        minute = 30,
+        repeatRule = RepeatRule.Daily,
+        enabled = true,
+        ringtoneUri = AppSettings.DefaultRingtoneUri,
+        source = AlarmSource.AI,
+        aiOriginalText = "take medicine",
+    )
+
+    private fun creatorManagementUseCase(): AlarmManagementUseCase = AlarmManagementUseCase(
+        repository = repository,
+        schedulingUseCase = AlarmSchedulingUseCase(fakeScheduler),
+        clock = Clock.fixed(now.toInstant(), zone),
+        nextTriggerCalculator = NextTriggerCalculator(),
+        zoneIdProvider = { zone },
+    )
 
     private fun clarificationAlarmJson(): String = """
         {

@@ -13,6 +13,10 @@ import com.cory.noter.agent.tools.EndTaskTool
 import com.cory.noter.agent.tools.RejectUnclearRequestTool
 import com.cory.noter.agent.tools.alarm.CreateAlarmTool
 import com.cory.noter.agent.tools.alarm.CreateAlarmToolContext
+import com.cory.noter.agent.tools.alarm.ListAlarmsTool
+import com.cory.noter.agent.tools.alarm.PauseAlarmTool
+import com.cory.noter.agent.tools.alarm.ResumeAlarmTool
+import com.cory.noter.alarm.AlarmManagementUseCase
 import com.cory.noter.alarm.AlarmSchedulingUseCase
 import com.cory.noter.data.alarm.AlarmRepository
 import com.cory.noter.data.settings.SettingsRepository
@@ -35,7 +39,14 @@ sealed interface AiCreateResult {
     data class CreateFailed(val reason: String) : AiCreateResult
     data class MissingSchedulingPermission(val alarm: Alarm, val permission: String) : AiCreateResult
     data class ScheduleFailed(val alarm: Alarm, val reason: String) : AiCreateResult
+    data class ManagementSucceeded(val alarm: Alarm, val action: AiAlarmManagementAction) : AiCreateResult
     data class Created(val alarm: Alarm) : AiCreateResult
+}
+
+enum class AiAlarmManagementAction {
+    PAUSED_NEXT_OCCURRENCE,
+    PAUSED_INDEFINITELY,
+    RESUMED,
 }
 
 class AiAlarmCreator(
@@ -43,6 +54,10 @@ class AiAlarmCreator(
     private val agentLoopRunner: AgentLoopRunner,
     private val alarmRepository: AlarmRepository,
     private val schedulingUseCase: AlarmSchedulingUseCase,
+    private val managementUseCase: AlarmManagementUseCase = AlarmManagementUseCase(
+        repository = alarmRepository,
+        schedulingUseCase = schedulingUseCase,
+    ),
     private val promptBuilder: AiAlarmPromptBuilder = AiAlarmPromptBuilder(),
     private val clock: Clock = Clock.systemDefaultZone(),
 ) {
@@ -69,6 +84,9 @@ class AiAlarmCreator(
                     schedulingUseCase = schedulingUseCase,
                     clock = clock,
                 ),
+                ListAlarmsTool(alarmRepository),
+                PauseAlarmTool(managementUseCase),
+                ResumeAlarmTool(managementUseCase),
                 RejectUnclearRequestTool(),
                 EndTaskTool(),
             ),
@@ -128,6 +146,20 @@ class AiAlarmCreator(
 
         return when (status) {
             "created" -> AiCreateResult.Created(alarm)
+            "paused_next_occurrence" -> AiCreateResult.ManagementSucceeded(
+                alarm = alarm,
+                action = AiAlarmManagementAction.PAUSED_NEXT_OCCURRENCE,
+            )
+
+            "paused_indefinitely" -> AiCreateResult.ManagementSucceeded(
+                alarm = alarm,
+                action = AiAlarmManagementAction.PAUSED_INDEFINITELY,
+            )
+
+            "resumed" -> AiCreateResult.ManagementSucceeded(
+                alarm = alarm,
+                action = AiAlarmManagementAction.RESUMED,
+            )
 
             "missing_scheduling_permission" -> {
                 val permission = content.requiredString("permission")
@@ -144,6 +176,27 @@ class AiAlarmCreator(
                     )
                 AiCreateResult.ScheduleFailed(alarm, reason)
             }
+
+            "scheduler_failed" -> {
+                val reason = content.requiredString("reason")
+                    ?: return AiCreateResult.InvalidResponse(
+                        "Agent tool result did not include a scheduler failure reason.",
+                    )
+                AiCreateResult.ScheduleFailed(alarm, reason)
+            }
+
+            "missing_alarm" -> AiCreateResult.InvalidResponse("Agent management result referenced a missing alarm.")
+            "invalid_state" -> {
+                val reason = content.requiredString("reason")
+                    ?: return AiCreateResult.InvalidResponse(
+                        "Agent management result did not include an invalid state reason.",
+                    )
+                AiCreateResult.InvalidResponse(reason)
+            }
+
+            "stale_or_mismatched_state" -> AiCreateResult.InvalidResponse(
+                "Alarm state changed before the management action could finish.",
+            )
 
             else -> AiCreateResult.InvalidResponse("Unsupported agent tool result status: $status")
         }

@@ -2,6 +2,7 @@ package com.cory.noter.ui.ai
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.cory.noter.ai.AiAlarmManagementAction
 import com.cory.noter.ai.AiAlarmCreator
 import com.cory.noter.ai.AiCreateBackgroundScheduler
 import com.cory.noter.ai.AiCreateResult
@@ -93,6 +94,7 @@ class AiCreateViewModel(
                 current.copy(
                     isLoading = false,
                     errorMessage = result.toErrorMessage(),
+                    statusMessage = result.toStatusMessage(),
                     exactAlarmPermissionRequired = result is AiCreateResult.MissingSchedulingPermission,
                     createdAlarmId = (result as? AiCreateResult.Created)?.alarm?.id,
                 )
@@ -117,6 +119,22 @@ class AiCreateViewModel(
             UiText.Resource(R.string.ai_create_missing_permission_error, listOf(permission))
 
         is AiCreateResult.ScheduleFailed -> UiText.Raw(reason)
+        is AiCreateResult.ManagementSucceeded -> null
         is AiCreateResult.Created -> null
+    }
+
+    private fun AiCreateResult.toStatusMessage(): UiText? = when (this) {
+        is AiCreateResult.ManagementSucceeded -> when (action) {
+            AiAlarmManagementAction.PAUSED_NEXT_OCCURRENCE ->
+                UiText.Resource(R.string.ai_create_management_paused_next_status, listOf(alarm.title))
+
+            AiAlarmManagementAction.PAUSED_INDEFINITELY ->
+                UiText.Resource(R.string.ai_create_management_paused_indefinitely_status, listOf(alarm.title))
+
+            AiAlarmManagementAction.RESUMED ->
+                UiText.Resource(R.string.ai_create_management_resumed_status, listOf(alarm.title))
+        }
+
+        else -> null
     }
 }

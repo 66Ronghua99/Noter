@@ -75,6 +75,7 @@ class AiCreateWorker(
 
         is AiCreateResult.MissingSchedulingPermission,
         is AiCreateResult.ScheduleFailed,
+        is AiCreateResult.ManagementSucceeded,
         is AiCreateResult.Created,
         -> Result.success()
     }

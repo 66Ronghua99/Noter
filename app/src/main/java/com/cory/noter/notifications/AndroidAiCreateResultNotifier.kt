@@ -16,6 +16,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.cory.noter.R
+import com.cory.noter.ai.AiAlarmManagementAction
 import com.cory.noter.ai.AiCreateResult
 import com.cory.noter.ai.AiCreateResultNotifier
 
@@ -73,6 +74,15 @@ class AndroidAiCreateResultNotifier(
                         context.getString(R.string.notification_ai_open_settings),
                         exactAlarmSettingsIntent(),
                     )
+                    .build(),
+            )
+
+            is AiCreateResult.ManagementSucceeded -> notify(
+                id = RESULT_NOTIFICATION_ID,
+                notification = builder
+                    .setContentTitle(context.getString(R.string.notification_ai_managed_title))
+                    .setContentText(result.managementText())
+                    .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                     .build(),
             )
 
@@ -156,9 +166,21 @@ class AndroidAiCreateResultNotifier(
         is AiCreateResult.ClarificationRequired -> reason
         is AiCreateResult.CreateFailed -> reason
         is AiCreateResult.ScheduleFailed -> reason
+        is AiCreateResult.ManagementSucceeded -> managementText()
         is AiCreateResult.MissingSchedulingPermission,
         is AiCreateResult.Created,
         -> context.getString(R.string.notification_ai_finished)
+    }
+
+    private fun AiCreateResult.ManagementSucceeded.managementText(): String = when (action) {
+        AiAlarmManagementAction.PAUSED_NEXT_OCCURRENCE ->
+            context.getString(R.string.notification_ai_paused_next, alarm.title)
+
+        AiAlarmManagementAction.PAUSED_INDEFINITELY ->
+            context.getString(R.string.notification_ai_paused_indefinitely, alarm.title)
+
+        AiAlarmManagementAction.RESUMED ->
+            context.getString(R.string.notification_ai_resumed, alarm.title)
     }
 
     private companion object {

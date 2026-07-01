@@ -9,9 +9,11 @@ import com.cory.noter.agent.AgentToolCall
 import com.cory.noter.ai.AiAlarmCreator
 import com.cory.noter.ai.AiAlarmPromptBuilder
 import com.cory.noter.ai.AsrModel
+import com.cory.noter.alarm.AlarmManagementUseCase
 import com.cory.noter.alarm.AlarmSchedulingUseCase
 import com.cory.noter.alarm.FakeAlarmScheduler
 import com.cory.noter.alarm.ScheduleResult
+import com.cory.noter.domain.alarm.NextTriggerCalculator
 import com.cory.noter.data.settings.FakeSettingsRepository
 import com.cory.noter.domain.settings.AppSettings
 import com.cory.noter.ui.FakeAlarmRepository
@@ -37,12 +39,14 @@ class AiCreateViewModelTest {
     @Test
     fun `missing api key becomes explicit settings error`() = runTest {
         val settingsRepository = FakeSettingsRepository()
+        val alarmRepository = FakeAlarmRepository(clock = clock, zoneId = zoneId)
         val viewModel = AiCreateViewModel(
             creator = AiAlarmCreator(
                 settingsRepository = settingsRepository,
                 agentLoopRunner = AgentLoopRunner(FakeAgentLlmGateway()),
-                alarmRepository = FakeAlarmRepository(clock = clock, zoneId = zoneId),
+                alarmRepository = alarmRepository,
                 schedulingUseCase = AlarmSchedulingUseCase(FakeAlarmScheduler()),
+                managementUseCase = managementUseCase(alarmRepository),
                 promptBuilder = AiAlarmPromptBuilder(),
                 clock = clock,
             ),
@@ -89,12 +93,14 @@ class AiCreateViewModelTest {
                 android.Manifest.permission.SCHEDULE_EXACT_ALARM,
             )
         }
+        val alarmRepository = FakeAlarmRepository(clock = clock, zoneId = zoneId)
         val viewModel = AiCreateViewModel(
             creator = AiAlarmCreator(
                 settingsRepository = settingsRepository,
                 agentLoopRunner = AgentLoopRunner(agentGateway),
-                alarmRepository = FakeAlarmRepository(clock = clock, zoneId = zoneId),
+                alarmRepository = alarmRepository,
                 schedulingUseCase = AlarmSchedulingUseCase(scheduler),
+                managementUseCase = managementUseCase(alarmRepository, scheduler),
                 promptBuilder = AiAlarmPromptBuilder(),
                 clock = clock,
             ),
@@ -119,12 +125,14 @@ class AiCreateViewModelTest {
     @Test
     fun `submit queues background creation when scheduler is available`() = runTest {
         val backgroundScheduler = RecordingBackgroundScheduler()
+        val alarmRepository = FakeAlarmRepository(clock = clock, zoneId = zoneId)
         val viewModel = AiCreateViewModel(
             creator = AiAlarmCreator(
                 settingsRepository = FakeSettingsRepository(),
                 agentLoopRunner = AgentLoopRunner(FakeAgentLlmGateway()),
-                alarmRepository = FakeAlarmRepository(clock = clock, zoneId = zoneId),
+                alarmRepository = alarmRepository,
                 schedulingUseCase = AlarmSchedulingUseCase(FakeAlarmScheduler()),
+                managementUseCase = managementUseCase(alarmRepository),
                 promptBuilder = AiAlarmPromptBuilder(),
                 clock = clock,
             ),
@@ -150,6 +158,17 @@ class AiCreateViewModelTest {
             prompts += prompt
         }
     }
+
+    private fun managementUseCase(
+        repository: FakeAlarmRepository,
+        scheduler: FakeAlarmScheduler = FakeAlarmScheduler(),
+    ) = AlarmManagementUseCase(
+        repository = repository,
+        schedulingUseCase = AlarmSchedulingUseCase(scheduler),
+        clock = clock,
+        nextTriggerCalculator = NextTriggerCalculator(),
+        zoneIdProvider = { zoneId },
+    )
 
     private fun validAlarmJson(): String = """
         {

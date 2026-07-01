@@ -3,8 +3,8 @@ package com.cory.noter.agent
 import kotlinx.serialization.json.JsonObject
 
 data class AgentLoopConfig(
-    val maxModelTurns: Int = 2,
-    val maxToolExecutions: Int = 1,
+    val maxModelTurns: Int = 3,
+    val maxToolExecutions: Int = 2,
 )
 
 enum class AgentMessageRole {

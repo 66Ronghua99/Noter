@@ -41,3 +41,14 @@
 - Added focused ViewModel coverage for dialog open/cancel, pause-next, pause-indefinitely, direct resume, and user-facing paused row state; updated Compose smoke coverage for the new dialog/status surface.
 - Fresh evidence: `artifacts/2026-07-02-alarm-management-pause-resume/round-3-testDebugUnitTest-assembleDebugAndroidTest.log` from `./gradlew testDebugUnitTest assembleDebugAndroidTest --rerun-tasks` with JDK 17 and local Android SDK.
 - Remaining mainline work: agent tools/prompt/result mapping and final Android gates.
+
+## 2026-07-02 Alarm Management Pause/Resume RLCR Round 4
+
+- Completed AC-7/AC-8 agent management: added `list_alarms`, `pause_alarm`, and `resume_alarm`, wired them into `AiAlarmCreator`, and kept all management mutations routed through `AlarmManagementUseCase`.
+- Extended prompt instructions so the model lists alarms before managing an unknown target and rejects ambiguous or missing alarm targets through `reject_unclear_request`.
+- Added `AiCreateResult.ManagementSucceeded` and updated foreground UI, background worker result handling, and notifications so pause/resume successes are user-visible management outcomes rather than created alarms or failures.
+- Increased the default agent loop limits to support list -> manage -> end_task while keeping the explicit one-tool-limit behavior covered by test.
+- Added focused tests for management tool schemas/results, list output fields, pause-next, pause-indefinite, resume, unknown mode rejection, missing alarm result, creator list/pause/resume flows, prompt instructions, create-alarm regression, and worker committed-outcome handling.
+- Fixed missing Chinese translations for new Round 3 and Round 4 strings so lint can pass.
+- Fresh evidence: `artifacts/2026-07-02-alarm-management-pause-resume/round-4-final-gates.log` from `./gradlew testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest --rerun-tasks` with JDK 17 and local Android SDK.
+- Remaining mainline work: no original acceptance criteria remain open; await Humanize review/finalization.

@@ -133,6 +133,10 @@ class AiCreateBackgroundSchedulerTest {
                 permission = "android.permission.SCHEDULE_EXACT_ALARM",
             ),
             AiCreateResult.Created(sampleAlarm(id = 13L)),
+            AiCreateResult.ManagementSucceeded(
+                alarm = sampleAlarm(id = 14L),
+                action = AiAlarmManagementAction.RESUMED,
+            ),
         )
 
         committedOutcomes.forEach { aiResult ->
