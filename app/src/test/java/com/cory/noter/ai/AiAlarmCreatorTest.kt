@@ -288,6 +288,35 @@ class AiAlarmCreatorTest {
     }
 
     @Test
+    fun `duplicate create tool calls commit only one alarm`() = runTest {
+        settingsRepository.set(validSettings())
+        fakeAgentGateway.results += AgentLlmResult.Message(
+            AgentMessage(
+                role = AgentMessageRole.ASSISTANT,
+                content = "",
+                toolCalls = listOf(
+                    AgentToolCall(
+                        id = "call-create-1",
+                        name = "create_alarm",
+                        arguments = validAlarmJson(),
+                    ),
+                    AgentToolCall(
+                        id = "call-create-2",
+                        name = "create_alarm",
+                        arguments = validAlarmJson(),
+                    ),
+                ),
+            ),
+        )
+
+        val result = creator.createFromText("tomorrow morning remind me to take medicine")
+
+        assertThat(result).isInstanceOf(AiCreateResult.Created::class.java)
+        assertThat(repository.alarms.first()).hasSize(1)
+        assertThat(fakeScheduler.scheduledAlarms).hasSize(1)
+    }
+
+    @Test
     fun `text ai creation starts with required any tool policy and all tools registered`() = runTest {
         settingsRepository.set(validSettings())
         fakeAgentGateway.results += AgentLlmResult.NetworkFailure("stop after first request")

@@ -118,6 +118,112 @@ class AgentLoopRunnerTest {
     }
 
     @Test
+    fun `runner allows read then one write within write tool limit`() = runTest {
+        val gateway = RecordingGateway(
+            AgentLlmResult.Message(
+                AgentMessage(
+                    role = AgentMessageRole.ASSISTANT,
+                    content = "",
+                    toolCalls = listOf(
+                        AgentToolCall("call-list", "list_alarms", "{}"),
+                        AgentToolCall("call-pause", "pause_alarm", "{}"),
+                    ),
+                ),
+            ),
+            AgentLlmResult.Message(
+                AgentMessage(
+                    role = AgentMessageRole.ASSISTANT,
+                    content = "",
+                    toolCalls = listOf(AgentToolCall("call-end", "end_task", "{}")),
+                ),
+            ),
+        )
+        val listTool = RecordingTool(
+            AgentToolSpec(
+                "list_alarms",
+                "List alarms.",
+                buildJsonObject { put("type", "object") },
+                risk = AgentToolRisk.READ,
+            ),
+            AgentToolExecution.Success(
+                AgentToolResult("call-list", "list_alarms", buildJsonObject { put("status", "listed_alarms") }, false),
+            ),
+        )
+        val pauseTool = RecordingTool(
+            AgentToolSpec(
+                "pause_alarm",
+                "Pause an alarm.",
+                buildJsonObject { put("type", "object") },
+                risk = AgentToolRisk.WRITE,
+            ),
+            AgentToolExecution.Success(
+                AgentToolResult("call-pause", "pause_alarm", buildJsonObject { put("status", "paused") }, true),
+            ),
+        )
+        val endTool = RecordingTool(
+            AgentToolSpec(
+                "end_task",
+                "End.",
+                buildJsonObject { put("type", "object") },
+                risk = AgentToolRisk.READ,
+                endsRun = true,
+            ),
+            AgentToolExecution.Success(
+                AgentToolResult("call-end", "end_task", buildJsonObject { put("status", "ended") }, false),
+            ),
+        )
+
+        val result = AgentLoopRunner(gateway).run(
+            basicRequest(
+                toolRegistry = AgentToolRegistry(listOf(listTool, pauseTool, endTool)),
+                toolChoice = AgentToolChoice.RequiredAnyTool,
+            ),
+        )
+
+        assertThat(result).isInstanceOf(AgentRunResult.Completed::class.java)
+        assertThat(listTool.calls.map { it.id }).containsExactly("call-list")
+        assertThat(pauseTool.calls.map { it.id }).containsExactly("call-pause")
+        assertThat(endTool.calls.map { it.id }).containsExactly("call-end")
+    }
+
+    @Test
+    fun `runner does not execute second write tool after write limit`() = runTest {
+        val gateway = RecordingGateway(
+            AgentLlmResult.Message(
+                AgentMessage(
+                    role = AgentMessageRole.ASSISTANT,
+                    content = "",
+                    toolCalls = listOf(
+                        AgentToolCall("call-create-1", "create_alarm", "{}"),
+                        AgentToolCall("call-create-2", "create_alarm", "{}"),
+                    ),
+                ),
+            ),
+        )
+        val tool = RecordingTool(
+            AgentToolSpec(
+                "create_alarm",
+                "Create an alarm.",
+                buildJsonObject { put("type", "object") },
+                risk = AgentToolRisk.WRITE,
+            ),
+            AgentToolExecution.Success(
+                AgentToolResult("call-create-1", "create_alarm", buildJsonObject { put("status", "created") }, true),
+            ),
+        )
+
+        val result = AgentLoopRunner(gateway).run(
+            basicRequest(toolRegistry = AgentToolRegistry(listOf(tool))),
+        )
+
+        assertThat(tool.calls.map { it.id }).containsExactly("call-create-1")
+        assertThat(result).isInstanceOf(AgentRunResult.CompletedWithFinalizationFailure::class.java)
+        val failed = result as AgentRunResult.CompletedWithFinalizationFailure
+        assertThat(failed.committedResults).hasSize(1)
+        assertThat(failed.failure).isEqualTo(AgentFailure.ToolLimitExceeded("Write tool execution limit exceeded."))
+    }
+
+    @Test
     fun `runner fails when requested tool is not registered`() = runTest {
         val gateway = RecordingGateway(
             AgentLlmResult.Message(

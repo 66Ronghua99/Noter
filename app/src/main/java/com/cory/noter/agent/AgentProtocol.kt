@@ -5,6 +5,7 @@ import kotlinx.serialization.json.JsonObject
 data class AgentLoopConfig(
     val maxModelTurns: Int = 3,
     val maxToolExecutions: Int = 2,
+    val maxWriteToolExecutions: Int = 1,
 )
 
 enum class AgentMessageRole {

@@ -89,3 +89,12 @@
 - Added creator regression tests for `列出闹钟` succeeding as `AiCreateResult.AlarmsListed` and `暂停闹钟` still failing safely when it only lists alarms.
 - Fresh evidence: `artifacts/2026-07-02-alarm-management-pause-resume/round-8-final-gates.log` from `./gradlew testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest --rerun-tasks` with JDK 17 and local Android SDK.
 - Remaining mainline work: await Humanize review/finalization; do not declare the full RLCR loop complete before the hook-managed review allows it.
+
+## 2026-07-02 Alarm Management Pause/Resume RLCR Round 9 Review Fixes
+
+- Fixed review-blocking duplicate-write exposure in `AgentLoopRunner`.
+- Added `maxWriteToolExecutions = 1` to `AgentLoopConfig`, counting WRITE/DESTRUCTIVE/BATCH non-ending tools separately from read-only tools.
+- Preserved list-then-manage by allowing `list_alarms` (READ) before one write tool and `end_task`.
+- Added runner regressions for read-then-write success and second-write rejection, plus an `AiAlarmCreator` regression proving duplicate `create_alarm` tool calls commit only one alarm.
+- Fresh evidence: `artifacts/2026-07-02-alarm-management-pause-resume/round-9-final-gates.log` from `./gradlew testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest --rerun-tasks` with JDK 17 and local Android SDK.
+- Remaining mainline work: await Humanize review/finalization; do not declare the full RLCR loop complete before the hook-managed review allows it.

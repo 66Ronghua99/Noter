@@ -10,6 +10,7 @@ class AgentLoopRunner(
     suspend fun run(request: AgentRunRequest): AgentRunResult {
         require(config.maxModelTurns > 0) { "maxModelTurns must be greater than zero" }
         require(config.maxToolExecutions >= 0) { "maxToolExecutions must not be negative" }
+        require(config.maxWriteToolExecutions >= 0) { "maxWriteToolExecutions must not be negative" }
 
         when (val toolChoice = request.toolChoice) {
             AgentToolChoice.RequiredAnyTool -> {
@@ -33,6 +34,7 @@ class AgentLoopRunner(
         val toolResults = mutableListOf<AgentToolResult>()
         var modelTurns = 0
         var toolExecutions = 0
+        var writeToolExecutions = 0
         var nextToolChoice: AgentToolChoice = request.toolChoice
 
         while (modelTurns < config.maxModelTurns) {
@@ -80,11 +82,20 @@ class AgentLoopRunner(
                 if (toolExecutions >= config.maxToolExecutions && !tool.spec.endsRun) {
                     return committedOrFailed(toolResults, AgentFailure.ToolLimitExceeded("Tool execution limit exceeded."))
                 }
+                if (tool.spec.countsAsWriteExecution() && writeToolExecutions >= config.maxWriteToolExecutions) {
+                    return committedOrFailed(
+                        toolResults,
+                        AgentFailure.ToolLimitExceeded("Write tool execution limit exceeded."),
+                    )
+                }
 
                 when (val execution = tool.execute(toolCall)) {
                     is AgentToolExecution.Success -> {
                         if (!tool.spec.endsRun) {
                             toolExecutions += 1
+                            if (tool.spec.countsAsWriteExecution()) {
+                                writeToolExecutions += 1
+                            }
                         }
                         toolResults += execution.result
                         messages += execution.result.toToolMessage()
@@ -129,4 +140,7 @@ class AgentLoopRunner(
         toolCallId = toolCallId,
         toolName = toolName,
     )
+
+    private fun AgentToolSpec.countsAsWriteExecution(): Boolean =
+        !endsRun && risk != AgentToolRisk.READ
 }
