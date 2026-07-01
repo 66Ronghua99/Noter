@@ -1,5 +1,6 @@
 package com.cory.noter.ai
 
+import android.Manifest
 import com.cory.noter.agent.AgentLoopConfig
 import com.cory.noter.agent.AgentFailure
 import com.cory.noter.agent.AgentLlmResult
@@ -484,6 +485,38 @@ class AiAlarmCreatorTest {
         assertThat(managed.action).isEqualTo(AiAlarmManagementAction.RESUMED)
         assertThat(managed.alarm.id).isEqualTo(alarm.id)
         assertThat(repository.get(alarm.id)!!.pauseMode).isEqualTo(AlarmPauseMode.NONE)
+    }
+
+    @Test
+    fun `resume missing scheduling permission survives finalization failure`() = runTest {
+        settingsRepository.set(validSettings())
+        val alarm = repository.create(activeDailyDraft())
+        creatorManagementUseCase().pauseIndefinitely(alarm.id)
+        fakeScheduler.nextScheduleResult = ScheduleResult.MissingPermission(Manifest.permission.SCHEDULE_EXACT_ALARM)
+        fakeAgentGateway.results += AgentLlmResult.Message(
+            AgentMessage(
+                role = AgentMessageRole.ASSISTANT,
+                content = "",
+                toolCalls = listOf(
+                    AgentToolCall(
+                        id = "call-resume",
+                        name = "resume_alarm",
+                        arguments = """{"alarmId":${alarm.id}}""",
+                    ),
+                ),
+            ),
+        )
+        fakeAgentGateway.results += AgentLlmResult.NetworkFailure("after resume")
+
+        val result = creator.createFromText("resume my medicine alarm")
+
+        assertThat(result).isInstanceOf(AiCreateResult.MissingSchedulingPermission::class.java)
+        val permissionResult = result as AiCreateResult.MissingSchedulingPermission
+        assertThat(permissionResult.permission).isEqualTo(Manifest.permission.SCHEDULE_EXACT_ALARM)
+        assertThat(permissionResult.alarm.id).isEqualTo(alarm.id)
+        val stored = repository.get(alarm.id)!!
+        assertThat(stored.pauseMode).isEqualTo(AlarmPauseMode.NONE)
+        assertThat(stored.enabled).isTrue()
     }
 
     @Test

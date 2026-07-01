@@ -13,6 +13,7 @@
 - Direct read-only `listed_alarms` results are locally complete once produced; if the required finalization turn fails afterward, preserve the list result for direct list requests while keeping list-before-management safeguards intact.
 - Completed AI alarm-agent runs should prefer committed write tool results over later read-only results when choosing the user-visible outcome.
 - Explicit resume paths that report missing exact-alarm permission through saved-style UI must persist the resumed state first; keep non-resume scheduling paths from silently mutating state on permission failure.
+- Persisted `resume_alarm` missing-permission tool results must be marked committed so finalization failures preserve the permission outcome; pause permission failures remain uncommitted unless state changed.
 - Generic alarm repository updates are an editor compatibility boundary: when a generic save enables an alarm, normalize pause state to `NONE`; when it disables an alarm, normalize to `INDEFINITE`. Use `updateFromManagement` for intentional pause-next anchor preservation.
 - Settings persistence belongs in `SettingsRepository` and `DataStoreSettingsRepository`; UI screens should not own persistence details directly.
 - Theme work should be centralized in the UI theme layer and consumed through Material3 theme tokens.

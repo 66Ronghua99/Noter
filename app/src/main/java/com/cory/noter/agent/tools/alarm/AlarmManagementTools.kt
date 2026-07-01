@@ -234,7 +234,8 @@ private fun AlarmManagementResult.toToolResult(
     requestedAlarmId: Long,
     successStatus: String,
 ): AgentToolResult {
-    val committed = this is AlarmManagementResult.Updated
+    val committed = this is AlarmManagementResult.Updated ||
+        (this is AlarmManagementResult.MissingSchedulingPermission && toolName == ResumeAlarmTool.Name)
     return AgentToolResult(
         toolCallId = toolCallId,
         toolName = toolName,

@@ -175,6 +175,36 @@ class AlarmManagementToolsTest {
     }
 
     @Test
+    fun `resume alarm missing scheduling permission commits persisted resume state`() = runTest {
+        val repository = FakeAlarmRepository(clock = clock, zoneId = zoneId)
+        val alarm = repository.create(activeDailyDraft())
+        val scheduler = FakeAlarmScheduler()
+        val managementUseCase = managementUseCase(repository, scheduler)
+        managementUseCase.pauseIndefinitely(alarm.id)
+        scheduler.nextScheduleResult = ScheduleResult.MissingPermission(Manifest.permission.SCHEDULE_EXACT_ALARM)
+        val tool = ResumeAlarmTool(managementUseCase)
+
+        val result = tool.execute(
+            AgentToolCall(
+                id = "call-resume",
+                name = "resume_alarm",
+                arguments = """{"alarmId":${alarm.id}}""",
+            ),
+        )
+
+        assertThat(result).isInstanceOf(AgentToolExecution.Success::class.java)
+        val success = result as AgentToolExecution.Success
+        assertThat(success.result.committed).isTrue()
+        assertThat(success.result.content["status"]!!.jsonPrimitive.content)
+            .isEqualTo("missing_scheduling_permission")
+        assertThat(success.result.content["permission"]!!.jsonPrimitive.content)
+            .isEqualTo(Manifest.permission.SCHEDULE_EXACT_ALARM)
+        val stored = repository.get(alarm.id)!!
+        assertThat(stored.pauseMode).isEqualTo(AlarmPauseMode.NONE)
+        assertThat(stored.enabled).isTrue()
+    }
+
+    @Test
     fun `management scheduler permission failure is explicit`() = runTest {
         val repository = FakeAlarmRepository(clock = clock, zoneId = zoneId)
         val alarm = repository.create(activeDailyDraft())

@@ -132,3 +132,11 @@
 - Added red/green regressions for committed pause followed by `list_alarms`, and for resume missing permission persisting the resumed state before surfacing the permission requirement.
 - Fresh evidence: `artifacts/2026-07-02-alarm-management-pause-resume/round-13-final-gates.log` from `./gradlew testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest --rerun-tasks` with JDK 17 and local Android SDK; `git diff --check` also passed.
 - Remaining mainline work: await Humanize review/finalization; do not declare the full RLCR loop complete before the hook-managed review allows it.
+
+## 2026-07-02 Alarm Management Pause/Resume RLCR Round 14 Review Fixes
+
+- Fixed review-blocking committed-result consistency for persisted `resume_alarm` missing exact-alarm permission results.
+- `AlarmManagementTools` now marks `MissingSchedulingPermission` committed only for `resume_alarm`, matching the Round 13 persisted resume state while preserving uncommitted pause permission failures.
+- Added red/green regressions proving `resume_alarm` missing permission commits the tool result, persists `pauseMode = NONE` and `enabled = true`, and survives a later finalization network failure as `AiCreateResult.MissingSchedulingPermission`.
+- Fresh evidence: `artifacts/2026-07-02-alarm-management-pause-resume/round-14-final-gates.log` from `./gradlew testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest --rerun-tasks` with JDK 17 and local Android SDK; `git diff --check` also passed.
+- Remaining mainline work: await Humanize review/finalization; do not declare the full RLCR loop complete before the hook-managed review allows it.
