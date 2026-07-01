@@ -35,6 +35,10 @@ import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -81,6 +85,10 @@ import java.util.Locale
 import kotlin.math.abs
 import kotlinx.coroutines.launch
 
+object AlarmEditorTestTags {
+    const val SettingsAction = "AlarmEditorSettingsAction"
+}
+
 @Composable
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 fun AlarmEditorScreen(
@@ -97,6 +105,7 @@ fun AlarmEditorScreen(
     onPickRingtone: () -> Unit,
     onEnabledChanged: (Boolean) -> Unit,
     onOpenExactAlarmSettings: () -> Unit,
+    onOpenSettings: () -> Unit,
     onSave: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
@@ -123,14 +132,21 @@ fun AlarmEditorScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = stringResource(
-                            if (state.isExisting) {
-                                R.string.editor_title_edit
-                            } else {
-                                R.string.editor_title_new
-                            },
-                        ),
+                        text = stringResource(R.string.app_name),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold,
                     )
+                },
+                actions = {
+                    IconButton(
+                        modifier = Modifier.testTag(AlarmEditorTestTags.SettingsAction),
+                        onClick = onOpenSettings,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = stringResource(R.string.settings_title),
+                        )
+                    }
                 },
             )
         },

@@ -128,11 +128,12 @@ private fun NoterRoot(
                 onOpenSettings = onOpenSettings,
             )
         },
-        alarmEditorScreen = { alarmId, onDone ->
+        alarmEditorScreen = { alarmId, onDone, onOpenSettings ->
             AlarmEditorRoute(
                 appContainer = appContainer,
                 alarmId = alarmId,
                 onOpenExactAlarmSettings = onOpenExactAlarmSettings,
+                onOpenSettings = onOpenSettings,
                 onDone = onDone,
             )
         },
@@ -338,6 +339,7 @@ private fun AlarmEditorRoute(
     appContainer: AppContainer,
     alarmId: Long?,
     onOpenExactAlarmSettings: () -> Unit,
+    onOpenSettings: () -> Unit,
     onDone: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -389,6 +391,7 @@ private fun AlarmEditorRoute(
         },
         onEnabledChanged = viewModel::onEnabledChanged,
         onOpenExactAlarmSettings = onOpenExactAlarmSettings,
+        onOpenSettings = onOpenSettings,
         onSave = viewModel::save,
         onDelete = viewModel::delete,
     )
@@ -470,7 +473,7 @@ private fun SettingsRoute(
                 state = state,
                 onThemePresetSelected = viewModel::onThemePresetSelected,
                 onCustomThemeSeedColorChanged = viewModel::onCustomThemeSeedColorChanged,
-                onSaveCustomThemeSeedColor = viewModel::saveCustomThemeSeedColor,
+                onCustomThemeSeedColorCommitted = viewModel::saveCustomThemeSeedColor,
                 onBack = onBack,
             )
         }

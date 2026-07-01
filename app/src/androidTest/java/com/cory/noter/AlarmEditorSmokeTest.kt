@@ -18,6 +18,7 @@ import com.cory.noter.domain.alarm.Alarm
 import com.cory.noter.domain.alarm.AlarmSource
 import com.cory.noter.domain.alarm.RepeatRule
 import com.cory.noter.ui.editor.AlarmEditorScreen
+import com.cory.noter.ui.editor.AlarmEditorTestTags
 import com.cory.noter.ui.editor.AlarmEditorViewModel
 import java.time.Clock
 import java.time.Instant
@@ -25,6 +26,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 
@@ -40,6 +42,7 @@ class AlarmEditorSmokeTest {
         val repository = AndroidTestAlarmRepository(clock = clock, zoneId = zoneId)
         val settingsRepository = AndroidTestSettingsRepository()
         val scheduler = AndroidTestAlarmScheduler()
+        var openedSettings = 0
         val viewModel = AlarmEditorViewModel(
             alarmId = null,
             repository = repository,
@@ -66,12 +69,18 @@ class AlarmEditorSmokeTest {
                     onPickRingtone = {},
                     onEnabledChanged = viewModel::onEnabledChanged,
                     onOpenExactAlarmSettings = {},
+                    onOpenSettings = { openedSettings += 1 },
                     onSave = viewModel::save,
                     onDelete = viewModel::delete,
                 )
             }
         }
 
+        composeRule.onNodeWithText("Noter").assertIsDisplayed()
+        composeRule.onNodeWithTag(AlarmEditorTestTags.SettingsAction)
+            .assertIsDisplayed()
+            .performClick()
+        assertEquals(1, openedSettings)
         composeRule.onNodeWithText("Title").performTextInput("Morning run")
         composeRule.onAllNodesWithText("Hour").assertCountEquals(0)
         composeRule.onAllNodesWithText("Minute").assertCountEquals(0)
@@ -145,6 +154,7 @@ class AlarmEditorSmokeTest {
                     onPickRingtone = {},
                     onEnabledChanged = viewModel::onEnabledChanged,
                     onOpenExactAlarmSettings = {},
+                    onOpenSettings = {},
                     onSave = viewModel::save,
                     onDelete = viewModel::delete,
                 )
@@ -192,6 +202,7 @@ class AlarmEditorSmokeTest {
                     onPickRingtone = {},
                     onEnabledChanged = viewModel::onEnabledChanged,
                     onOpenExactAlarmSettings = {},
+                    onOpenSettings = {},
                     onSave = viewModel::save,
                     onDelete = viewModel::delete,
                 )

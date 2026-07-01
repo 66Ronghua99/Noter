@@ -62,6 +62,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
@@ -88,7 +89,6 @@ object SettingsTestTags {
     const val ApiKeyInput = "SettingsApiKeyInput"
     const val SaveApiKeyAction = "SettingsSaveApiKeyAction"
     const val CustomThemeSeedInput = "SettingsCustomThemeSeedInput"
-    const val CustomThemeSeedSaveAction = "SettingsCustomThemeSeedSaveAction"
     const val DefaultRingtoneAction = "SettingsDefaultRingtoneAction"
 
     fun ThemePresetAction(presetId: String): String = "SettingsThemePresetAction:$presetId"
@@ -151,7 +151,7 @@ fun AppearanceSettingsScreen(
     state: SettingsUiState,
     onThemePresetSelected: (String) -> Unit,
     onCustomThemeSeedColorChanged: (String) -> Unit,
-    onSaveCustomThemeSeedColor: () -> Unit,
+    onCustomThemeSeedColorCommitted: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -179,27 +179,11 @@ fun AppearanceSettingsScreen(
             CustomColorRow(
                 seedColor = state.customThemeSeedColorInput,
                 onSeedColorChanged = onCustomThemeSeedColorChanged,
+                onSeedColorCommitted = onCustomThemeSeedColorCommitted,
             )
 
             SectionLabel(text = stringResource(R.string.settings_theme_preview))
             ThemePreviewCard(state = state)
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                TextButton(onClick = onBack) {
-                    Text(text = stringResource(R.string.common_cancel))
-                }
-                Button(
-                    modifier = Modifier.testTag(SettingsTestTags.CustomThemeSeedSaveAction),
-                    onClick = onSaveCustomThemeSeedColor,
-                    enabled = AppSettings.normalizeThemeSeedColorInput(state.customThemeSeedColorInput) != null,
-                ) {
-                    Text(text = stringResource(R.string.common_save))
-                }
-            }
 
             SettingsError(state.errorMessage)
         }
@@ -675,11 +659,13 @@ private fun PresetGrid(
 private fun CustomColorRow(
     seedColor: String,
     onSeedColorChanged: (String) -> Unit,
+    onSeedColorCommitted: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val parsedColor = remember(seedColor) {
         parsePreviewColor(seedColor)
     }
+    var wasFocused by remember { mutableStateOf(false) }
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -715,6 +701,12 @@ private fun CustomColorRow(
                 onValueChange = onSeedColorChanged,
                 modifier = Modifier
                     .weight(1f)
+                    .onFocusChanged { focusState ->
+                        if (wasFocused && !focusState.isFocused) {
+                            onSeedColorCommitted()
+                        }
+                        wasFocused = focusState.isFocused
+                    }
                     .testTag(SettingsTestTags.CustomThemeSeedInput),
                 label = { Text(text = stringResource(R.string.settings_custom_theme_seed_label)) },
                 singleLine = true,

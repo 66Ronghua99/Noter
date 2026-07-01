@@ -42,7 +42,11 @@ fun NoterApp(
         onEditAlarm: (Long) -> Unit,
         onOpenSettings: () -> Unit,
     ) -> Unit,
-    alarmEditorScreen: @Composable (alarmId: Long?, onDone: () -> Unit) -> Unit,
+    alarmEditorScreen: @Composable (
+        alarmId: Long?,
+        onDone: () -> Unit,
+        onOpenSettings: () -> Unit,
+    ) -> Unit,
     settingsScreen: @Composable (
         onOpenAppearance: () -> Unit,
         onOpenAiVoice: () -> Unit,
@@ -97,6 +101,7 @@ fun NoterApp(
             alarmEditorScreen(
                 null,
                 { navController.popBackStack() },
+                { navController.navigate(Routes.SETTINGS) },
             )
         }
         composable(
@@ -108,6 +113,7 @@ fun NoterApp(
             alarmEditorScreen(
                 backStackEntry.arguments?.getLong(Routes.ALARM_ID_ARG),
                 { navController.popBackStack() },
+                { navController.navigate(Routes.SETTINGS) },
             )
         }
         navigation(

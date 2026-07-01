@@ -566,7 +566,7 @@ class VoiceHomeSmokeTest {
                     modifier = Modifier.testTag(AppRouteTestTags.AlarmList),
                 )
             },
-            alarmEditorScreen = { _, _ ->
+            alarmEditorScreen = { _, _, _ ->
                 Box(modifier = Modifier.testTag(AppRouteTestTags.Editor))
             },
             settingsScreen = { _, _, _, _, _, _ ->

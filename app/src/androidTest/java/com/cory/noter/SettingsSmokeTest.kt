@@ -13,6 +13,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import androidx.test.espresso.Espresso.pressBack
 import com.cory.noter.agent.AgentLoopRunner
 import com.cory.noter.ai.AiAlarmCreator
 import com.cory.noter.ai.AiAlarmPromptBuilder
@@ -80,7 +81,7 @@ class SettingsSmokeTest {
                     state = state,
                     onThemePresetSelected = {},
                     onCustomThemeSeedColorChanged = {},
-                    onSaveCustomThemeSeedColor = {},
+                    onCustomThemeSeedColorCommitted = {},
                     onBack = {},
                 )
             }
@@ -92,7 +93,6 @@ class SettingsSmokeTest {
         composeRule.onNodeWithTag(SettingsTestTags.ThemePresetAction("soft_rose")).assertIsDisplayed()
         composeRule.onNodeWithTag(SettingsTestTags.ThemePresetAction("neutral_gray")).assertIsDisplayed()
         composeRule.onNodeWithTag(SettingsTestTags.CustomThemeSeedInput).assertIsDisplayed()
-        composeRule.onNodeWithTag(SettingsTestTags.CustomThemeSeedSaveAction).assertIsDisplayed()
     }
 
     @Test
@@ -209,14 +209,14 @@ class SettingsSmokeTest {
                     state = state,
                     onThemePresetSelected = viewModel::onThemePresetSelected,
                     onCustomThemeSeedColorChanged = viewModel::onCustomThemeSeedColorChanged,
-                    onSaveCustomThemeSeedColor = viewModel::saveCustomThemeSeedColor,
+                    onCustomThemeSeedColorCommitted = viewModel::saveCustomThemeSeedColor,
                     onBack = {},
                 )
             }
         }
 
         composeRule.onNodeWithTag(SettingsTestTags.CustomThemeSeedInput).performTextInput("4A6EA9")
-        composeRule.onNodeWithTag(SettingsTestTags.CustomThemeSeedSaveAction).performClick()
+        pressBack()
         composeRule.waitForIdle()
 
         val settings = runBlocking { repository.settings.first() }
@@ -269,7 +269,7 @@ class SettingsSmokeTest {
                 NoterApp(
                     unifiedAiCreateScreen = { _, _, _ -> Box(Modifier.testTag("ai-create")) },
                     alarmListScreen = { _, _, _, _ -> Box(Modifier.testTag("alarms")) },
-                    alarmEditorScreen = { _, _ -> Box(Modifier.testTag("editor")) },
+                    alarmEditorScreen = { _, _, _ -> Box(Modifier.testTag("editor")) },
                     settingsScreen = { onOpenAppearance, onOpenAiVoice, onOpenSound, onOpenPermissions, _, _ ->
                         SettingsScreen(
                             state = SettingsViewModelPreviewStates.default,

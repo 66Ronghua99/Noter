@@ -13,9 +13,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -42,6 +44,7 @@ import java.time.format.TextStyle
 import java.util.Locale
 
 object AlarmListTestTags {
+    const val SettingsAction = "AlarmListSettingsAction"
     const val CreateTabAction = "AlarmListCreateTabAction"
     const val ListTabAction = "AlarmListListTabAction"
 }
@@ -62,10 +65,22 @@ fun AlarmListScreen(
         modifier = modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text(text = stringResource(R.string.alarm_list_title)) },
+                title = {
+                    Text(
+                        text = stringResource(R.string.app_name),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                },
                 actions = {
-                    TextButton(onClick = onOpenSettings) {
-                        Text(text = stringResource(R.string.settings_title))
+                    IconButton(
+                        modifier = Modifier.testTag(AlarmListTestTags.SettingsAction),
+                        onClick = onOpenSettings,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = stringResource(R.string.settings_title),
+                        )
                     }
                 },
             )
