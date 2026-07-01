@@ -537,8 +537,9 @@ class AiAlarmCreatorTest {
     @Test
     fun `agent can list paused alarms without treating query as management`() = runTest {
         settingsRepository.set(validSettings())
-        val alarm = repository.create(activeDailyDraft())
-        creatorManagementUseCase().pauseIndefinitely(alarm.id)
+        val activeAlarm = repository.create(activeDailyDraft())
+        val pausedAlarm = repository.create(activeDailyDraft())
+        creatorManagementUseCase().pauseIndefinitely(pausedAlarm.id)
         fakeAgentGateway.results += AgentLlmResult.Message(
             AgentMessage(
                 role = AgentMessageRole.ASSISTANT,
@@ -570,13 +571,16 @@ class AiAlarmCreatorTest {
 
         assertThat(result).isInstanceOf(AiCreateResult.AlarmsListed::class.java)
         val listed = result as AiCreateResult.AlarmsListed
+        assertThat(listed.alarms.map { it.id }).containsExactly(pausedAlarm.id)
+        assertThat(listed.alarms.map { it.id }).doesNotContain(activeAlarm.id)
         assertThat(listed.alarms.single().pauseState).isEqualTo("indefinite")
     }
 
     @Test
     fun `agent can list disabled alarms without treating query as management`() = runTest {
         settingsRepository.set(validSettings())
-        repository.create(activeDailyDraft(enabled = false))
+        val activeAlarm = repository.create(activeDailyDraft())
+        val disabledAlarm = repository.create(activeDailyDraft(enabled = false))
         fakeAgentGateway.results += AgentLlmResult.Message(
             AgentMessage(
                 role = AgentMessageRole.ASSISTANT,
@@ -608,6 +612,8 @@ class AiAlarmCreatorTest {
 
         assertThat(result).isInstanceOf(AiCreateResult.AlarmsListed::class.java)
         val listed = result as AiCreateResult.AlarmsListed
+        assertThat(listed.alarms.map { it.id }).containsExactly(disabledAlarm.id)
+        assertThat(listed.alarms.map { it.id }).doesNotContain(activeAlarm.id)
         assertThat(listed.alarms.single().pauseState).isEqualTo("indefinite")
     }
 
@@ -652,8 +658,9 @@ class AiAlarmCreatorTest {
     @Test
     fun `agent can list paused alarms from Chinese filter request`() = runTest {
         settingsRepository.set(validSettings())
-        val alarm = repository.create(activeDailyDraft())
-        creatorManagementUseCase().pauseIndefinitely(alarm.id)
+        val activeAlarm = repository.create(activeDailyDraft())
+        val pausedAlarm = repository.create(activeDailyDraft())
+        creatorManagementUseCase().pauseIndefinitely(pausedAlarm.id)
         fakeAgentGateway.results += AgentLlmResult.Message(
             AgentMessage(
                 role = AgentMessageRole.ASSISTANT,
@@ -685,7 +692,8 @@ class AiAlarmCreatorTest {
 
         assertThat(result).isInstanceOf(AiCreateResult.AlarmsListed::class.java)
         val listed = result as AiCreateResult.AlarmsListed
-        assertThat(listed.alarms.single().id).isEqualTo(alarm.id)
+        assertThat(listed.alarms.map { it.id }).containsExactly(pausedAlarm.id)
+        assertThat(listed.alarms.map { it.id }).doesNotContain(activeAlarm.id)
         assertThat(listed.alarms.single().pauseState).isEqualTo("indefinite")
     }
 

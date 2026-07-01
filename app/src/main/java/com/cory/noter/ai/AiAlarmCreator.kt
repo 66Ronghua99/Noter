@@ -120,14 +120,14 @@ class AiAlarmCreator(
             ),
         )
 
-        return result.toAiCreateResult(allowListOnlySuccess = userRequest.isDirectAlarmListRequest())
+        return result.toAiCreateResult(listFilter = userRequest.directAlarmListFilterOrNull())
     }
 
-    private suspend fun AgentRunResult.toAiCreateResult(allowListOnlySuccess: Boolean): AiCreateResult = when (this) {
-        is AgentRunResult.Completed -> toolResults.lastBusinessResultOrNull()?.toAiCreateResult(allowListOnlySuccess)
+    private suspend fun AgentRunResult.toAiCreateResult(listFilter: AlarmListFilter?): AiCreateResult = when (this) {
+        is AgentRunResult.Completed -> toolResults.lastBusinessResultOrNull()?.toAiCreateResult(listFilter)
             ?: AiCreateResult.InvalidResponse("Agent completed without a tool result.")
 
-        is AgentRunResult.CompletedWithFinalizationFailure -> committedResults.last().toAiCreateResult(allowListOnlySuccess)
+        is AgentRunResult.CompletedWithFinalizationFailure -> committedResults.last().toAiCreateResult(listFilter)
 
         is AgentRunResult.FailedAfterToolResults -> toolResults.asReversed()
             .firstNotNullOfOrNull { it.toClarificationRequiredOrNull() }
@@ -139,7 +139,7 @@ class AiAlarmCreator(
     private fun List<AgentToolResult>.lastBusinessResultOrNull(): AgentToolResult? =
         asReversed().firstOrNull { it.toolName != EndTaskTool.Name }
 
-    private suspend fun AgentToolResult.toAiCreateResult(allowListOnlySuccess: Boolean): AiCreateResult {
+    private suspend fun AgentToolResult.toAiCreateResult(listFilter: AlarmListFilter?): AiCreateResult {
         val status = content.requiredString("status")
             ?: return AiCreateResult.InvalidResponse("Agent tool result did not include a valid status.")
 
@@ -153,12 +153,12 @@ class AiAlarmCreator(
         }
 
         if (status == "listed_alarms") {
-            if (!allowListOnlySuccess) {
+            if (listFilter == null) {
                 return AiCreateResult.ClarificationRequired(
                     "I found matching alarms, but I need to know which one to manage.",
                 )
             }
-            return content.toAlarmsListedResult()
+            return content.toAlarmsListedResult(listFilter)
         }
 
         val alarmId = content.requiredLong("alarmId")
@@ -224,7 +224,7 @@ class AiAlarmCreator(
         }
     }
 
-    private fun Map<String, JsonElement>.toAlarmsListedResult(): AiCreateResult {
+    private fun Map<String, JsonElement>.toAlarmsListedResult(listFilter: AlarmListFilter): AiCreateResult {
         val alarmsElement = get("alarms") as? JsonArray
             ?: return AiCreateResult.InvalidResponse("Agent list result did not include alarms.")
         val alarms = alarmsElement.mapIndexed { index, element ->
@@ -249,7 +249,7 @@ class AiAlarmCreator(
                 nextTriggerAtMillis = alarmObject.optionalLong("nextTriggerAtMillis"),
                 pauseState = pauseState,
             )
-        }
+        }.filter { alarm -> listFilter.includes(alarm) }
         return AiCreateResult.AlarmsListed(alarms)
     }
 
@@ -295,7 +295,7 @@ class AiAlarmCreator(
         return (element as? JsonPrimitive)?.longOrNull
     }
 
-    private fun String.isDirectAlarmListRequest(): Boolean {
+    private fun String.directAlarmListFilterOrNull(): AlarmListFilter? {
         val normalized = lowercase()
         val mentionsAlarm = listOf("alarm", "alarms", "闹钟").any { it in normalized }
         val asksToList = listOf("list", "show", "display", "what", "which")
@@ -318,9 +318,28 @@ class AiAlarmCreator(
         ).any { it in normalized }
         val asksToManage = asksToManageInEnglish ||
             (hasCjkPauseOrDisableTerm && !(asksToList && hasCjkReadOnlyPauseOrDisableFilter))
-        return mentionsAlarm && asksToList && !asksToManage
+        if (!mentionsAlarm || !asksToList || asksToManage) {
+            return null
+        }
+        val hasEnglishPausedOrDisabledFilter = listOf("paused", "disabled")
+            .any { normalized.containsWordOrPhrase(it) }
+        return if (hasEnglishPausedOrDisabledFilter || hasCjkReadOnlyPauseOrDisableFilter) {
+            AlarmListFilter.PAUSED_OR_DISABLED
+        } else {
+            AlarmListFilter.ALL
+        }
     }
 
     private fun String.containsWordOrPhrase(term: String): Boolean =
         Regex("""\b${Regex.escape(term)}\b""").containsMatchIn(this)
+
+    private enum class AlarmListFilter {
+        ALL,
+        PAUSED_OR_DISABLED,
+    }
+
+    private fun AlarmListFilter.includes(alarm: AiListedAlarm): Boolean = when (this) {
+        AlarmListFilter.ALL -> true
+        AlarmListFilter.PAUSED_OR_DISABLED -> alarm.pauseState != "none"
+    }
 }
