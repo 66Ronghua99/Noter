@@ -123,3 +123,12 @@
 - Added a red/green regression for `list my alarms` where `list_alarms` succeeds and the follow-up turn returns `NetworkFailure("after list")`.
 - Fresh evidence: `artifacts/2026-07-02-alarm-management-pause-resume/round-12-final-gates.log` from `./gradlew testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest --rerun-tasks` with JDK 17 and local Android SDK; `git diff --check` also passed.
 - Remaining mainline work: await Humanize review/finalization; do not declare the full RLCR loop complete before the hook-managed review allows it.
+
+## 2026-07-02 Alarm Management Pause/Resume RLCR Round 13 Review Fixes
+
+- Fixed review-blocking AI result selection after committed writes: completed agent runs now prefer the latest committed non-ending tool result over later read-only results, so a committed pause/resume is still reported as management success even if the model lists alarms before `end_task`.
+- Fixed review-blocking resume permission truthfulness: explicit resume paths now persist the resumed alarm state before returning the existing missing-exact-alarm-permission result, so saved-style manual/AI permission handling reflects stored state.
+- Kept paused-next checkpoint consumption conservative by not persisting on missing scheduling permission for non-resume schedule paths.
+- Added red/green regressions for committed pause followed by `list_alarms`, and for resume missing permission persisting the resumed state before surfacing the permission requirement.
+- Fresh evidence: `artifacts/2026-07-02-alarm-management-pause-resume/round-13-final-gates.log` from `./gradlew testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest --rerun-tasks` with JDK 17 and local Android SDK; `git diff --check` also passed.
+- Remaining mainline work: await Humanize review/finalization; do not declare the full RLCR loop complete before the hook-managed review allows it.

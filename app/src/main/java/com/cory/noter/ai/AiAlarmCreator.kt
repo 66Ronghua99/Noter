@@ -124,7 +124,9 @@ class AiAlarmCreator(
     }
 
     private suspend fun AgentRunResult.toAiCreateResult(listFilter: AlarmListFilter?): AiCreateResult = when (this) {
-        is AgentRunResult.Completed -> toolResults.lastBusinessResultOrNull()?.toAiCreateResult(listFilter)
+        is AgentRunResult.Completed -> toolResults.lastCommittedBusinessResultOrNull()
+            ?.toAiCreateResult(listFilter)
+            ?: toolResults.lastBusinessResultOrNull()?.toAiCreateResult(listFilter)
             ?: AiCreateResult.InvalidResponse("Agent completed without a tool result.")
 
         is AgentRunResult.CompletedWithFinalizationFailure -> committedResults.last().toAiCreateResult(listFilter)
@@ -139,6 +141,9 @@ class AiAlarmCreator(
 
     private fun List<AgentToolResult>.lastBusinessResultOrNull(): AgentToolResult? =
         asReversed().firstOrNull { it.toolName != EndTaskTool.Name }
+
+    private fun List<AgentToolResult>.lastCommittedBusinessResultOrNull(): AgentToolResult? =
+        asReversed().firstOrNull { it.toolName != EndTaskTool.Name && it.committed }
 
     private fun List<AgentToolResult>.lastCompletedDirectListOrNull(listFilter: AlarmListFilter?): AgentToolResult? {
         if (listFilter == null) {

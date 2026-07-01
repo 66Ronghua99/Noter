@@ -139,7 +139,7 @@ class AlarmManagementUseCase(
             pausedOccurrenceAtMillis = null,
             nextTriggerAtMillis = currentTrigger,
         )
-        return scheduleThenPersist(updated)
+        return scheduleThenPersist(updated, persistOnMissingPermission = true)
     }
 
     private suspend fun resumeIndefinite(alarm: Alarm): AlarmManagementResult {
@@ -157,15 +157,21 @@ class AlarmManagementUseCase(
             pausedOccurrenceAtMillis = null,
             nextTriggerAtMillis = nextTriggerAtMillis,
         )
-        return scheduleThenPersist(updated)
+        return scheduleThenPersist(updated, persistOnMissingPermission = true)
     }
 
-    private suspend fun scheduleThenPersist(alarm: Alarm): AlarmManagementResult =
+    private suspend fun scheduleThenPersist(
+        alarm: Alarm,
+        persistOnMissingPermission: Boolean = false,
+    ): AlarmManagementResult =
         when (val scheduleResult = schedulingUseCase.syncSchedule(alarm)) {
             ScheduleResult.Scheduled -> AlarmManagementResult.Updated(repository.updateFromManagement(alarm))
-            is ScheduleResult.MissingPermission -> AlarmManagementResult.MissingSchedulingPermission(
-                scheduleResult.permission,
-            )
+            is ScheduleResult.MissingPermission -> {
+                if (persistOnMissingPermission) {
+                    repository.updateFromManagement(alarm)
+                }
+                AlarmManagementResult.MissingSchedulingPermission(scheduleResult.permission)
+            }
 
             is ScheduleResult.Failed -> AlarmManagementResult.SchedulerFailed(scheduleResult.reason)
             ScheduleResult.Cancelled -> AlarmManagementResult.SchedulerFailed(

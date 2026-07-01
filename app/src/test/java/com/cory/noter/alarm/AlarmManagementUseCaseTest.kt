@@ -206,7 +206,7 @@ class AlarmManagementUseCaseTest {
     }
 
     @Test
-    fun `schedule missing permission is surfaced without persisting resume`() = runTest {
+    fun `resume missing permission persists resumed state before surfacing permission`() = runTest {
         val alarm = repeatingAlarm(
             enabled = false,
             nextTriggerAtMillis = null,
@@ -220,7 +220,14 @@ class AlarmManagementUseCaseTest {
         assertThat(result).isEqualTo(
             AlarmManagementResult.MissingSchedulingPermission("android.permission.SCHEDULE_EXACT_ALARM"),
         )
-        assertThat(repository.managementUpdates).isEmpty()
+        val updated = repository.get(alarm.id)!!
+        assertThat(updated.enabled).isTrue()
+        assertThat(updated.pauseMode).isEqualTo(AlarmPauseMode.NONE)
+        assertThat(updated.pausedOccurrenceAtMillis).isNull()
+        assertThat(updated.nextTriggerAtMillis).isEqualTo(
+            ZonedDateTime.of(2026, 4, 24, 8, 0, 0, 0, zone).toInstant().toEpochMilli(),
+        )
+        assertThat(repository.managementUpdates).containsExactly(updated)
     }
 
     @Test

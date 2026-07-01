@@ -393,6 +393,59 @@ class AiAlarmCreatorTest {
     }
 
     @Test
+    fun `committed pause remains authoritative when followed by read before end task`() = runTest {
+        settingsRepository.set(validSettings())
+        val alarm = repository.create(activeDailyDraft())
+        fakeAgentGateway.results += AgentLlmResult.Message(
+            AgentMessage(
+                role = AgentMessageRole.ASSISTANT,
+                content = "",
+                toolCalls = listOf(
+                    AgentToolCall(
+                        id = "call-pause",
+                        name = "pause_alarm",
+                        arguments = """{"alarmId":${alarm.id},"mode":"indefinite"}""",
+                    ),
+                ),
+            ),
+        )
+        fakeAgentGateway.results += AgentLlmResult.Message(
+            AgentMessage(
+                role = AgentMessageRole.ASSISTANT,
+                content = "",
+                toolCalls = listOf(
+                    AgentToolCall(
+                        id = "call-list",
+                        name = "list_alarms",
+                        arguments = "{}",
+                    ),
+                ),
+            ),
+        )
+        fakeAgentGateway.results += AgentLlmResult.Message(
+            AgentMessage(
+                role = AgentMessageRole.ASSISTANT,
+                content = "",
+                toolCalls = listOf(
+                    AgentToolCall(
+                        id = "call-end",
+                        name = "end_task",
+                        arguments = """{"reason":"Alarm paused."}""",
+                    ),
+                ),
+            ),
+        )
+
+        val result = creator.createFromText("pause my medicine alarm")
+
+        assertThat(result).isInstanceOf(AiCreateResult.ManagementSucceeded::class.java)
+        val managed = result as AiCreateResult.ManagementSucceeded
+        assertThat(managed.action).isEqualTo(AiAlarmManagementAction.PAUSED_INDEFINITELY)
+        assertThat(managed.alarm.id).isEqualTo(alarm.id)
+        assertThat(repository.get(alarm.id)!!.pauseMode).isEqualTo(AlarmPauseMode.INDEFINITE)
+    }
+
+    @Test
     fun `agent can resume alarm and return management success`() = runTest {
         settingsRepository.set(validSettings())
         val alarm = repository.create(activeDailyDraft())
