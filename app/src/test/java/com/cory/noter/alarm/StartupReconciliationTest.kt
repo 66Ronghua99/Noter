@@ -7,6 +7,7 @@ import com.cory.noter.data.alarm.AlarmDraft
 import com.cory.noter.data.alarm.AlarmRepository
 import com.cory.noter.data.alarm.RoomAlarmRepository
 import com.cory.noter.domain.alarm.AlarmSource
+import com.cory.noter.domain.alarm.AlarmPauseMode
 import com.cory.noter.domain.alarm.NextTriggerCalculator
 import com.cory.noter.domain.alarm.RepeatRule
 import com.google.common.truth.Truth.assertThat
@@ -53,6 +54,13 @@ class StartupReconciliationTest {
         startupReconciliation = StartupReconciliation(
             repository = repository,
             schedulingUseCase = AlarmSchedulingUseCase(scheduler),
+            managementUseCase = AlarmManagementUseCase(
+                repository = repository,
+                schedulingUseCase = AlarmSchedulingUseCase(scheduler),
+                clock = clock,
+                nextTriggerCalculator = NextTriggerCalculator(),
+                zoneIdProvider = { zoneId },
+            ),
             clock = clock,
         )
     }
@@ -88,7 +96,7 @@ class StartupReconciliationTest {
     }
 
     @Test
-    fun `disabled alarm is skipped`() = runTest {
+    fun `disabled indefinite alarm is skipped`() = runTest {
         val alarm = repository.create(
             alarmDraft(
                 hour = 8,
@@ -102,7 +110,7 @@ class StartupReconciliationTest {
 
         assertThat(scheduler.scheduledIds).isEmpty()
         assertThat(results).isEqualTo(
-            listOf(StartupReconciliationResult.SkippedDisabled(alarm.id)),
+            listOf(StartupReconciliationResult.SkippedIndefinite(alarm.id)),
         )
     }
 
@@ -157,6 +165,124 @@ class StartupReconciliationTest {
                     scheduleResult = ScheduleResult.Scheduled,
                 ),
             ),
+        )
+    }
+
+    @Test
+    fun `future paused next checkpoint is scheduled as silent checkpoint`() = runTest {
+        val alarm = repository.create(
+            alarmDraft(
+                hour = 8,
+                minute = 0,
+                repeatRule = RepeatRule.Daily,
+                enabled = true,
+            ),
+        )
+        val paused = repository.updateFromManagement(
+            alarm.copy(
+                pauseMode = AlarmPauseMode.NEXT_OCCURRENCE,
+                pausedOccurrenceAtMillis = alarm.nextTriggerAtMillis,
+            ),
+        )
+
+        val results = startupReconciliation.reconcile()
+
+        assertThat(scheduler.scheduledAlarms[alarm.id]).isEqualTo(paused)
+        assertThat(results).isEqualTo(
+            listOf(
+                StartupReconciliationResult.Scheduled(
+                    alarmId = alarm.id,
+                    triggerAtMillis = paused.nextTriggerAtMillis!!,
+                    scheduleResult = ScheduleResult.Scheduled,
+                ),
+            ),
+        )
+    }
+
+    @Test
+    fun `stale paused next repeating alarm is consumed and advanced`() = runTest {
+        val alarm = repository.create(
+            alarmDraft(
+                hour = 8,
+                minute = 0,
+                repeatRule = RepeatRule.Daily,
+                enabled = true,
+            ),
+        )
+        val paused = repository.updateFromManagement(
+            alarm.copy(
+                pauseMode = AlarmPauseMode.NEXT_OCCURRENCE,
+                pausedOccurrenceAtMillis = alarm.nextTriggerAtMillis,
+            ),
+        )
+        clock.set(ZonedDateTime.of(2026, 4, 24, 8, 5, 0, 0, zoneId).toInstant())
+
+        val results = startupReconciliation.reconcile()
+        val stored = repository.get(alarm.id)!!
+
+        assertThat(stored.pauseMode).isEqualTo(AlarmPauseMode.NONE)
+        assertThat(stored.pausedOccurrenceAtMillis).isNull()
+        assertThat(stored.nextTriggerAtMillis).isGreaterThan(paused.nextTriggerAtMillis)
+        assertThat(scheduler.scheduledAlarms[alarm.id]?.nextTriggerAtMillis).isEqualTo(
+            stored.nextTriggerAtMillis,
+        )
+        assertThat(results).isEqualTo(
+            listOf(
+                StartupReconciliationResult.ConsumedPausedNext(
+                    alarmId = alarm.id,
+                    skippedTriggerAtMillis = paused.nextTriggerAtMillis!!,
+                    nextTriggerAtMillis = stored.nextTriggerAtMillis!!,
+                    scheduleResult = ScheduleResult.Scheduled,
+                ),
+            ),
+        )
+    }
+
+    @Test
+    fun `indefinite alarm is skipped without deletion`() = runTest {
+        val alarm = repository.create(
+            alarmDraft(
+                hour = 8,
+                minute = 0,
+                repeatRule = RepeatRule.Daily,
+                enabled = false,
+            ),
+        )
+
+        val results = startupReconciliation.reconcile()
+
+        assertThat(repository.get(alarm.id)).isNotNull()
+        assertThat(scheduler.scheduledAlarms).isEmpty()
+        assertThat(results).isEqualTo(
+            listOf(StartupReconciliationResult.SkippedIndefinite(alarm.id)),
+        )
+    }
+
+    @Test
+    fun `paused one time alarm is preserved instead of deleted`() = runTest {
+        val alarm = repository.create(
+            alarmDraft(
+                hour = 8,
+                minute = 0,
+                repeatRule = RepeatRule.Once(LocalDate.of(2026, 4, 24)),
+                enabled = true,
+            ),
+        )
+        val paused = repository.updateFromManagement(
+            alarm.copy(
+                enabled = false,
+                pauseMode = AlarmPauseMode.INDEFINITE,
+                nextTriggerAtMillis = null,
+                pausedOccurrenceAtMillis = null,
+            ),
+        )
+        clock.set(ZonedDateTime.of(2026, 4, 24, 8, 5, 0, 0, zoneId).toInstant())
+
+        val results = startupReconciliation.reconcile()
+
+        assertThat(repository.get(alarm.id)).isEqualTo(paused)
+        assertThat(results).isEqualTo(
+            listOf(StartupReconciliationResult.SkippedIndefinite(alarm.id)),
         )
     }
 

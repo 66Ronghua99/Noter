@@ -195,6 +195,7 @@ class AppContainer(
         StartupReconciliation(
             repository = alarmRepository,
             schedulingUseCase = alarmSchedulingUseCase,
+            managementUseCase = alarmManagementUseCase,
         )
     }
 

@@ -23,3 +23,12 @@
 - Added tests for the missing invalid paused-next invariant, repeating and one-time pause/resume transitions, scheduler failure/permission paths, due paused-next consumption, stale/mismatched consumption, and Room trigger-anchor preservation.
 - Fresh evidence: `artifacts/2026-07-02-alarm-management-pause-resume/round-1-testDebugUnitTest.log` from `./gradlew testDebugUnitTest --rerun-tasks` with JDK 17 and local Android SDK.
 - Remaining mainline work: receiver/reconciliation integration, alarm list UI, agent tools/prompt/result mapping, and final Android gates.
+
+## 2026-07-02 Alarm Management Pause/Resume RLCR Round 2
+
+- Completed Milestone 3 receiver/reconciliation integration.
+- `AlarmReceiver` now consumes matching paused-next checkpoints through `AlarmManagementUseCase.consumeDuePausedNext()` before starting `RingingService`; stale or mismatched paused-next deliveries are ignored without mutation, and normal active alarms still ring.
+- `StartupReconciliation` now handles pause modes explicitly: future paused-next checkpoints are scheduled, stale paused-next repeating alarms are consumed/advanced, indefinite alarms are skipped, and paused one-time records are preserved.
+- Preserved ringing Stop behavior by leaving `AlarmRingingCoordinator`/`RingingService` Stop flow unchanged and re-running the ringing coordinator/service policy tests.
+- Fresh evidence: `artifacts/2026-07-02-alarm-management-pause-resume/round-2-testDebugUnitTest.log` from `./gradlew testDebugUnitTest --rerun-tasks` with JDK 17 and local Android SDK.
+- Remaining mainline work: alarm list UI, agent tools/prompt/result mapping, and final Android gates.
