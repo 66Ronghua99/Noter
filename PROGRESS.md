@@ -115,3 +115,11 @@
 - Strengthened creator regressions for `show paused alarms`, `which alarms are disabled?`, and `显示暂停的闹钟` by seeding an extra active alarm and proving it is excluded from filtered results.
 - Fresh evidence: `artifacts/2026-07-02-alarm-management-pause-resume/round-11-final-gates.log` from `./gradlew testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest --rerun-tasks` with JDK 17 and local Android SDK; `git diff --check` also passed.
 - Remaining mainline work: await Humanize review/finalization; do not declare the full RLCR loop complete before the hook-managed review allows it.
+
+## 2026-07-02 Alarm Management Pause/Resume RLCR Round 12 Review Fixes
+
+- Fixed review-blocking direct-list finalization handling: if a direct list request already produced a valid `listed_alarms` result and the required follow-up model turn fails, `AiAlarmCreator` now returns the completed `AiCreateResult.AlarmsListed` instead of surfacing the later network/model failure.
+- Preserved existing precedence and safety: `reject_unclear_request` still wins when present, and pause/resume requests that only list alarms still cannot become successful list results because they have no direct-list filter.
+- Added a red/green regression for `list my alarms` where `list_alarms` succeeds and the follow-up turn returns `NetworkFailure("after list")`.
+- Fresh evidence: `artifacts/2026-07-02-alarm-management-pause-resume/round-12-final-gates.log` from `./gradlew testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest --rerun-tasks` with JDK 17 and local Android SDK; `git diff --check` also passed.
+- Remaining mainline work: await Humanize review/finalization; do not declare the full RLCR loop complete before the hook-managed review allows it.

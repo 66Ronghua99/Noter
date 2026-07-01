@@ -131,6 +131,7 @@ class AiAlarmCreator(
 
         is AgentRunResult.FailedAfterToolResults -> toolResults.asReversed()
             .firstNotNullOfOrNull { it.toClarificationRequiredOrNull() }
+            ?: toolResults.lastCompletedDirectListOrNull(listFilter)?.toAiCreateResult(listFilter)
             ?: failure.toAiCreateResult()
 
         is AgentRunResult.Failed -> failure.toAiCreateResult()
@@ -138,6 +139,15 @@ class AiAlarmCreator(
 
     private fun List<AgentToolResult>.lastBusinessResultOrNull(): AgentToolResult? =
         asReversed().firstOrNull { it.toolName != EndTaskTool.Name }
+
+    private fun List<AgentToolResult>.lastCompletedDirectListOrNull(listFilter: AlarmListFilter?): AgentToolResult? {
+        if (listFilter == null) {
+            return null
+        }
+        return lastBusinessResultOrNull()?.takeIf { result ->
+            result.content.requiredString("status") == "listed_alarms"
+        }
+    }
 
     private suspend fun AgentToolResult.toAiCreateResult(listFilter: AlarmListFilter?): AiCreateResult {
         val status = content.requiredString("status")

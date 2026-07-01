@@ -535,6 +535,32 @@ class AiAlarmCreatorTest {
     }
 
     @Test
+    fun `direct alarm list result survives finalization failure`() = runTest {
+        settingsRepository.set(validSettings())
+        val alarm = repository.create(activeDailyDraft())
+        fakeAgentGateway.results += AgentLlmResult.Message(
+            AgentMessage(
+                role = AgentMessageRole.ASSISTANT,
+                content = "",
+                toolCalls = listOf(
+                    AgentToolCall(
+                        id = "call-list",
+                        name = "list_alarms",
+                        arguments = "{}",
+                    ),
+                ),
+            ),
+        )
+        fakeAgentGateway.results += AgentLlmResult.NetworkFailure("after list")
+
+        val result = creator.createFromText("list my alarms")
+
+        assertThat(result).isInstanceOf(AiCreateResult.AlarmsListed::class.java)
+        val listed = result as AiCreateResult.AlarmsListed
+        assertThat(listed.alarms.map { it.id }).containsExactly(alarm.id)
+    }
+
+    @Test
     fun `agent can list paused alarms without treating query as management`() = runTest {
         settingsRepository.set(validSettings())
         val activeAlarm = repository.create(activeDailyDraft())

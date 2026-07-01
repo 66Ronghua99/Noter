@@ -10,6 +10,7 @@
 - Finite repeating paused-next consumption with no future trigger must clear the `NEXT_OCCURRENCE` checkpoint into a terminal disabled/`INDEFINITE` state through `updateFromManagement`, and startup reconciliation should report that as a consumed final checkpoint rather than a failure.
 - CJK read-only alarm list filters such as `显示暂停的闹钟` need adjective/state phrase handling so they do not get mistaken for actual pause/resume commands; keep `暂停闹钟` protected as management.
 - Direct alarm-agent list filters such as paused/disabled must affect the final user-visible `AlarmsListed` result; do not accept a filtered request as success while displaying the raw unfiltered `list_alarms` output.
+- Direct read-only `listed_alarms` results are locally complete once produced; if the required finalization turn fails afterward, preserve the list result for direct list requests while keeping list-before-management safeguards intact.
 - Generic alarm repository updates are an editor compatibility boundary: when a generic save enables an alarm, normalize pause state to `NONE`; when it disables an alarm, normalize to `INDEFINITE`. Use `updateFromManagement` for intentional pause-next anchor preservation.
 - Settings persistence belongs in `SettingsRepository` and `DataStoreSettingsRepository`; UI screens should not own persistence details directly.
 - Theme work should be centralized in the UI theme layer and consumed through Material3 theme tokens.
