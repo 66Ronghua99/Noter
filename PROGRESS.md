@@ -140,3 +140,12 @@
 - Added red/green regressions proving `resume_alarm` missing permission commits the tool result, persists `pauseMode = NONE` and `enabled = true`, and survives a later finalization network failure as `AiCreateResult.MissingSchedulingPermission`.
 - Fresh evidence: `artifacts/2026-07-02-alarm-management-pause-resume/round-14-final-gates.log` from `./gradlew testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest --rerun-tasks` with JDK 17 and local Android SDK; `git diff --check` also passed.
 - Remaining mainline work: await Humanize review/finalization; do not declare the full RLCR loop complete before the hook-managed review allows it.
+
+## 2026-07-02 Alarm Management Pause/Resume RLCR Round 15 Review Fixes
+
+- Fixed review-blocking stale paused-next resume behavior: if a `NEXT_OCCURRENCE` checkpoint is already past when the user or agent resumes it, `AlarmManagementUseCase` now recalculates from the current clock before scheduling instead of reusing the stale checkpoint.
+- Preserved pre-anchor paused-next resume behavior by keeping the original trigger when it is still in the future.
+- Fixed common direct-list phrasing so requests such as "do I have any alarms?" can surface `AiCreateResult.AlarmsListed` when the model calls `list_alarms`, while management requests that only list alarms remain clarification paths.
+- Added red/green regressions in `AlarmManagementUseCaseTest` and `AiAlarmCreatorTest`.
+- Fresh evidence: `artifacts/2026-07-02-alarm-management-pause-resume/round-15-final-gates.log` from `./gradlew testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest --rerun-tasks` with JDK 17 and local Android SDK; `git diff --check` also passed.
+- Remaining mainline work: await Humanize review/finalization; do not declare the full RLCR loop complete before the hook-managed review allows it.

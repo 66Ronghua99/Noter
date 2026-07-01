@@ -127,6 +127,30 @@ class AlarmManagementUseCaseTest {
     }
 
     @Test
+    fun `resume from stale paused next recalculates future trigger`() = runTest {
+        val anchor = ZonedDateTime.of(2026, 4, 24, 8, 0, 0, 0, zone).toInstant().toEpochMilli()
+        val alarm = repeatingAlarm(
+            nextTriggerAtMillis = anchor,
+            pauseMode = AlarmPauseMode.NEXT_OCCURRENCE,
+            pausedOccurrenceAtMillis = anchor,
+        )
+        repository.seed(alarm)
+        clock.set(ZonedDateTime.of(2026, 4, 26, 9, 0, 0, 0, zone).toInstant())
+
+        val result = useCase.resume(alarm.id)
+
+        val updated = (result as AlarmManagementResult.Updated).alarm
+        assertThat(updated.enabled).isTrue()
+        assertThat(updated.pauseMode).isEqualTo(AlarmPauseMode.NONE)
+        assertThat(updated.pausedOccurrenceAtMillis).isNull()
+        assertThat(updated.nextTriggerAtMillis).isEqualTo(
+            ZonedDateTime.of(2026, 4, 27, 8, 0, 0, 0, zone).toInstant().toEpochMilli(),
+        )
+        assertThat(scheduler.scheduledAlarms[alarm.id]).isEqualTo(updated)
+        assertThat(repository.managementUpdates).containsExactly(updated)
+    }
+
+    @Test
     fun `resume from indefinite recalculates future trigger and schedules`() = runTest {
         val alarm = repeatingAlarm(
             enabled = false,

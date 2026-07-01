@@ -315,6 +315,14 @@ class AiAlarmCreator(
         val mentionsAlarm = listOf("alarm", "alarms", "闹钟").any { it in normalized }
         val asksToList = listOf("list", "show", "display", "what", "which")
             .any { normalized.containsWordOrPhrase(it) } ||
+            listOf(
+                "do i have any",
+                "have any",
+                "any alarms",
+                "any alarm",
+                "my alarms",
+                "all alarms",
+            ).any { normalized.containsWordOrPhrase(it) } ||
             listOf("列出", "显示", "有哪些").any { it in normalized }
         val asksToManageInEnglish = listOf("pause", "resume", "stop", "disable", "enable", "turn off", "turn on")
             .any { normalized.containsWordOrPhrase(it) } ||

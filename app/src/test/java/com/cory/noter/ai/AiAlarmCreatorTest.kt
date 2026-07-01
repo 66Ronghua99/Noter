@@ -621,6 +621,44 @@ class AiAlarmCreatorTest {
     }
 
     @Test
+    fun `agent can answer common alarm existence question with list result`() = runTest {
+        settingsRepository.set(validSettings())
+        val alarm = repository.create(activeDailyDraft())
+        fakeAgentGateway.results += AgentLlmResult.Message(
+            AgentMessage(
+                role = AgentMessageRole.ASSISTANT,
+                content = "",
+                toolCalls = listOf(
+                    AgentToolCall(
+                        id = "call-list",
+                        name = "list_alarms",
+                        arguments = "{}",
+                    ),
+                ),
+            ),
+        )
+        fakeAgentGateway.results += AgentLlmResult.Message(
+            AgentMessage(
+                role = AgentMessageRole.ASSISTANT,
+                content = "",
+                toolCalls = listOf(
+                    AgentToolCall(
+                        id = "call-end",
+                        name = "end_task",
+                        arguments = """{"reason":"Alarms listed."}""",
+                    ),
+                ),
+            ),
+        )
+
+        val result = creator.createFromText("do I have any alarms?")
+
+        assertThat(result).isInstanceOf(AiCreateResult.AlarmsListed::class.java)
+        val listed = result as AiCreateResult.AlarmsListed
+        assertThat(listed.alarms.map { it.id }).containsExactly(alarm.id)
+    }
+
+    @Test
     fun `direct alarm list result survives finalization failure`() = runTest {
         settingsRepository.set(validSettings())
         val alarm = repository.create(activeDailyDraft())
