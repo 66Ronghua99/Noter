@@ -405,6 +405,60 @@ class AiAlarmCreatorTest {
     }
 
     @Test
+    fun `agent can list then resume alarm and return management success`() = runTest {
+        settingsRepository.set(validSettings())
+        val alarm = repository.create(activeDailyDraft())
+        creatorManagementUseCase().pauseIndefinitely(alarm.id)
+        fakeAgentGateway.results += AgentLlmResult.Message(
+            AgentMessage(
+                role = AgentMessageRole.ASSISTANT,
+                content = "",
+                toolCalls = listOf(
+                    AgentToolCall(
+                        id = "call-list",
+                        name = "list_alarms",
+                        arguments = "{}",
+                    ),
+                ),
+            ),
+        )
+        fakeAgentGateway.results += AgentLlmResult.Message(
+            AgentMessage(
+                role = AgentMessageRole.ASSISTANT,
+                content = "",
+                toolCalls = listOf(
+                    AgentToolCall(
+                        id = "call-resume",
+                        name = "resume_alarm",
+                        arguments = """{"alarmId":${alarm.id}}""",
+                    ),
+                ),
+            ),
+        )
+        fakeAgentGateway.results += AgentLlmResult.Message(
+            AgentMessage(
+                role = AgentMessageRole.ASSISTANT,
+                content = "",
+                toolCalls = listOf(
+                    AgentToolCall(
+                        id = "call-end",
+                        name = "end_task",
+                        arguments = """{"reason":"Alarm resumed."}""",
+                    ),
+                ),
+            ),
+        )
+
+        val result = creator.createFromText("resume my alarm")
+
+        assertThat(result).isInstanceOf(AiCreateResult.ManagementSucceeded::class.java)
+        val managed = result as AiCreateResult.ManagementSucceeded
+        assertThat(managed.action).isEqualTo(AiAlarmManagementAction.RESUMED)
+        assertThat(managed.alarm.id).isEqualTo(alarm.id)
+        assertThat(repository.get(alarm.id)!!.pauseMode).isEqualTo(AlarmPauseMode.NONE)
+    }
+
+    @Test
     fun `agent can list alarms and return user visible list result`() = runTest {
         settingsRepository.set(validSettings())
         val alarm = repository.create(activeDailyDraft())
@@ -449,6 +503,81 @@ class AiAlarmCreatorTest {
                 pauseState = "none",
             ),
         )
+    }
+
+    @Test
+    fun `pause request cannot complete successfully with only listed alarms`() = runTest {
+        settingsRepository.set(validSettings())
+        val alarm = repository.create(activeDailyDraft())
+        fakeAgentGateway.results += AgentLlmResult.Message(
+            AgentMessage(
+                role = AgentMessageRole.ASSISTANT,
+                content = "",
+                toolCalls = listOf(
+                    AgentToolCall(
+                        id = "call-list",
+                        name = "list_alarms",
+                        arguments = "{}",
+                    ),
+                ),
+            ),
+        )
+        fakeAgentGateway.results += AgentLlmResult.Message(
+            AgentMessage(
+                role = AgentMessageRole.ASSISTANT,
+                content = "",
+                toolCalls = listOf(
+                    AgentToolCall(
+                        id = "call-end",
+                        name = "end_task",
+                        arguments = """{"reason":"I found the alarm."}""",
+                    ),
+                ),
+            ),
+        )
+
+        val result = creator.createFromText("pause my medicine alarm")
+
+        assertThat(result).isInstanceOf(AiCreateResult.ClarificationRequired::class.java)
+        assertThat(repository.get(alarm.id)!!.pauseMode).isEqualTo(AlarmPauseMode.NONE)
+    }
+
+    @Test
+    fun `resume request cannot complete successfully with only listed alarms`() = runTest {
+        settingsRepository.set(validSettings())
+        val alarm = repository.create(activeDailyDraft())
+        creatorManagementUseCase().pauseIndefinitely(alarm.id)
+        fakeAgentGateway.results += AgentLlmResult.Message(
+            AgentMessage(
+                role = AgentMessageRole.ASSISTANT,
+                content = "",
+                toolCalls = listOf(
+                    AgentToolCall(
+                        id = "call-list",
+                        name = "list_alarms",
+                        arguments = "{}",
+                    ),
+                ),
+            ),
+        )
+        fakeAgentGateway.results += AgentLlmResult.Message(
+            AgentMessage(
+                role = AgentMessageRole.ASSISTANT,
+                content = "",
+                toolCalls = listOf(
+                    AgentToolCall(
+                        id = "call-end",
+                        name = "end_task",
+                        arguments = """{"reason":"I found the alarm."}""",
+                    ),
+                ),
+            ),
+        )
+
+        val result = creator.createFromText("resume my medicine alarm")
+
+        assertThat(result).isInstanceOf(AiCreateResult.ClarificationRequired::class.java)
+        assertThat(repository.get(alarm.id)!!.pauseMode).isEqualTo(AlarmPauseMode.INDEFINITE)
     }
 
     @Test

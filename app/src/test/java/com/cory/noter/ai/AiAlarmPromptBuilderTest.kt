@@ -43,6 +43,8 @@ class AiAlarmPromptBuilderTest {
         assertThat(prompt).contains("Call create_alarm")
         assertThat(prompt).contains("Call list_alarms when the user asks to list alarms")
         assertThat(prompt).contains("Call list_alarms before pause_alarm or resume_alarm when the target alarm is unknown")
+        assertThat(prompt).contains("Only call end_task after list_alarms for direct list requests")
+        assertThat(prompt).contains("After list_alarms for a pause or resume request")
         assertThat(prompt).contains("Call pause_alarm")
         assertThat(prompt).contains("Call resume_alarm")
         assertThat(prompt).contains("Call reject_unclear_request")

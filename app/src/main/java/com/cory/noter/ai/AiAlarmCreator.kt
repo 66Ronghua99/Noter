@@ -120,14 +120,14 @@ class AiAlarmCreator(
             ),
         )
 
-        return result.toAiCreateResult()
+        return result.toAiCreateResult(allowListOnlySuccess = userRequest.isDirectAlarmListRequest())
     }
 
-    private suspend fun AgentRunResult.toAiCreateResult(): AiCreateResult = when (this) {
-        is AgentRunResult.Completed -> toolResults.lastBusinessResultOrNull()?.toAiCreateResult()
+    private suspend fun AgentRunResult.toAiCreateResult(allowListOnlySuccess: Boolean): AiCreateResult = when (this) {
+        is AgentRunResult.Completed -> toolResults.lastBusinessResultOrNull()?.toAiCreateResult(allowListOnlySuccess)
             ?: AiCreateResult.InvalidResponse("Agent completed without a tool result.")
 
-        is AgentRunResult.CompletedWithFinalizationFailure -> committedResults.last().toAiCreateResult()
+        is AgentRunResult.CompletedWithFinalizationFailure -> committedResults.last().toAiCreateResult(allowListOnlySuccess)
 
         is AgentRunResult.FailedAfterToolResults -> toolResults.asReversed()
             .firstNotNullOfOrNull { it.toClarificationRequiredOrNull() }
@@ -139,7 +139,7 @@ class AiAlarmCreator(
     private fun List<AgentToolResult>.lastBusinessResultOrNull(): AgentToolResult? =
         asReversed().firstOrNull { it.toolName != EndTaskTool.Name }
 
-    private suspend fun AgentToolResult.toAiCreateResult(): AiCreateResult {
+    private suspend fun AgentToolResult.toAiCreateResult(allowListOnlySuccess: Boolean): AiCreateResult {
         val status = content.requiredString("status")
             ?: return AiCreateResult.InvalidResponse("Agent tool result did not include a valid status.")
 
@@ -153,6 +153,11 @@ class AiAlarmCreator(
         }
 
         if (status == "listed_alarms") {
+            if (!allowListOnlySuccess) {
+                return AiCreateResult.ClarificationRequired(
+                    "I found matching alarms, but I need to know which one to manage.",
+                )
+            }
             return content.toAlarmsListedResult()
         }
 
@@ -288,5 +293,26 @@ class AiAlarmCreator(
             return null
         }
         return (element as? JsonPrimitive)?.longOrNull
+    }
+
+    private fun String.isDirectAlarmListRequest(): Boolean {
+        val normalized = lowercase()
+        val mentionsAlarm = listOf("alarm", "alarms", "闹钟").any { it in normalized }
+        val asksToList = listOf("list", "show", "display", "what", "which", "列出", "显示", "有哪些")
+            .any { it in normalized }
+        val asksToManage = listOf(
+            "pause",
+            "resume",
+            "stop",
+            "disable",
+            "enable",
+            "turn off",
+            "turn on",
+            "暂停",
+            "恢复",
+            "关闭",
+            "开启",
+        ).any { it in normalized }
+        return mentionsAlarm && asksToList && !asksToManage
     }
 }

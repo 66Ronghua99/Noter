@@ -61,3 +61,13 @@
 - Added focused tests for list-only creator mapping, direct list prompt instruction, committed background outcomes, and ViewModel visible status.
 - Fresh evidence: `artifacts/2026-07-02-alarm-management-pause-resume/round-5-final-gates.log` from `./gradlew testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest --rerun-tasks` with JDK 17 and local Android SDK.
 - Remaining mainline work: await Humanize review/finalization; do not declare the full RLCR loop complete before the hook-managed review allows it.
+
+## 2026-07-02 Alarm Management Pause/Resume RLCR Round 6
+
+- Closed the Round 5 review gap for direct list usability and terminal-context handling.
+- Added shared listed-alarm formatting so foreground AI-create status and background notification expanded text include alarm title, local time, repeat summary, pause state, and next trigger when present.
+- Tightened `AiAlarmCreator` result mapping so `listed_alarms` can complete only direct list requests; pause/resume requests that only list alarms return clarification and leave pause state unchanged.
+- Tightened prompt instructions so `end_task` after `list_alarms` is only for direct list requests, while pause/resume list-first flows must continue with management or rejection.
+- Added red/green tests for visible list details, notification expanded text, incomplete pause/resume list-only endings, and list-then-resume preservation.
+- Fresh evidence: `artifacts/2026-07-02-alarm-management-pause-resume/round-6-final-gates.log` from `./gradlew testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest --rerun-tasks` with JDK 17 and local Android SDK.
+- Remaining mainline work: await Humanize review/finalization; do not declare the full RLCR loop complete before the hook-managed review allows it.

@@ -27,7 +27,9 @@ class AiAlarmPromptBuilder {
             For weekly_interval alarms, include repeatRule.endDate as yyyy-MM-dd when the user gives an end date; if the user does not mention an end date, set repeatRule.endDate to one year after repeatRule.startDate.
             Call create_alarm with the alarm arguments when the request has enough alarm details.
             Call list_alarms when the user asks to list alarms.
+            Only call end_task after list_alarms for direct list requests.
             Call list_alarms before pause_alarm or resume_alarm when the target alarm is unknown.
+            After list_alarms for a pause or resume request, call pause_alarm, resume_alarm, or reject_unclear_request; do not end the task with only the list.
             Call pause_alarm with mode next_occurrence or indefinite when the user asks to pause a known alarm.
             Call resume_alarm when the user asks to resume a known paused alarm.
             Call reject_unclear_request when the request is unclear, incomplete, not an alarm request, likely came from a poor voice transcript, or has an ambiguous or missing alarm target.

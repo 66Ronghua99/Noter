@@ -19,6 +19,7 @@ import com.cory.noter.R
 import com.cory.noter.ai.AiAlarmManagementAction
 import com.cory.noter.ai.AiCreateResult
 import com.cory.noter.ai.AiCreateResultNotifier
+import com.cory.noter.ai.AiListedAlarmFormatter
 
 class AndroidAiCreateResultNotifier(
     private val context: Context,
@@ -91,6 +92,11 @@ class AndroidAiCreateResultNotifier(
                 notification = builder
                     .setContentTitle(context.getString(R.string.notification_ai_listed_title))
                     .setContentText(context.getString(R.string.notification_ai_listed, result.alarms.size))
+                    .setStyle(
+                        NotificationCompat.BigTextStyle().bigText(
+                            AiListedAlarmFormatter.formatRows(result.alarms),
+                        ),
+                    )
                     .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                     .build(),
             )

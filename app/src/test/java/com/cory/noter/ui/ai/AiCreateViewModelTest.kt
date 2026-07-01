@@ -222,8 +222,12 @@ class AiCreateViewModelTest {
         advanceUntilIdle()
 
         assertThat(viewModel.uiState.value.errorMessage).isNull()
-        assertThat(viewModel.uiState.value.statusMessage)
-            .isEqualTo(UiText.Resource(R.string.ai_create_listed_alarms_status, listOf(1)))
+        val status = viewModel.uiState.value.statusMessage as UiText.Raw
+        assertThat(status.value).contains("Listed 1 alarm:")
+        assertThat(status.value).contains("Take medicine")
+        assertThat(status.value).contains("08:00")
+        assertThat(status.value).contains("daily")
+        assertThat(status.value).contains("pause: none")
     }
 
     private class RecordingBackgroundScheduler : com.cory.noter.ai.AiCreateBackgroundScheduler {

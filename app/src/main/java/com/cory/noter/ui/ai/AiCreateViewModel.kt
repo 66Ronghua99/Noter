@@ -6,6 +6,7 @@ import com.cory.noter.ai.AiAlarmManagementAction
 import com.cory.noter.ai.AiAlarmCreator
 import com.cory.noter.ai.AiCreateBackgroundScheduler
 import com.cory.noter.ai.AiCreateResult
+import com.cory.noter.ai.AiListedAlarmFormatter
 import com.cory.noter.R
 import com.cory.noter.data.settings.SettingsRepository
 import com.cory.noter.ui.text.UiText
@@ -126,7 +127,7 @@ class AiCreateViewModel(
 
     private fun AiCreateResult.toStatusMessage(): UiText? = when (this) {
         is AiCreateResult.AlarmsListed ->
-            UiText.Resource(R.string.ai_create_listed_alarms_status, listOf(alarms.size))
+            UiText.Raw(AiListedAlarmFormatter.formatStatus(alarms))
 
         is AiCreateResult.ManagementSucceeded -> when (action) {
             AiAlarmManagementAction.PAUSED_NEXT_OCCURRENCE ->
