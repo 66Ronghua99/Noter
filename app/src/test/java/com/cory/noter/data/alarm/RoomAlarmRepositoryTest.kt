@@ -1,8 +1,12 @@
 package com.cory.noter.data.alarm
 
 import androidx.room.Room
+import androidx.sqlite.db.SupportSQLiteDatabase
+import androidx.sqlite.db.SupportSQLiteOpenHelper
+import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.core.app.ApplicationProvider
 import com.cory.noter.domain.alarm.AlarmSource
+import com.cory.noter.domain.alarm.AlarmPauseMode
 import com.cory.noter.domain.alarm.NextTriggerCalculator
 import com.cory.noter.domain.alarm.RepeatRule
 import com.google.common.truth.Truth.assertThat
@@ -76,8 +80,100 @@ class RoomAlarmRepositoryTest {
         )
         assertThat(created.createdAtMillis).isEqualTo(clock.instant().toEpochMilli())
         assertThat(created.updatedAtMillis).isEqualTo(clock.instant().toEpochMilli())
+        assertThat(created.pauseMode).isEqualTo(AlarmPauseMode.NONE)
+        assertThat(created.pausedOccurrenceAtMillis).isNull()
         assertThat(repository.get(created.id)).isEqualTo(created)
         assertThat(repository.alarms.first()).containsExactly(created)
+    }
+
+    @Test
+    fun `repository mapping round trips pause state`() = runTest {
+        val created = repository.create(dailyAlarmDraft(enabled = true))
+        val pausedOccurrenceAtMillis = requireNotNull(created.nextTriggerAtMillis)
+
+        val pausedNext = repository.update(
+            created.copy(
+                pauseMode = AlarmPauseMode.NEXT_OCCURRENCE,
+                pausedOccurrenceAtMillis = pausedOccurrenceAtMillis,
+            ),
+        )
+        val pausedIndefinitely = repository.update(
+            pausedNext.copy(
+                enabled = false,
+                pauseMode = AlarmPauseMode.INDEFINITE,
+                pausedOccurrenceAtMillis = null,
+            ),
+        )
+        val active = repository.update(
+            pausedIndefinitely.copy(
+                enabled = true,
+                pauseMode = AlarmPauseMode.NONE,
+                pausedOccurrenceAtMillis = null,
+            ),
+        )
+
+        assertThat(pausedNext.pauseMode).isEqualTo(AlarmPauseMode.NEXT_OCCURRENCE)
+        assertThat(pausedNext.pausedOccurrenceAtMillis).isEqualTo(pausedOccurrenceAtMillis)
+        assertThat(pausedIndefinitely.pauseMode).isEqualTo(AlarmPauseMode.INDEFINITE)
+        assertThat(pausedIndefinitely.pausedOccurrenceAtMillis).isNull()
+        assertThat(active.pauseMode).isEqualTo(AlarmPauseMode.NONE)
+        assertThat(active.pausedOccurrenceAtMillis).isNull()
+    }
+
+    @Test
+    fun `loading unknown stored pause mode fails explicitly`() = runTest {
+        database.openHelper.writableDatabase.execSQL(
+            """
+            INSERT INTO alarms (
+                id, title, hour, minute, repeatType, daysOfWeekCsv, onceDate,
+                startDate, endDate, intervalWeeks, enabled, ringtoneUri, source,
+                aiOriginalText, nextTriggerAtMillis, pauseMode, pausedOccurrenceAtMillis,
+                createdAtMillis, updatedAtMillis
+            ) VALUES (
+                42, 'Bad pause', 8, 0, 'daily', '', NULL,
+                NULL, NULL, NULL, 1, 'content://settings/system/alarm_alert', 'manual',
+                NULL, 1234, 'temporary', NULL, 1000, 1000
+            )
+            """.trimIndent(),
+        )
+
+        val error = runCatching { repository.get(42) }.exceptionOrNull()
+
+        assertThat(error).isInstanceOf(IllegalStateException::class.java)
+        assertThat(error).hasMessageThat().contains("Unsupported alarm pause mode")
+    }
+
+    @Test
+    fun `migration 2 to 3 maps enabled rows to none pause mode and disabled rows to indefinite`() {
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        context.deleteDatabase(MIGRATION_TEST_DB)
+        openHelper(version = 2, onCreate = ::createVersion2Database).apply {
+            writableDatabase.close()
+            close()
+        }
+
+        val db = openHelper(
+            version = 3,
+            onCreate = {},
+            onUpgrade = { database, oldVersion, newVersion ->
+                check(oldVersion == 2 && newVersion == 3)
+                AlarmDatabase.MIGRATION_2_3.migrate(database)
+            },
+        ).writableDatabase
+
+        db.query("SELECT id, pauseMode, pausedOccurrenceAtMillis FROM alarms ORDER BY id").use { cursor ->
+            assertThat(cursor.moveToFirst()).isTrue()
+            assertThat(cursor.getLong(0)).isEqualTo(1)
+            assertThat(cursor.getString(1)).isEqualTo("none")
+            assertThat(cursor.isNull(2)).isTrue()
+
+            assertThat(cursor.moveToNext()).isTrue()
+            assertThat(cursor.getLong(0)).isEqualTo(2)
+            assertThat(cursor.getString(1)).isEqualTo("indefinite")
+            assertThat(cursor.isNull(2)).isTrue()
+        }
+        db.close()
+        context.deleteDatabase(MIGRATION_TEST_DB)
     }
 
     @Test
@@ -364,5 +460,85 @@ class RoomAlarmRepositoryTest {
         fun set(newInstant: Instant) {
             currentInstant = newInstant
         }
+    }
+
+    private fun openHelper(
+        version: Int,
+        onCreate: (SupportSQLiteDatabase) -> Unit,
+        onUpgrade: (SupportSQLiteDatabase, Int, Int) -> Unit = { _, _, _ -> },
+    ): SupportSQLiteOpenHelper {
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        return FrameworkSQLiteOpenHelperFactory().create(
+            SupportSQLiteOpenHelper.Configuration.builder(context)
+                .name(MIGRATION_TEST_DB)
+                .callback(
+                    object : SupportSQLiteOpenHelper.Callback(version) {
+                        override fun onCreate(db: SupportSQLiteDatabase) = onCreate(db)
+
+                        override fun onUpgrade(
+                            db: SupportSQLiteDatabase,
+                            oldVersion: Int,
+                            newVersion: Int,
+                        ) = onUpgrade(db, oldVersion, newVersion)
+                    },
+                )
+                .build(),
+        )
+    }
+
+    private fun createVersion2Database(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `alarms` (
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                `title` TEXT NOT NULL,
+                `hour` INTEGER NOT NULL,
+                `minute` INTEGER NOT NULL,
+                `repeatType` TEXT NOT NULL,
+                `daysOfWeekCsv` TEXT NOT NULL,
+                `onceDate` TEXT,
+                `startDate` TEXT,
+                `endDate` TEXT,
+                `intervalWeeks` INTEGER,
+                `enabled` INTEGER NOT NULL,
+                `ringtoneUri` TEXT NOT NULL,
+                `source` TEXT NOT NULL,
+                `aiOriginalText` TEXT,
+                `nextTriggerAtMillis` INTEGER,
+                `createdAtMillis` INTEGER NOT NULL,
+                `updatedAtMillis` INTEGER NOT NULL
+            )
+            """.trimIndent(),
+        )
+        db.execSQL(
+            """
+            INSERT INTO alarms (
+                id, title, hour, minute, repeatType, daysOfWeekCsv, onceDate,
+                startDate, endDate, intervalWeeks, enabled, ringtoneUri, source,
+                aiOriginalText, nextTriggerAtMillis, createdAtMillis, updatedAtMillis
+            ) VALUES (
+                1, 'Enabled', 8, 0, 'daily', '', NULL,
+                NULL, NULL, NULL, 1, 'content://settings/system/alarm_alert', 'manual',
+                NULL, 1234, 1000, 1000
+            )
+            """.trimIndent(),
+        )
+        db.execSQL(
+            """
+            INSERT INTO alarms (
+                id, title, hour, minute, repeatType, daysOfWeekCsv, onceDate,
+                startDate, endDate, intervalWeeks, enabled, ringtoneUri, source,
+                aiOriginalText, nextTriggerAtMillis, createdAtMillis, updatedAtMillis
+            ) VALUES (
+                2, 'Disabled', 9, 0, 'daily', '', NULL,
+                NULL, NULL, NULL, 0, 'content://settings/system/alarm_alert', 'manual',
+                NULL, NULL, 1000, 1000
+            )
+            """.trimIndent(),
+        )
+    }
+
+    private companion object {
+        const val MIGRATION_TEST_DB = "room-alarm-repository-migration"
     }
 }

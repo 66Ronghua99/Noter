@@ -13,4 +13,6 @@ data class Alarm(
     val nextTriggerAtMillis: Long?,
     val createdAtMillis: Long,
     val updatedAtMillis: Long,
+    val pauseMode: AlarmPauseMode = AlarmPauseMode.NONE,
+    val pausedOccurrenceAtMillis: Long? = null,
 )

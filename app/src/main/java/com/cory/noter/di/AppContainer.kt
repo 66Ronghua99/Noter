@@ -57,7 +57,7 @@ class AppContainer(
             AlarmDatabase::class.java,
             DATABASE_NAME,
         )
-            .addMigrations(AlarmDatabase.MIGRATION_1_2)
+            .addMigrations(AlarmDatabase.MIGRATION_1_2, AlarmDatabase.MIGRATION_2_3)
             .build()
     }
 

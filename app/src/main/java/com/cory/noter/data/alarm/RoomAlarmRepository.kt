@@ -1,8 +1,9 @@
 package com.cory.noter.data.alarm
 
 import com.cory.noter.domain.alarm.Alarm
-import com.cory.noter.domain.alarm.AlarmValidation
+import com.cory.noter.domain.alarm.AlarmPauseMode
 import com.cory.noter.domain.alarm.AlarmSource
+import com.cory.noter.domain.alarm.AlarmValidation
 import com.cory.noter.domain.alarm.NextTriggerCalculator
 import com.cory.noter.domain.alarm.RepeatRule
 import java.time.Clock
@@ -60,6 +61,12 @@ class RoomAlarmRepository(
                 ),
                 createdAtMillis = nowMillis,
                 updatedAtMillis = nowMillis,
+                pauseMode = if (draft.enabled) {
+                    AlarmPauseMode.NONE.toStorageValue()
+                } else {
+                    AlarmPauseMode.INDEFINITE.toStorageValue()
+                },
+                pausedOccurrenceAtMillis = null,
             ),
         )
 
@@ -106,6 +113,8 @@ class RoomAlarmRepository(
                 ),
                 createdAtMillis = existing.createdAtMillis,
                 updatedAtMillis = nowMillis,
+                pauseMode = alarm.pauseMode.toStorageValue(),
+                pausedOccurrenceAtMillis = alarm.pausedOccurrenceAtMillis,
             ),
         )
 
@@ -114,12 +123,24 @@ class RoomAlarmRepository(
 
     override suspend fun enable(id: Long): Alarm? {
         val alarm = get(id) ?: return null
-        return update(alarm.copy(enabled = true))
+        return update(
+            alarm.copy(
+                enabled = true,
+                pauseMode = AlarmPauseMode.NONE,
+                pausedOccurrenceAtMillis = null,
+            ),
+        )
     }
 
     override suspend fun disable(id: Long): Alarm? {
         val alarm = get(id) ?: return null
-        return update(alarm.copy(enabled = false))
+        return update(
+            alarm.copy(
+                enabled = false,
+                pauseMode = AlarmPauseMode.INDEFINITE,
+                pausedOccurrenceAtMillis = null,
+            ),
+        )
     }
 
     override suspend fun delete(id: Long) {
@@ -146,6 +167,8 @@ class RoomAlarmRepository(
         nextTriggerAtMillis = entity.nextTriggerAtMillis,
         createdAtMillis = entity.createdAtMillis,
         updatedAtMillis = entity.updatedAtMillis,
+        pauseMode = entity.pauseMode.toAlarmPauseMode(),
+        pausedOccurrenceAtMillis = entity.pausedOccurrenceAtMillis,
     )
 
     private fun computeNextTriggerAtMillis(
@@ -201,9 +224,22 @@ class RoomAlarmRepository(
         AlarmSource.AI -> "ai"
     }
 
+    private fun AlarmPauseMode.toStorageValue(): String = when (this) {
+        AlarmPauseMode.NONE -> "none"
+        AlarmPauseMode.NEXT_OCCURRENCE -> "next_occurrence"
+        AlarmPauseMode.INDEFINITE -> "indefinite"
+    }
+
     private fun String.toAlarmSource(): AlarmSource = when (this) {
         "manual" -> AlarmSource.MANUAL
         "ai" -> AlarmSource.AI
         else -> error("Unsupported alarm source: $this")
+    }
+
+    private fun String.toAlarmPauseMode(): AlarmPauseMode = when (this) {
+        "none" -> AlarmPauseMode.NONE
+        "next_occurrence" -> AlarmPauseMode.NEXT_OCCURRENCE
+        "indefinite" -> AlarmPauseMode.INDEFINITE
+        else -> error("Unsupported alarm pause mode: $this")
     }
 }

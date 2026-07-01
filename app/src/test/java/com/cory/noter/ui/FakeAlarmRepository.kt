@@ -3,6 +3,7 @@ package com.cory.noter.ui
 import com.cory.noter.data.alarm.AlarmDraft
 import com.cory.noter.data.alarm.AlarmRepository
 import com.cory.noter.domain.alarm.Alarm
+import com.cory.noter.domain.alarm.AlarmPauseMode
 import com.cory.noter.domain.alarm.NextTriggerCalculator
 import java.time.Clock
 import java.time.ZoneId
@@ -42,6 +43,8 @@ class FakeAlarmRepository(
             ),
             createdAtMillis = nowMillis,
             updatedAtMillis = nowMillis,
+            pauseMode = if (draft.enabled) AlarmPauseMode.NONE else AlarmPauseMode.INDEFINITE,
+            pausedOccurrenceAtMillis = null,
         )
         state.update { it + alarm }
         return alarm
@@ -63,12 +66,24 @@ class FakeAlarmRepository(
 
     override suspend fun enable(id: Long): Alarm? {
         val alarm = get(id) ?: return null
-        return update(alarm.copy(enabled = true))
+        return update(
+            alarm.copy(
+                enabled = true,
+                pauseMode = AlarmPauseMode.NONE,
+                pausedOccurrenceAtMillis = null,
+            ),
+        )
     }
 
     override suspend fun disable(id: Long): Alarm? {
         val alarm = get(id) ?: return null
-        return update(alarm.copy(enabled = false))
+        return update(
+            alarm.copy(
+                enabled = false,
+                pauseMode = AlarmPauseMode.INDEFINITE,
+                pausedOccurrenceAtMillis = null,
+            ),
+        )
     }
 
     override suspend fun delete(id: Long) {

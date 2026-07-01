@@ -9,6 +9,7 @@ import com.cory.noter.data.alarm.AlarmDraft
 import com.cory.noter.data.alarm.AlarmRepository
 import com.cory.noter.data.settings.SettingsRepository
 import com.cory.noter.domain.alarm.Alarm
+import com.cory.noter.domain.alarm.AlarmPauseMode
 import com.cory.noter.domain.alarm.NextTriggerCalculator
 import com.cory.noter.domain.settings.AppSettings
 import java.time.Clock
@@ -49,6 +50,8 @@ class AndroidTestAlarmRepository(
             ),
             createdAtMillis = nowMillis,
             updatedAtMillis = nowMillis,
+            pauseMode = if (draft.enabled) AlarmPauseMode.NONE else AlarmPauseMode.INDEFINITE,
+            pausedOccurrenceAtMillis = null,
         )
         state.update { it + alarm }
         return alarm
@@ -68,9 +71,25 @@ class AndroidTestAlarmRepository(
         return updated
     }
 
-    override suspend fun enable(id: Long): Alarm? = get(id)?.let { update(it.copy(enabled = true)) }
+    override suspend fun enable(id: Long): Alarm? = get(id)?.let {
+        update(
+            it.copy(
+                enabled = true,
+                pauseMode = AlarmPauseMode.NONE,
+                pausedOccurrenceAtMillis = null,
+            ),
+        )
+    }
 
-    override suspend fun disable(id: Long): Alarm? = get(id)?.let { update(it.copy(enabled = false)) }
+    override suspend fun disable(id: Long): Alarm? = get(id)?.let {
+        update(
+            it.copy(
+                enabled = false,
+                pauseMode = AlarmPauseMode.INDEFINITE,
+                pausedOccurrenceAtMillis = null,
+            ),
+        )
+    }
 
     override suspend fun delete(id: Long) {
         state.update { alarms -> alarms.filterNot { it.id == id } }

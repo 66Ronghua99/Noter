@@ -22,4 +22,6 @@ data class AlarmEntity(
     val nextTriggerAtMillis: Long?,
     val createdAtMillis: Long,
     val updatedAtMillis: Long,
+    val pauseMode: String = "none",
+    val pausedOccurrenceAtMillis: Long? = null,
 )
