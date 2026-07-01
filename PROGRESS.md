@@ -80,3 +80,12 @@
 - Added focused regression tests for generic editor-style enable normalization and read-only paused/disabled list queries.
 - Fresh evidence: `artifacts/2026-07-02-alarm-management-pause-resume/round-7-final-gates.log` from `./gradlew testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest --rerun-tasks` with JDK 17 and local Android SDK.
 - Remaining mainline work: await Humanize review/finalization; do not declare the full RLCR loop complete before the hook-managed review allows it.
+
+## 2026-07-02 Alarm Management Pause/Resume RLCR Round 8 Review Fixes
+
+- Fixed review-blocking stale paused-next advancement: consuming a paused-next repeating alarm now advances from the later of the skipped anchor and current clock time, so long downtime schedules the next future trigger.
+- Added use-case and startup reconciliation regression tests for a daily paused-next alarm skipped on April 24 and reconciled on April 26, verifying it schedules April 27 rather than a stale April 25 trigger.
+- Fixed direct Chinese list intent classification by matching CJK list terms with substring checks while keeping English management verbs on word/phrase boundaries.
+- Added creator regression tests for `列出闹钟` succeeding as `AiCreateResult.AlarmsListed` and `暂停闹钟` still failing safely when it only lists alarms.
+- Fresh evidence: `artifacts/2026-07-02-alarm-management-pause-resume/round-8-final-gates.log` from `./gradlew testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest --rerun-tasks` with JDK 17 and local Android SDK.
+- Remaining mainline work: await Humanize review/finalization; do not declare the full RLCR loop complete before the hook-managed review allows it.

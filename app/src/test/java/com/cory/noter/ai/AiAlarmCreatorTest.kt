@@ -583,6 +583,81 @@ class AiAlarmCreatorTest {
     }
 
     @Test
+    fun `agent can list alarms from Chinese direct list request`() = runTest {
+        settingsRepository.set(validSettings())
+        val alarm = repository.create(activeDailyDraft())
+        fakeAgentGateway.results += AgentLlmResult.Message(
+            AgentMessage(
+                role = AgentMessageRole.ASSISTANT,
+                content = "",
+                toolCalls = listOf(
+                    AgentToolCall(
+                        id = "call-list",
+                        name = "list_alarms",
+                        arguments = "{}",
+                    ),
+                ),
+            ),
+        )
+        fakeAgentGateway.results += AgentLlmResult.Message(
+            AgentMessage(
+                role = AgentMessageRole.ASSISTANT,
+                content = "",
+                toolCalls = listOf(
+                    AgentToolCall(
+                        id = "call-end",
+                        name = "end_task",
+                        arguments = """{"reason":"Alarms listed."}""",
+                    ),
+                ),
+            ),
+        )
+
+        val result = creator.createFromText("列出闹钟")
+
+        assertThat(result).isInstanceOf(AiCreateResult.AlarmsListed::class.java)
+        val listed = result as AiCreateResult.AlarmsListed
+        assertThat(listed.alarms.single().id).isEqualTo(alarm.id)
+    }
+
+    @Test
+    fun `Chinese pause request cannot complete successfully with only listed alarms`() = runTest {
+        settingsRepository.set(validSettings())
+        val alarm = repository.create(activeDailyDraft())
+        fakeAgentGateway.results += AgentLlmResult.Message(
+            AgentMessage(
+                role = AgentMessageRole.ASSISTANT,
+                content = "",
+                toolCalls = listOf(
+                    AgentToolCall(
+                        id = "call-list",
+                        name = "list_alarms",
+                        arguments = "{}",
+                    ),
+                ),
+            ),
+        )
+        fakeAgentGateway.results += AgentLlmResult.Message(
+            AgentMessage(
+                role = AgentMessageRole.ASSISTANT,
+                content = "",
+                toolCalls = listOf(
+                    AgentToolCall(
+                        id = "call-end",
+                        name = "end_task",
+                        arguments = """{"reason":"I found the alarm."}""",
+                    ),
+                ),
+            ),
+        )
+
+        val result = creator.createFromText("暂停闹钟")
+
+        assertThat(result).isInstanceOf(AiCreateResult.ClarificationRequired::class.java)
+        assertThat(repository.get(alarm.id)!!.pauseMode).isEqualTo(AlarmPauseMode.NONE)
+    }
+
+    @Test
     fun `pause request cannot complete successfully with only listed alarms`() = runTest {
         settingsRepository.set(validSettings())
         val alarm = repository.create(activeDailyDraft())

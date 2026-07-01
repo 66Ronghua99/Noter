@@ -239,6 +239,46 @@ class StartupReconciliationTest {
     }
 
     @Test
+    fun `stale paused next repeating alarm missed for days advances to future trigger`() = runTest {
+        val alarm = repository.create(
+            alarmDraft(
+                hour = 8,
+                minute = 0,
+                repeatRule = RepeatRule.Daily,
+                enabled = true,
+            ),
+        )
+        repository.updateFromManagement(
+            alarm.copy(
+                pauseMode = AlarmPauseMode.NEXT_OCCURRENCE,
+                pausedOccurrenceAtMillis = alarm.nextTriggerAtMillis,
+            ),
+        )
+        clock.set(ZonedDateTime.of(2026, 4, 26, 9, 0, 0, 0, zoneId).toInstant())
+
+        val results = startupReconciliation.reconcile()
+        val stored = repository.get(alarm.id)!!
+
+        assertThat(stored.pauseMode).isEqualTo(AlarmPauseMode.NONE)
+        assertThat(stored.nextTriggerAtMillis).isEqualTo(
+            ZonedDateTime.of(2026, 4, 27, 8, 0, 0, 0, zoneId).toInstant().toEpochMilli(),
+        )
+        assertThat(scheduler.scheduledAlarms[alarm.id]?.nextTriggerAtMillis).isEqualTo(
+            stored.nextTriggerAtMillis,
+        )
+        assertThat(results).isEqualTo(
+            listOf(
+                StartupReconciliationResult.ConsumedPausedNext(
+                    alarmId = alarm.id,
+                    skippedTriggerAtMillis = alarm.nextTriggerAtMillis!!,
+                    nextTriggerAtMillis = stored.nextTriggerAtMillis!!,
+                    scheduleResult = ScheduleResult.Scheduled,
+                ),
+            ),
+        )
+    }
+
+    @Test
     fun `indefinite alarm is skipped without deletion`() = runTest {
         val alarm = repository.create(
             alarmDraft(

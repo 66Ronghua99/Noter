@@ -78,7 +78,10 @@ class AlarmManagementUseCase(
             return AlarmManagementResult.InvalidState("One-time alarm ${alarm.id} cannot consume paused-next state.")
         }
 
-        val nextTriggerAtMillis = calculateNextTriggerAtMillis(alarm, Instant.ofEpochMilli(anchor))
+        val nextTriggerAtMillis = calculateNextTriggerAtMillis(
+            alarm,
+            maxOf(Instant.ofEpochMilli(anchor), clock.instant()),
+        )
             ?: return AlarmManagementResult.InvalidState(
                 "Alarm ${alarm.id} has no future trigger after paused occurrence.",
             )

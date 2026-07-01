@@ -244,6 +244,28 @@ class AlarmManagementUseCaseTest {
     }
 
     @Test
+    fun `consume stale paused next advances repeating alarm from current time`() = runTest {
+        val anchor = ZonedDateTime.of(2026, 4, 24, 8, 0, 0, 0, zone).toInstant().toEpochMilli()
+        val alarm = repeatingAlarm(
+            nextTriggerAtMillis = anchor,
+            pauseMode = AlarmPauseMode.NEXT_OCCURRENCE,
+            pausedOccurrenceAtMillis = anchor,
+        )
+        repository.seed(alarm)
+        clock.set(ZonedDateTime.of(2026, 4, 26, 9, 0, 0, 0, zone).toInstant())
+
+        val result = useCase.consumeDuePausedNext(alarm.id, anchor)
+
+        val updated = (result as AlarmManagementResult.Updated).alarm
+        assertThat(updated.pauseMode).isEqualTo(AlarmPauseMode.NONE)
+        assertThat(updated.pausedOccurrenceAtMillis).isNull()
+        assertThat(updated.nextTriggerAtMillis).isEqualTo(
+            ZonedDateTime.of(2026, 4, 27, 8, 0, 0, 0, zone).toInstant().toEpochMilli(),
+        )
+        assertThat(scheduler.scheduledAlarms[alarm.id]).isEqualTo(updated)
+    }
+
+    @Test
     fun `consume due paused next rejects stale or mismatched trigger without mutating`() = runTest {
         val anchor = ZonedDateTime.of(2026, 4, 24, 8, 0, 0, 0, zone).toInstant().toEpochMilli()
         val alarm = repeatingAlarm(
@@ -367,5 +389,9 @@ class AlarmManagementUseCaseTest {
         override fun withZone(zone: ZoneId): Clock = MutableClock(currentInstant, zone)
 
         override fun instant(): Instant = currentInstant
+
+        fun set(newInstant: Instant) {
+            currentInstant = newInstant
+        }
     }
 }
