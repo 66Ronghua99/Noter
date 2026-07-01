@@ -299,20 +299,13 @@ class AiAlarmCreator(
         val normalized = lowercase()
         val mentionsAlarm = listOf("alarm", "alarms", "闹钟").any { it in normalized }
         val asksToList = listOf("list", "show", "display", "what", "which", "列出", "显示", "有哪些")
-            .any { it in normalized }
-        val asksToManage = listOf(
-            "pause",
-            "resume",
-            "stop",
-            "disable",
-            "enable",
-            "turn off",
-            "turn on",
-            "暂停",
-            "恢复",
-            "关闭",
-            "开启",
-        ).any { it in normalized }
+            .any { normalized.containsWordOrPhrase(it) }
+        val asksToManage = listOf("pause", "resume", "stop", "disable", "enable", "turn off", "turn on")
+            .any { normalized.containsWordOrPhrase(it) } ||
+            listOf("暂停", "恢复", "关闭", "开启").any { it in normalized }
         return mentionsAlarm && asksToList && !asksToManage
     }
+
+    private fun String.containsWordOrPhrase(term: String): Boolean =
+        Regex("""\b${Regex.escape(term)}\b""").containsMatchIn(this)
 }

@@ -91,22 +91,25 @@ class RoomAlarmRepositoryTest {
         val created = repository.create(dailyAlarmDraft(enabled = true))
         val pausedOccurrenceAtMillis = requireNotNull(created.nextTriggerAtMillis)
 
-        val pausedNext = repository.update(
+        val pausedNext = repository.updateFromManagement(
             created.copy(
                 pauseMode = AlarmPauseMode.NEXT_OCCURRENCE,
                 pausedOccurrenceAtMillis = pausedOccurrenceAtMillis,
+                nextTriggerAtMillis = pausedOccurrenceAtMillis,
             ),
         )
-        val pausedIndefinitely = repository.update(
+        val pausedIndefinitely = repository.updateFromManagement(
             pausedNext.copy(
                 enabled = false,
+                nextTriggerAtMillis = null,
                 pauseMode = AlarmPauseMode.INDEFINITE,
                 pausedOccurrenceAtMillis = null,
             ),
         )
-        val active = repository.update(
+        val active = repository.updateFromManagement(
             pausedIndefinitely.copy(
                 enabled = true,
+                nextTriggerAtMillis = pausedOccurrenceAtMillis,
                 pauseMode = AlarmPauseMode.NONE,
                 pausedOccurrenceAtMillis = null,
             ),
@@ -235,6 +238,35 @@ class RoomAlarmRepositoryTest {
         assertThat(updated.createdAtMillis).isEqualTo(created.createdAtMillis)
         assertThat(updated.updatedAtMillis).isEqualTo(clock.instant().toEpochMilli())
         assertThat(repository.get(created.id)).isEqualTo(updated)
+    }
+
+    @Test
+    fun `generic update clears pause state when enabling paused alarm`() = runTest {
+        val created = repository.create(dailyAlarmDraft(enabled = true))
+        val paused = repository.updateFromManagement(
+            created.copy(
+                enabled = false,
+                nextTriggerAtMillis = null,
+                pauseMode = AlarmPauseMode.INDEFINITE,
+                pausedOccurrenceAtMillis = null,
+            ),
+        )
+        clock.set(ZonedDateTime.of(2026, 4, 23, 12, 0, 0, 0, zone).toInstant())
+
+        val updated = repository.update(
+            paused.copy(
+                enabled = true,
+                pauseMode = AlarmPauseMode.INDEFINITE,
+                pausedOccurrenceAtMillis = 1_776_798_000_000,
+            ),
+        )
+
+        assertThat(updated.enabled).isTrue()
+        assertThat(updated.pauseMode).isEqualTo(AlarmPauseMode.NONE)
+        assertThat(updated.pausedOccurrenceAtMillis).isNull()
+        assertThat(updated.nextTriggerAtMillis).isEqualTo(
+            ZonedDateTime.of(2026, 4, 24, 8, 0, 0, 0, zone).toInstant().toEpochMilli(),
+        )
     }
 
     @Test

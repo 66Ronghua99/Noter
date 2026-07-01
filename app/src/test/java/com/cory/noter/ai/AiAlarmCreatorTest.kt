@@ -506,6 +506,83 @@ class AiAlarmCreatorTest {
     }
 
     @Test
+    fun `agent can list paused alarms without treating query as management`() = runTest {
+        settingsRepository.set(validSettings())
+        val alarm = repository.create(activeDailyDraft())
+        creatorManagementUseCase().pauseIndefinitely(alarm.id)
+        fakeAgentGateway.results += AgentLlmResult.Message(
+            AgentMessage(
+                role = AgentMessageRole.ASSISTANT,
+                content = "",
+                toolCalls = listOf(
+                    AgentToolCall(
+                        id = "call-list",
+                        name = "list_alarms",
+                        arguments = "{}",
+                    ),
+                ),
+            ),
+        )
+        fakeAgentGateway.results += AgentLlmResult.Message(
+            AgentMessage(
+                role = AgentMessageRole.ASSISTANT,
+                content = "",
+                toolCalls = listOf(
+                    AgentToolCall(
+                        id = "call-end",
+                        name = "end_task",
+                        arguments = """{"reason":"Paused alarms listed."}""",
+                    ),
+                ),
+            ),
+        )
+
+        val result = creator.createFromText("show paused alarms")
+
+        assertThat(result).isInstanceOf(AiCreateResult.AlarmsListed::class.java)
+        val listed = result as AiCreateResult.AlarmsListed
+        assertThat(listed.alarms.single().pauseState).isEqualTo("indefinite")
+    }
+
+    @Test
+    fun `agent can list disabled alarms without treating query as management`() = runTest {
+        settingsRepository.set(validSettings())
+        repository.create(activeDailyDraft(enabled = false))
+        fakeAgentGateway.results += AgentLlmResult.Message(
+            AgentMessage(
+                role = AgentMessageRole.ASSISTANT,
+                content = "",
+                toolCalls = listOf(
+                    AgentToolCall(
+                        id = "call-list",
+                        name = "list_alarms",
+                        arguments = "{}",
+                    ),
+                ),
+            ),
+        )
+        fakeAgentGateway.results += AgentLlmResult.Message(
+            AgentMessage(
+                role = AgentMessageRole.ASSISTANT,
+                content = "",
+                toolCalls = listOf(
+                    AgentToolCall(
+                        id = "call-end",
+                        name = "end_task",
+                        arguments = """{"reason":"Disabled alarms listed."}""",
+                    ),
+                ),
+            ),
+        )
+
+        val result = creator.createFromText("which alarms are disabled?")
+
+        assertThat(result).isInstanceOf(AiCreateResult.AlarmsListed::class.java)
+        val listed = result as AiCreateResult.AlarmsListed
+        assertThat(listed.alarms.single().pauseState).isEqualTo("indefinite")
+    }
+
+    @Test
     fun `pause request cannot complete successfully with only listed alarms`() = runTest {
         settingsRepository.set(validSettings())
         val alarm = repository.create(activeDailyDraft())
@@ -835,12 +912,12 @@ class AiAlarmCreatorTest {
         }
     """.trimIndent()
 
-    private fun activeDailyDraft(): AlarmDraft = AlarmDraft(
+    private fun activeDailyDraft(enabled: Boolean = true): AlarmDraft = AlarmDraft(
         title = "Take medicine",
         hour = 8,
         minute = 30,
         repeatRule = RepeatRule.Daily,
-        enabled = true,
+        enabled = enabled,
         ringtoneUri = AppSettings.DefaultRingtoneUri,
         source = AlarmSource.AI,
         aiOriginalText = "take medicine",

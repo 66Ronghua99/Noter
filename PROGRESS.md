@@ -71,3 +71,12 @@
 - Added red/green tests for visible list details, notification expanded text, incomplete pause/resume list-only endings, and list-then-resume preservation.
 - Fresh evidence: `artifacts/2026-07-02-alarm-management-pause-resume/round-6-final-gates.log` from `./gradlew testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest --rerun-tasks` with JDK 17 and local Android SDK.
 - Remaining mainline work: await Humanize review/finalization; do not declare the full RLCR loop complete before the hook-managed review allows it.
+
+## 2026-07-02 Alarm Management Pause/Resume RLCR Round 7 Review Fixes
+
+- Fixed review-blocking pause-state consistency in the generic `RoomAlarmRepository.update()` path: enabled generic saves now clear pause mode/anchor, while disabled generic saves normalize to indefinite pause.
+- Fixed direct list intent classification so read-only requests such as "show paused alarms" and "which alarms are disabled?" can still return `AiCreateResult.AlarmsListed`.
+- Kept pause/resume list-only safeguards intact: management requests that only list alarms still return clarification and do not mutate pause state.
+- Added focused regression tests for generic editor-style enable normalization and read-only paused/disabled list queries.
+- Fresh evidence: `artifacts/2026-07-02-alarm-management-pause-resume/round-7-final-gates.log` from `./gradlew testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest --rerun-tasks` with JDK 17 and local Android SDK.
+- Remaining mainline work: await Humanize review/finalization; do not declare the full RLCR loop complete before the hook-managed review allows it.

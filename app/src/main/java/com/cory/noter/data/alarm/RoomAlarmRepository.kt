@@ -88,6 +88,11 @@ class RoomAlarmRepository(
             zoneId = zoneId,
         )
         val encodedRepeatRule = repeatRuleCodec.encode(alarm.repeatRule)
+        val pauseMode = if (alarm.enabled) {
+            AlarmPauseMode.NONE
+        } else {
+            AlarmPauseMode.INDEFINITE
+        }
         alarmDao.update(
             AlarmEntity(
                 id = alarm.id,
@@ -113,8 +118,8 @@ class RoomAlarmRepository(
                 ),
                 createdAtMillis = existing.createdAtMillis,
                 updatedAtMillis = nowMillis,
-                pauseMode = alarm.pauseMode.toStorageValue(),
-                pausedOccurrenceAtMillis = alarm.pausedOccurrenceAtMillis,
+                pauseMode = pauseMode.toStorageValue(),
+                pausedOccurrenceAtMillis = null,
             ),
         )
 
