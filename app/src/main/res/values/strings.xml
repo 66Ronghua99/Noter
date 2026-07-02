@@ -104,6 +104,7 @@
     <string name="settings_directory_appearance">Appearance</string>
     <string name="settings_directory_ai_voice">AI and voice</string>
     <string name="settings_directory_sound">Sound</string>
+    <string name="settings_directory_calendar">Calendar</string>
     <string name="settings_directory_permissions">Permissions</string>
     <string name="settings_appearance_title">Appearance</string>
     <string name="settings_appearance_subtitle">Pick a preset theme or set your own accent color.</string>
@@ -111,6 +112,18 @@
     <string name="settings_ai_voice_subtitle">Configure the model provider and speech recognition.</string>
     <string name="settings_sound_title">Sound</string>
     <string name="settings_sound_subtitle">Choose the default ringtone for new alarms.</string>
+    <string name="settings_calendar_title">Calendar</string>
+    <string name="settings_calendar_subtitle">Choose the system calendar used for synced alarm events.</string>
+    <string name="settings_calendar_status_missing_permission">Calendar access is needed before Noter can list writable calendars.</string>
+    <string name="settings_calendar_status_no_writable">No writable calendars are available on this device.</string>
+    <string name="settings_calendar_status_no_default">Choose a writable calendar before syncing alarm events.</string>
+    <string name="settings_calendar_status_invalid_stored">The selected calendar is no longer writable or available.</string>
+    <string name="settings_calendar_status_ready">Calendar sync is ready for agent-created alarms.</string>
+    <string name="settings_calendar_permission_action">Allow calendar access</string>
+    <string name="settings_calendar_choose_writable_error">Choose a writable calendar.</string>
+    <string name="settings_calendar_account_format">%1$s · %2$s</string>
+    <string name="settings_calendar_writable">Writable</string>
+    <string name="settings_calendar_read_only">Read only</string>
     <string name="settings_permissions_title">Permissions</string>
     <string name="settings_permissions_subtitle">Grant the access Noter needs to ring alarms reliably.</string>
     <string name="settings_permissions_helper">Battery optimization can prevent alarms from firing on time. Tap Fix to open system settings and allow unrestricted background use.</string>
@@ -125,6 +138,7 @@
     <string name="settings_custom_theme_seed">Custom theme color</string>
     <string name="settings_summary_ai_voice">OpenRouter · %1$s</string>
     <string name="settings_summary_sound">%1$s</string>
+    <string name="settings_summary_calendar_not_selected">Not selected</string>
     <string name="settings_summary_permissions">%1$d items need attention</string>
     <string name="settings_summary_permissions_all_set">All permissions granted</string>
     <string name="settings_custom_theme_seed_label">Seed color #RRGGBB</string>

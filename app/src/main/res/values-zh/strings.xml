@@ -104,6 +104,7 @@
     <string name="settings_directory_appearance">外观</string>
     <string name="settings_directory_ai_voice">AI 与语音</string>
     <string name="settings_directory_sound">声音</string>
+    <string name="settings_directory_calendar">日历</string>
     <string name="settings_directory_permissions">权限</string>
     <string name="settings_appearance_title">外观</string>
     <string name="settings_appearance_subtitle">选择预设主题或自定义强调色。</string>
@@ -111,6 +112,18 @@
     <string name="settings_ai_voice_subtitle">配置模型提供商和语音识别。</string>
     <string name="settings_sound_title">声音</string>
     <string name="settings_sound_subtitle">选择新建闹钟的默认铃声。</string>
+    <string name="settings_calendar_title">日历</string>
+    <string name="settings_calendar_subtitle">选择用于同步闹钟事件的系统日历。</string>
+    <string name="settings_calendar_status_missing_permission">需要日历权限后，Noter 才能列出可写日历。</string>
+    <string name="settings_calendar_status_no_writable">此设备上没有可写日历。</string>
+    <string name="settings_calendar_status_no_default">请先选择一个可写日历，再同步闹钟事件。</string>
+    <string name="settings_calendar_status_invalid_stored">已选择的日历不再可用或不可写。</string>
+    <string name="settings_calendar_status_ready">AI 创建的闹钟已可同步到日历。</string>
+    <string name="settings_calendar_permission_action">允许日历权限</string>
+    <string name="settings_calendar_choose_writable_error">请选择可写日历。</string>
+    <string name="settings_calendar_account_format">%1$s · %2$s</string>
+    <string name="settings_calendar_writable">可写</string>
+    <string name="settings_calendar_read_only">只读</string>
     <string name="settings_permissions_title">权限</string>
     <string name="settings_permissions_subtitle">授予 Noter 可靠响铃所需的权限。</string>
     <string name="settings_permissions_helper">电池优化可能导致闹钟无法准时触发。点击“修复”打开系统设置，允许应用在后台不受限制运行。</string>
@@ -125,6 +138,7 @@
     <string name="settings_custom_theme_seed">自定义主题色</string>
     <string name="settings_summary_ai_voice">OpenRouter · %1$s</string>
     <string name="settings_summary_sound">%1$s</string>
+    <string name="settings_summary_calendar_not_selected">未选择</string>
     <string name="settings_summary_permissions">%1$d 项权限需要处理</string>
     <string name="settings_summary_permissions_all_set">所有权限已授权</string>
     <string name="settings_custom_theme_seed_label">种子颜色 #RRGGBB</string>

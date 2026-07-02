@@ -6,6 +6,9 @@ import androidx.annotation.StringRes
 import com.cory.noter.R
 import com.cory.noter.ai.AsrModel
 import com.cory.noter.ai.OpenRouterModel
+import com.cory.noter.calendar.CalendarSource
+import com.cory.noter.calendar.CalendarSourceResult
+import com.cory.noter.calendar.DeviceCalendar
 import com.cory.noter.data.settings.SettingsRepository
 import com.cory.noter.domain.settings.AppSettings
 import com.cory.noter.permissions.PermissionStatusReader
@@ -31,6 +34,30 @@ data class SettingsDirectoryRowUiModel(
     val summary: UiText,
 )
 
+enum class CalendarSettingsStatus {
+    MISSING_PERMISSION,
+    NO_WRITABLE_CALENDAR,
+    NO_DEFAULT_CALENDAR,
+    INVALID_STORED_CALENDAR,
+    READY,
+}
+
+data class CalendarRowUiModel(
+    val id: Long,
+    val displayName: String,
+    val accountName: String,
+    val accountType: String,
+    val writable: Boolean,
+    val selected: Boolean,
+)
+
+data class CalendarSettingsUiModel(
+    val status: CalendarSettingsStatus = CalendarSettingsStatus.NO_WRITABLE_CALENDAR,
+    val selectedCalendarId: Long? = null,
+    val setupComplete: Boolean = false,
+    val calendars: List<CalendarRowUiModel> = emptyList(),
+)
+
 data class SettingsUiState(
     val openRouterApiKey: String = "",
     val selectedModelId: String = OpenRouterModel.DefaultId,
@@ -45,6 +72,7 @@ data class SettingsUiState(
     val themePresetOptions: List<String> = AppSettings.BuiltInThemePresetIds.toList(),
     val directoryRows: List<SettingsDirectoryRowUiModel> = emptyList(),
     val permissionRows: List<PermissionGuidanceUiModel> = emptyList(),
+    val calendarSettings: CalendarSettingsUiModel = CalendarSettingsUiModel(),
     val errorMessage: UiText? = null,
 )
 
@@ -53,6 +81,9 @@ class SettingsViewModel(
     private val exactAlarmPermissionReader: PermissionStatusReader,
     private val notificationPermissionProvider: () -> Boolean,
     private val batteryOptimizationIgnoredProvider: () -> Boolean,
+    private val calendarSource: CalendarSource = CalendarSource {
+        CalendarSourceResult.Available(emptyList())
+    },
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(
         SettingsUiState(permissionRows = emptyList()),
@@ -63,6 +94,7 @@ class SettingsViewModel(
         refreshPermissionRows()
         viewModelScope.launch {
             settingsRepository.settings.collect { settings ->
+                val calendarSettings = loadCalendarSettings(settings.defaultCalendarId)
                 mutableUiState.update { current ->
                     val updated = current.copy(
                         openRouterApiKey = settings.openRouterApiKey,
@@ -74,6 +106,7 @@ class SettingsViewModel(
                         customThemeSeedColor = settings.customThemeSeedColor,
                         customThemeSeedColorInput = settings.customThemeSeedColor
                             ?: current.customThemeSeedColorInput,
+                        calendarSettings = calendarSettings,
                     )
                     updated.copy(directoryRows = buildDirectoryRows(updated))
                 }
@@ -87,6 +120,16 @@ class SettingsViewModel(
                 permissionRows = buildPermissionRows(),
             )
             updated.copy(directoryRows = buildDirectoryRows(updated))
+        }
+    }
+
+    fun refreshCalendarSettings() {
+        viewModelScope.launch {
+            val calendarSettings = loadCalendarSettings(uiState.value.defaultCalendarId)
+            mutableUiState.update { current ->
+                val updated = current.copy(calendarSettings = calendarSettings)
+                updated.copy(directoryRows = buildDirectoryRows(updated))
+            }
         }
     }
 
@@ -137,6 +180,13 @@ class SettingsViewModel(
 
     fun onDefaultCalendarSelected(calendarId: Long) {
         viewModelScope.launch {
+            val calendar = uiState.value.calendarSettings.calendars.firstOrNull { it.id == calendarId }
+            if (calendar?.writable != true) {
+                mutableUiState.update {
+                    it.copy(errorMessage = UiText.Resource(R.string.settings_calendar_choose_writable_error))
+                }
+                return@launch
+            }
             val result = settingsRepository.setDefaultCalendarId(calendarId)
             mutableUiState.update {
                 it.copy(errorMessage = result.exceptionOrNull()?.message?.let(UiText::Raw))
@@ -214,6 +264,11 @@ class SettingsViewModel(
                 ),
             ),
             SettingsDirectoryRowUiModel(
+                id = "calendar",
+                titleResId = R.string.settings_directory_calendar,
+                summary = calendarSummary(state.calendarSettings),
+            ),
+            SettingsDirectoryRowUiModel(
                 id = "permissions",
                 titleResId = R.string.settings_directory_permissions,
                 summary = permissionsSummary(state.permissionRows),
@@ -227,6 +282,58 @@ class SettingsViewModel(
         "soft_rose" -> UiText.Resource(R.string.settings_theme_preset_soft_rose)
         "neutral_gray" -> UiText.Resource(R.string.settings_theme_preset_neutral_gray)
         else -> UiText.Resource(R.string.settings_theme_preset_calm_blue)
+    }
+
+    private fun calendarSummary(calendarSettings: CalendarSettingsUiModel): UiText {
+        val selected = calendarSettings.calendars.firstOrNull { it.selected }
+        return if (selected == null) {
+            UiText.Resource(R.string.settings_summary_calendar_not_selected)
+        } else {
+            UiText.Raw(selected.displayName)
+        }
+    }
+
+    private suspend fun loadCalendarSettings(selectedCalendarId: Long?): CalendarSettingsUiModel =
+        when (val result = calendarSource.loadCalendars()) {
+            CalendarSourceResult.MissingPermission -> CalendarSettingsUiModel(
+                status = CalendarSettingsStatus.MISSING_PERMISSION,
+                selectedCalendarId = selectedCalendarId,
+                setupComplete = false,
+            )
+
+            is CalendarSourceResult.Available -> buildCalendarSettings(
+                selectedCalendarId = selectedCalendarId,
+                calendars = result.calendars,
+            )
+        }
+
+    private fun buildCalendarSettings(
+        selectedCalendarId: Long?,
+        calendars: List<DeviceCalendar>,
+    ): CalendarSettingsUiModel {
+        val rows = calendars.map { calendar ->
+            CalendarRowUiModel(
+                id = calendar.id,
+                displayName = calendar.displayName,
+                accountName = calendar.accountName,
+                accountType = calendar.accountType,
+                writable = calendar.writable,
+                selected = calendar.id == selectedCalendarId,
+            )
+        }
+        val writableRows = rows.filter { it.writable }
+        val status = when {
+            writableRows.isEmpty() -> CalendarSettingsStatus.NO_WRITABLE_CALENDAR
+            selectedCalendarId == null -> CalendarSettingsStatus.NO_DEFAULT_CALENDAR
+            writableRows.none { it.id == selectedCalendarId } -> CalendarSettingsStatus.INVALID_STORED_CALENDAR
+            else -> CalendarSettingsStatus.READY
+        }
+        return CalendarSettingsUiModel(
+            status = status,
+            selectedCalendarId = selectedCalendarId,
+            setupComplete = status == CalendarSettingsStatus.READY,
+            calendars = rows,
+        )
     }
 
     private fun permissionsSummary(rows: List<PermissionGuidanceUiModel>): UiText {

@@ -1,6 +1,9 @@
 package com.cory.noter.ui.settings
 
 import android.content.Context
+import com.cory.noter.calendar.CalendarSource
+import com.cory.noter.calendar.CalendarSourceResult
+import com.cory.noter.calendar.DeviceCalendar
 import com.cory.noter.ai.AsrModel
 import com.cory.noter.ai.OpenRouterModel
 import com.cory.noter.data.settings.FakeSettingsRepository
@@ -42,13 +45,22 @@ class SettingsViewModelTest {
             exactAlarmPermissionReader = PermissionStatusReader { false },
             notificationPermissionProvider = { true },
             batteryOptimizationIgnoredProvider = { false },
+            calendarSource = FakeCalendarSource.available(
+                DeviceCalendar(
+                    id = 42L,
+                    displayName = "Personal",
+                    accountName = "me@example.com",
+                    accountType = "com.google",
+                    writable = true,
+                ),
+            ),
         )
 
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
         assertThat(state.directoryRows.map { it.id })
-            .containsExactly("appearance", "ai_voice", "sound", "permissions")
+            .containsExactly("appearance", "ai_voice", "sound", "calendar", "permissions")
             .inOrder()
         assertThat(state.directoryRows.first { it.id == "appearance" }.summary.asStringForTest())
             .contains("Fresh Green")
@@ -56,6 +68,8 @@ class SettingsViewModelTest {
             .contains(OpenRouterModel.builtInIds[1])
         assertThat(state.directoryRows.first { it.id == "sound" }.summary.asStringForTest())
             .contains("content://ringtone/demo")
+        assertThat(state.directoryRows.first { it.id == "calendar" }.summary.asStringForTest())
+            .contains("Not selected")
         assertThat(state.directoryRows.first { it.id == "permissions" }.summary.asStringForTest())
             .contains("2")
     }
@@ -324,6 +338,15 @@ class SettingsViewModelTest {
             exactAlarmPermissionReader = PermissionStatusReader { true },
             notificationPermissionProvider = { true },
             batteryOptimizationIgnoredProvider = { true },
+            calendarSource = FakeCalendarSource.available(
+                DeviceCalendar(
+                    id = 42L,
+                    displayName = "Personal",
+                    accountName = "me@example.com",
+                    accountType = "com.google",
+                    writable = true,
+                ),
+            ),
         )
 
         advanceUntilIdle()
@@ -340,6 +363,147 @@ class SettingsViewModelTest {
         assertThat(repository.settings.first().defaultCalendarId).isNull()
         assertThat(viewModel.uiState.value.defaultCalendarId).isNull()
         assertThat(viewModel.uiState.value.errorMessage).isNull()
+    }
+
+    @Test
+    fun `calendar setup state reports missing calendar permission`() = runTest {
+        val viewModel = SettingsViewModel(
+            settingsRepository = FakeSettingsRepository(),
+            exactAlarmPermissionReader = PermissionStatusReader { true },
+            notificationPermissionProvider = { true },
+            batteryOptimizationIgnoredProvider = { true },
+            calendarSource = FakeCalendarSource(CalendarSourceResult.MissingPermission),
+        )
+
+        advanceUntilIdle()
+
+        val calendarState = viewModel.uiState.value.calendarSettings
+        assertThat(calendarState.status).isEqualTo(CalendarSettingsStatus.MISSING_PERMISSION)
+        assertThat(calendarState.setupComplete).isFalse()
+        assertThat(calendarState.calendars).isEmpty()
+    }
+
+    @Test
+    fun `calendar setup state reports no writable calendars`() = runTest {
+        val viewModel = SettingsViewModel(
+            settingsRepository = FakeSettingsRepository(),
+            exactAlarmPermissionReader = PermissionStatusReader { true },
+            notificationPermissionProvider = { true },
+            batteryOptimizationIgnoredProvider = { true },
+            calendarSource = FakeCalendarSource.available(
+                DeviceCalendar(
+                    id = 7L,
+                    displayName = "Read only",
+                    accountName = "readonly@example.com",
+                    accountType = "com.google",
+                    writable = false,
+                ),
+            ),
+        )
+
+        advanceUntilIdle()
+
+        val calendarState = viewModel.uiState.value.calendarSettings
+        assertThat(calendarState.status).isEqualTo(CalendarSettingsStatus.NO_WRITABLE_CALENDAR)
+        assertThat(calendarState.setupComplete).isFalse()
+        assertThat(calendarState.calendars.single().writable).isFalse()
+    }
+
+    @Test
+    fun `calendar setup state reports available calendar and setup complete when selected`() = runTest {
+        val repository = FakeSettingsRepository(
+            initialSettings = AppSettings(
+                openRouterApiKey = "",
+                selectedModelId = OpenRouterModel.DefaultId,
+                selectedAsrModelId = AsrModel.DefaultId,
+                defaultRingtoneUri = AppSettings.DefaultRingtoneUri,
+                defaultCalendarId = 42L,
+            ),
+        )
+        val viewModel = SettingsViewModel(
+            settingsRepository = repository,
+            exactAlarmPermissionReader = PermissionStatusReader { true },
+            notificationPermissionProvider = { true },
+            batteryOptimizationIgnoredProvider = { true },
+            calendarSource = FakeCalendarSource.available(
+                DeviceCalendar(
+                    id = 42L,
+                    displayName = "Personal",
+                    accountName = "me@example.com",
+                    accountType = "com.google",
+                    writable = true,
+                ),
+            ),
+        )
+
+        advanceUntilIdle()
+
+        val calendarState = viewModel.uiState.value.calendarSettings
+        assertThat(calendarState.status).isEqualTo(CalendarSettingsStatus.READY)
+        assertThat(calendarState.setupComplete).isTrue()
+        assertThat(calendarState.selectedCalendarId).isEqualTo(42L)
+    }
+
+    @Test
+    fun `calendar setup state reports invalid stored calendar`() = runTest {
+        val repository = FakeSettingsRepository(
+            initialSettings = AppSettings(
+                openRouterApiKey = "",
+                selectedModelId = OpenRouterModel.DefaultId,
+                selectedAsrModelId = AsrModel.DefaultId,
+                defaultRingtoneUri = AppSettings.DefaultRingtoneUri,
+                defaultCalendarId = 99L,
+            ),
+        )
+        val viewModel = SettingsViewModel(
+            settingsRepository = repository,
+            exactAlarmPermissionReader = PermissionStatusReader { true },
+            notificationPermissionProvider = { true },
+            batteryOptimizationIgnoredProvider = { true },
+            calendarSource = FakeCalendarSource.available(
+                DeviceCalendar(
+                    id = 42L,
+                    displayName = "Personal",
+                    accountName = "me@example.com",
+                    accountType = "com.google",
+                    writable = true,
+                ),
+            ),
+        )
+
+        advanceUntilIdle()
+
+        val calendarState = viewModel.uiState.value.calendarSettings
+        assertThat(calendarState.status).isEqualTo(CalendarSettingsStatus.INVALID_STORED_CALENDAR)
+        assertThat(calendarState.setupComplete).isFalse()
+    }
+
+    @Test
+    fun `non writable calendar selection is rejected before repository write`() = runTest {
+        val repository = FakeSettingsRepository()
+        val viewModel = SettingsViewModel(
+            settingsRepository = repository,
+            exactAlarmPermissionReader = PermissionStatusReader { true },
+            notificationPermissionProvider = { true },
+            batteryOptimizationIgnoredProvider = { true },
+            calendarSource = FakeCalendarSource.available(
+                DeviceCalendar(
+                    id = 7L,
+                    displayName = "Read only",
+                    accountName = "readonly@example.com",
+                    accountType = "com.google",
+                    writable = false,
+                ),
+            ),
+        )
+
+        advanceUntilIdle()
+        viewModel.onDefaultCalendarSelected(7L)
+        advanceUntilIdle()
+
+        assertThat(repository.settings.first().defaultCalendarId).isNull()
+        assertThat(viewModel.uiState.value.errorMessage?.asStringForTest())
+            .isEqualTo("Choose a writable calendar.")
     }
 
     @Test
@@ -411,6 +575,17 @@ class SettingsViewModelTest {
         override suspend fun setCustomThemeSeedColor(seedColor: String): Result<Unit> {
             customThemeSeedColorWriteCount += 1
             return delegate.setCustomThemeSeedColor(seedColor)
+        }
+    }
+
+    private class FakeCalendarSource(
+        private var result: CalendarSourceResult,
+    ) : CalendarSource {
+        override suspend fun loadCalendars(): CalendarSourceResult = result
+
+        companion object {
+            fun available(vararg calendars: DeviceCalendar): FakeCalendarSource =
+                FakeCalendarSource(CalendarSourceResult.Available(calendars.toList()))
         }
     }
 }

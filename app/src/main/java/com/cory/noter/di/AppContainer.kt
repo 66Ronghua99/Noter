@@ -21,6 +21,8 @@ import com.cory.noter.alarm.AlarmScheduler
 import com.cory.noter.alarm.AlarmSchedulingUseCase
 import com.cory.noter.alarm.AndroidAlarmScheduler
 import com.cory.noter.alarm.StartupReconciliation
+import com.cory.noter.calendar.AndroidCalendarSource
+import com.cory.noter.calendar.CalendarSource
 import com.cory.noter.data.alarm.AlarmDatabase
 import com.cory.noter.data.alarm.AlarmRepository
 import com.cory.noter.data.alarm.RoomAlarmRepository
@@ -80,6 +82,10 @@ class AppContainer(
 
     val permissionStatusReader: PermissionStatusReader by lazy {
         AndroidPermissionStatusReader(applicationContext)
+    }
+
+    val calendarSource: CalendarSource by lazy {
+        AndroidCalendarSource(applicationContext)
     }
 
     val alarmScheduler: AlarmScheduler by lazy {

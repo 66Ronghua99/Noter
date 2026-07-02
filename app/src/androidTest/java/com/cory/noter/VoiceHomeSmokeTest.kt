@@ -572,7 +572,7 @@ class VoiceHomeSmokeTest {
             alarmEditorScreen = { _, _, _ ->
                 Box(modifier = Modifier.testTag(AppRouteTestTags.Editor))
             },
-            settingsScreen = { _, _, _, _, _, _ ->
+            settingsScreen = { _, _, _, _, _, _, _ ->
                 Box(modifier = Modifier.testTag(AppRouteTestTags.Settings))
             },
             appearanceSettingsScreen = { _, _ ->
@@ -582,6 +582,9 @@ class VoiceHomeSmokeTest {
                 Box(modifier = Modifier.testTag(AppRouteTestTags.Settings))
             },
             soundSettingsScreen = { _, _ ->
+                Box(modifier = Modifier.testTag(AppRouteTestTags.Settings))
+            },
+            calendarSettingsScreen = { _, _ ->
                 Box(modifier = Modifier.testTag(AppRouteTestTags.Settings))
             },
             permissionsSettingsScreen = { _, _ ->

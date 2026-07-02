@@ -23,6 +23,14 @@ class AndroidManifestPermissionTest {
     }
 
     @Test
+    fun `manifest requests calendar read and write permissions`() {
+        val requestedPermissions = requestedManifestPermissions()
+
+        assertThat(requestedPermissions).contains("android.permission.READ_CALENDAR")
+        assertThat(requestedPermissions).contains("android.permission.WRITE_CALENDAR")
+    }
+
+    @Test
     fun `manifest declares speech recognition service query for system STT discovery`() {
         val queriedIntentActions = queriedManifestIntentActions()
 

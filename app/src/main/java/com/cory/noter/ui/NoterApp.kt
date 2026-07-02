@@ -23,6 +23,7 @@ object Routes {
     const val SETTINGS_APPEARANCE = "settings/appearance"
     const val SETTINGS_AI_VOICE = "settings/ai"
     const val SETTINGS_SOUND = "settings/sound"
+    const val SETTINGS_CALENDAR = "settings/calendar"
     const val SETTINGS_PERMISSIONS = "settings/permissions"
     const val ALARM_ID_ARG = "alarmId"
 
@@ -51,6 +52,7 @@ fun NoterApp(
         onOpenAppearance: () -> Unit,
         onOpenAiVoice: () -> Unit,
         onOpenSound: () -> Unit,
+        onOpenCalendar: () -> Unit,
         onOpenPermissions: () -> Unit,
         onBack: () -> Unit,
         settingsViewModelStoreOwner: ViewModelStoreOwner,
@@ -64,6 +66,10 @@ fun NoterApp(
         settingsViewModelStoreOwner: ViewModelStoreOwner,
     ) -> Unit,
     soundSettingsScreen: @Composable (
+        onBack: () -> Unit,
+        settingsViewModelStoreOwner: ViewModelStoreOwner,
+    ) -> Unit,
+    calendarSettingsScreen: @Composable (
         onBack: () -> Unit,
         settingsViewModelStoreOwner: ViewModelStoreOwner,
     ) -> Unit,
@@ -129,6 +135,7 @@ fun NoterApp(
                     { navController.navigate(Routes.SETTINGS_APPEARANCE) },
                     { navController.navigate(Routes.SETTINGS_AI_VOICE) },
                     { navController.navigate(Routes.SETTINGS_SOUND) },
+                    { navController.navigate(Routes.SETTINGS_CALENDAR) },
                     { navController.navigate(Routes.SETTINGS_PERMISSIONS) },
                     { navController.popBackStack() },
                     settingsViewModelStoreOwner,
@@ -160,6 +167,16 @@ fun NoterApp(
                     backStackEntry,
                 )
                 soundSettingsScreen(
+                    { navController.popBackStack() },
+                    settingsViewModelStoreOwner,
+                )
+            }
+            composable(route = Routes.SETTINGS_CALENDAR) { backStackEntry ->
+                val settingsViewModelStoreOwner = rememberSettingsViewModelStoreOwner(
+                    navController,
+                    backStackEntry,
+                )
+                calendarSettingsScreen(
                     { navController.popBackStack() },
                     settingsViewModelStoreOwner,
                 )

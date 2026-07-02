@@ -81,10 +81,14 @@ object SettingsTestTags {
     const val AppearanceRow = "SettingsAppearanceRow"
     const val AiVoiceRow = "SettingsAiVoiceRow"
     const val SoundRow = "SettingsSoundRow"
+    const val CalendarRow = "SettingsCalendarRow"
     const val PermissionsRow = "SettingsPermissionsRow"
     const val AppearanceDetail = "SettingsAppearanceDetail"
     const val AiVoiceDetail = "SettingsAiVoiceDetail"
     const val SoundDetail = "SettingsSoundDetail"
+    const val CalendarDetail = "SettingsCalendarDetail"
+    const val CalendarPermissionAction = "SettingsCalendarPermissionAction"
+    const val CalendarClearAction = "SettingsCalendarClearAction"
     const val PermissionsDetail = "SettingsPermissionsDetail"
     const val ApiKeyInput = "SettingsApiKeyInput"
     const val SaveApiKeyAction = "SettingsSaveApiKeyAction"
@@ -94,6 +98,7 @@ object SettingsTestTags {
     fun ThemePresetAction(presetId: String): String = "SettingsThemePresetAction:$presetId"
     fun ModelAction(modelId: String): String = "SettingsModelAction:$modelId"
     fun AsrModelAction(modelId: String): String = "SettingsAsrModelAction:$modelId"
+    fun CalendarAction(calendarId: Long): String = "SettingsCalendarAction:$calendarId"
     fun PermissionAction(permissionId: String): String = "SettingsPermissionAction:$permissionId"
 }
 
@@ -103,6 +108,7 @@ fun SettingsScreen(
     onOpenAppearance: () -> Unit,
     onOpenAiVoice: () -> Unit,
     onOpenSound: () -> Unit,
+    onOpenCalendar: () -> Unit,
     onOpenPermissions: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
@@ -130,6 +136,7 @@ fun SettingsScreen(
                         "appearance" -> onOpenAppearance
                         "ai_voice" -> onOpenAiVoice
                         "sound" -> onOpenSound
+                        "calendar" -> onOpenCalendar
                         "permissions" -> onOpenPermissions
                         else -> error("Unknown settings directory row: ${row.id}")
                     }
@@ -417,6 +424,71 @@ fun PermissionsSettingsScreen(
     }
 }
 
+@Composable
+fun CalendarSettingsScreen(
+    state: SettingsUiState,
+    onCalendarSelected: (Long) -> Unit,
+    onClearCalendar: () -> Unit,
+    onCalendarPermissionAction: () -> Unit,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    SettingsScaffold(
+        title = stringResource(R.string.settings_calendar_title),
+        onBack = onBack,
+        modifier = modifier.testTag(SettingsTestTags.CalendarDetail),
+    ) { contentModifier ->
+        Column(
+            modifier = contentModifier.verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
+        ) {
+            PageHeader(
+                title = stringResource(R.string.settings_calendar_title),
+                subtitle = stringResource(R.string.settings_calendar_subtitle),
+            )
+
+            Text(
+                text = calendarStatusText(state.calendarSettings.status),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            if (state.calendarSettings.status == CalendarSettingsStatus.MISSING_PERMISSION) {
+                Button(
+                    modifier = Modifier.testTag(SettingsTestTags.CalendarPermissionAction),
+                    onClick = onCalendarPermissionAction,
+                ) {
+                    Text(text = stringResource(R.string.settings_calendar_permission_action))
+                }
+            }
+
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                state.calendarSettings.calendars.forEach { row ->
+                    CalendarRow(
+                        row = row,
+                        modifier = Modifier.testTag(SettingsTestTags.CalendarAction(row.id)),
+                        onClick = { onCalendarSelected(row.id) },
+                    )
+                }
+            }
+
+            if (state.calendarSettings.selectedCalendarId != null) {
+                TextButton(
+                    modifier = Modifier.testTag(SettingsTestTags.CalendarClearAction),
+                    onClick = onClearCalendar,
+                ) {
+                    Text(text = stringResource(R.string.common_clear))
+                }
+            }
+
+            SettingsError(state.errorMessage)
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SettingsScaffold(
@@ -493,6 +565,7 @@ private fun SettingsDirectoryRow(
         "appearance" -> Icons.Default.Palette
         "ai_voice" -> Icons.Default.Psychology
         "sound" -> Icons.AutoMirrored.Filled.VolumeUp
+        "calendar" -> Icons.Default.Schedule
         "permissions" -> Icons.Default.Security
         else -> Icons.Default.Settings
     }
@@ -555,6 +628,98 @@ private fun SettingsDirectoryRow(
                 contentDescription = null,
                 modifier = Modifier.size(24.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun calendarStatusText(status: CalendarSettingsStatus): String = when (status) {
+    CalendarSettingsStatus.MISSING_PERMISSION -> stringResource(R.string.settings_calendar_status_missing_permission)
+    CalendarSettingsStatus.NO_WRITABLE_CALENDAR -> stringResource(R.string.settings_calendar_status_no_writable)
+    CalendarSettingsStatus.NO_DEFAULT_CALENDAR -> stringResource(R.string.settings_calendar_status_no_default)
+    CalendarSettingsStatus.INVALID_STORED_CALENDAR -> stringResource(R.string.settings_calendar_status_invalid_stored)
+    CalendarSettingsStatus.READY -> stringResource(R.string.settings_calendar_status_ready)
+}
+
+@Composable
+private fun CalendarRow(
+    row: CalendarRowUiModel,
+    modifier: Modifier,
+    onClick: () -> Unit,
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(enabled = row.writable, onClick = onClick),
+        colors = CardDefaults.cardColors(
+            containerColor = if (row.selected) {
+                MaterialTheme.colorScheme.primaryContainer
+            } else {
+                MaterialTheme.colorScheme.surfaceContainerLow
+            },
+            contentColor = if (row.selected) {
+                MaterialTheme.colorScheme.onPrimaryContainer
+            } else {
+                MaterialTheme.colorScheme.onSurface
+            },
+        ),
+        shape = MaterialTheme.shapes.medium,
+        border = BorderStroke(
+            width = if (row.selected) 2.dp else 1.dp,
+            color = if (row.selected) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.outlineVariant
+            },
+        ),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = if (row.selected) Icons.Default.Check else Icons.Default.Schedule,
+                contentDescription = null,
+                modifier = Modifier.size(24.dp),
+                tint = if (row.writable) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+            )
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Text(
+                    text = row.displayName,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                )
+                Text(
+                    text = stringResource(
+                        R.string.settings_calendar_account_format,
+                        row.accountName,
+                        row.accountType,
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Text(
+                text = if (row.writable) {
+                    stringResource(R.string.settings_calendar_writable)
+                } else {
+                    stringResource(R.string.settings_calendar_read_only)
+                },
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
@@ -973,6 +1138,7 @@ private val SettingsDirectoryRowUiModel.tag: String
         "appearance" -> SettingsTestTags.AppearanceRow
         "ai_voice" -> SettingsTestTags.AiVoiceRow
         "sound" -> SettingsTestTags.SoundRow
+        "calendar" -> SettingsTestTags.CalendarRow
         "permissions" -> SettingsTestTags.PermissionsRow
         else -> "SettingsDirectoryRow:$id"
     }

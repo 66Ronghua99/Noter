@@ -45,6 +45,7 @@ import com.cory.noter.ui.editor.AlarmEditorScreen
 import com.cory.noter.ui.editor.AlarmEditorViewModel
 import com.cory.noter.ui.settings.AiVoiceSettingsScreen
 import com.cory.noter.ui.settings.AppearanceSettingsScreen
+import com.cory.noter.ui.settings.CalendarSettingsScreen
 import com.cory.noter.ui.settings.PermissionsSettingsScreen
 import com.cory.noter.ui.settings.SettingsScreen
 import com.cory.noter.ui.settings.SettingsViewModel
@@ -137,7 +138,7 @@ private fun NoterRoot(
                 onDone = onDone,
             )
         },
-        settingsScreen = { onOpenAppearance, onOpenAiVoice, onOpenSound, onOpenPermissions, onBack, settingsViewModelStoreOwner ->
+        settingsScreen = { onOpenAppearance, onOpenAiVoice, onOpenSound, onOpenCalendar, onOpenPermissions, onBack, settingsViewModelStoreOwner ->
             SettingsRoute(
                 settingsViewModelStoreOwner = settingsViewModelStoreOwner,
                 appContainer = appContainer,
@@ -147,6 +148,7 @@ private fun NoterRoot(
                     onOpenAppearance = onOpenAppearance,
                     onOpenAiVoice = onOpenAiVoice,
                     onOpenSound = onOpenSound,
+                    onOpenCalendar = onOpenCalendar,
                     onOpenPermissions = onOpenPermissions,
                 ),
                 onBack = onBack,
@@ -179,6 +181,16 @@ private fun NoterRoot(
                 notificationPermissionProvider = notificationPermissionProvider,
                 batteryOptimizationIgnoredProvider = batteryOptimizationIgnoredProvider,
                 destination = SettingsDestination.Sound,
+                onBack = onBack,
+            )
+        },
+        calendarSettingsScreen = { onBack, settingsViewModelStoreOwner ->
+            SettingsRoute(
+                settingsViewModelStoreOwner = settingsViewModelStoreOwner,
+                appContainer = appContainer,
+                notificationPermissionProvider = notificationPermissionProvider,
+                batteryOptimizationIgnoredProvider = batteryOptimizationIgnoredProvider,
+                destination = SettingsDestination.Calendar,
                 onBack = onBack,
             )
         },
@@ -420,6 +432,7 @@ private fun SettingsRoute(
                 exactAlarmPermissionReader = appContainer.permissionStatusReader,
                 notificationPermissionProvider = notificationPermissionProvider,
                 batteryOptimizationIgnoredProvider = batteryOptimizationIgnoredProvider,
+                calendarSource = appContainer.calendarSource,
             )
         },
     )
@@ -428,10 +441,12 @@ private fun SettingsRoute(
         SettingsDestination.Appearance -> "appearance"
         SettingsDestination.AiVoice -> "ai_voice"
         SettingsDestination.Sound -> "sound"
+        SettingsDestination.Calendar -> "calendar"
         SettingsDestination.Permissions -> "permissions"
     }
     LaunchedEffect(destinationKey) {
         viewModel.refreshPermissionRows()
+        viewModel.refreshCalendarSettings()
     }
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
@@ -450,6 +465,11 @@ private fun SettingsRoute(
         viewModel.refreshPermissionRows()
         (context.applicationContext as? NoterApplication)?.reconcileStartupState()
     }
+    val calendarPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions(),
+    ) {
+        viewModel.refreshCalendarSettings()
+    }
     val state by viewModel.uiState.collectAsState()
     val ringtonePickerTitle = stringResource(R.string.ringtone_picker_default_alarm_title)
     val ringtonePicker = rememberLauncherForActivityResult(
@@ -467,6 +487,7 @@ private fun SettingsRoute(
                 onOpenAppearance = destination.onOpenAppearance,
                 onOpenAiVoice = destination.onOpenAiVoice,
                 onOpenSound = destination.onOpenSound,
+                onOpenCalendar = destination.onOpenCalendar,
                 onOpenPermissions = destination.onOpenPermissions,
                 onBack = onBack,
             )
@@ -501,6 +522,23 @@ private fun SettingsRoute(
                         createRingtonePickerIntent(
                             currentRingtoneUri = state.defaultRingtoneUri,
                             title = ringtonePickerTitle,
+                        ),
+                    )
+                },
+                onBack = onBack,
+            )
+        }
+
+        SettingsDestination.Calendar -> {
+            CalendarSettingsScreen(
+                state = state,
+                onCalendarSelected = viewModel::onDefaultCalendarSelected,
+                onClearCalendar = viewModel::clearDefaultCalendar,
+                onCalendarPermissionAction = {
+                    calendarPermissionLauncher.launch(
+                        arrayOf(
+                            Manifest.permission.READ_CALENDAR,
+                            Manifest.permission.WRITE_CALENDAR,
                         ),
                     )
                 },
@@ -545,12 +583,14 @@ private sealed interface SettingsDestination {
         val onOpenAppearance: () -> Unit,
         val onOpenAiVoice: () -> Unit,
         val onOpenSound: () -> Unit,
+        val onOpenCalendar: () -> Unit,
         val onOpenPermissions: () -> Unit,
     ) : SettingsDestination
 
     data object Appearance : SettingsDestination
     data object AiVoice : SettingsDestination
     data object Sound : SettingsDestination
+    data object Calendar : SettingsDestination
     data object Permissions : SettingsDestination
 }
 

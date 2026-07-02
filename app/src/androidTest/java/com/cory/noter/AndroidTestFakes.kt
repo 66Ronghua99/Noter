@@ -154,6 +154,14 @@ class AndroidTestSettingsRepository(
         mutableSettings.update { it.copy(defaultRingtoneUri = ringtoneUri) }
     }
 
+    override suspend fun setDefaultCalendarId(calendarId: Long): Result<Unit> = runCatching {
+        mutableSettings.update { it.copy(defaultCalendarId = calendarId) }
+    }
+
+    override suspend fun clearDefaultCalendarId(): Result<Unit> = runCatching {
+        mutableSettings.update { it.copy(defaultCalendarId = null) }
+    }
+
     override suspend fun setThemePreset(presetId: String): Result<Unit> = runCatching {
         require(presetId in AppSettings.BuiltInThemePresetIds) {
             "UNKNOWN_THEME_PRESET_ID: $presetId"

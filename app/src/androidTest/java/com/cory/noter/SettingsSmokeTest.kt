@@ -20,6 +20,7 @@ import com.cory.noter.ai.AiAlarmPromptBuilder
 import com.cory.noter.ai.AsrModel
 import com.cory.noter.ai.OpenRouterModel
 import com.cory.noter.alarm.AlarmSchedulingUseCase
+import com.cory.noter.ui.settings.CalendarSettingsScreen
 import com.cory.noter.ui.NoterApp
 import com.cory.noter.ui.Routes
 import com.cory.noter.ui.ai.AiCreateScreen
@@ -69,6 +70,13 @@ class SettingsSmokeTest {
         setSettingsRouteTestContent()
         composeRule.onNodeWithTag(SettingsTestTags.PermissionsRow).performClick()
         composeRule.onNodeWithTag(SettingsTestTags.PermissionsDetail).assertIsDisplayed()
+    }
+
+    @Test
+    fun settings_route_navigates_to_calendar_detail() {
+        setSettingsRouteTestContent()
+        composeRule.onNodeWithTag(SettingsTestTags.CalendarRow).performClick()
+        composeRule.onNodeWithTag(SettingsTestTags.CalendarDetail).assertIsDisplayed()
     }
 
     @Test
@@ -152,6 +160,25 @@ class SettingsSmokeTest {
         composeRule.onNodeWithTag(SettingsTestTags.PermissionAction("notifications")).assertIsDisplayed()
         composeRule.onNodeWithTag(SettingsTestTags.PermissionAction("exact_alarms")).assertIsDisplayed()
         composeRule.onNodeWithTag(SettingsTestTags.PermissionAction("battery_optimization")).assertIsDisplayed()
+    }
+
+    @Test
+    fun calendar_settings_detail_exposes_route_specific_controls() {
+        val state = SettingsViewModelPreviewStates.default
+
+        composeRule.setContent {
+            MaterialTheme {
+                CalendarSettingsScreen(
+                    state = state,
+                    onCalendarSelected = {},
+                    onClearCalendar = {},
+                    onCalendarPermissionAction = {},
+                    onBack = {},
+                )
+            }
+        }
+        composeRule.onNodeWithTag(SettingsTestTags.CalendarDetail).assertIsDisplayed()
+        composeRule.onNodeWithTag(SettingsTestTags.CalendarAction(42L)).assertIsDisplayed()
     }
 
     @Test
@@ -270,12 +297,13 @@ class SettingsSmokeTest {
                     unifiedAiCreateScreen = { _, _, _ -> Box(Modifier.testTag("ai-create")) },
                     alarmListScreen = { _, _, _, _ -> Box(Modifier.testTag("alarms")) },
                     alarmEditorScreen = { _, _, _ -> Box(Modifier.testTag("editor")) },
-                    settingsScreen = { onOpenAppearance, onOpenAiVoice, onOpenSound, onOpenPermissions, _, _ ->
+                    settingsScreen = { onOpenAppearance, onOpenAiVoice, onOpenSound, onOpenCalendar, onOpenPermissions, _, _ ->
                         SettingsScreen(
                             state = SettingsViewModelPreviewStates.default,
                             onOpenAppearance = onOpenAppearance,
                             onOpenAiVoice = onOpenAiVoice,
                             onOpenSound = onOpenSound,
+                            onOpenCalendar = onOpenCalendar,
                             onOpenPermissions = onOpenPermissions,
                             onBack = {},
                         )
@@ -288,6 +316,9 @@ class SettingsSmokeTest {
                     },
                     soundSettingsScreen = { _, _ ->
                         Box(Modifier.testTag(SettingsTestTags.SoundDetail))
+                    },
+                    calendarSettingsScreen = { _, _ ->
+                        Box(Modifier.testTag(SettingsTestTags.CalendarDetail))
                     },
                     permissionsSettingsScreen = { _, _ ->
                         Box(Modifier.testTag(SettingsTestTags.PermissionsDetail))
@@ -322,6 +353,11 @@ private object SettingsViewModelPreviewStates {
                 summary = com.cory.noter.ui.text.UiText.Raw("content://ringtone/demo"),
             ),
             com.cory.noter.ui.settings.SettingsDirectoryRowUiModel(
+                id = "calendar",
+                titleResId = R.string.settings_directory_calendar,
+                summary = com.cory.noter.ui.text.UiText.Raw("Personal"),
+            ),
+            com.cory.noter.ui.settings.SettingsDirectoryRowUiModel(
                 id = "permissions",
                 titleResId = R.string.settings_directory_permissions,
                 summary = com.cory.noter.ui.text.UiText.Raw("3"),
@@ -348,6 +384,21 @@ private object SettingsViewModelPreviewStates {
                 granted = false,
                 summaryResId = R.string.settings_permission_battery_summary,
                 actionLabelResId = R.string.settings_permission_battery_action,
+            ),
+        ),
+        calendarSettings = com.cory.noter.ui.settings.CalendarSettingsUiModel(
+            status = com.cory.noter.ui.settings.CalendarSettingsStatus.READY,
+            selectedCalendarId = 42L,
+            setupComplete = true,
+            calendars = listOf(
+                com.cory.noter.ui.settings.CalendarRowUiModel(
+                    id = 42L,
+                    displayName = "Personal",
+                    accountName = "me@example.com",
+                    accountType = "com.google",
+                    writable = true,
+                    selected = true,
+                ),
             ),
         ),
     )
