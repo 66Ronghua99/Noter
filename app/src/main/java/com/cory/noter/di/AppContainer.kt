@@ -150,6 +150,7 @@ class AppContainer(
             agentLoopRunner = agentLoopRunner,
             alarmRepository = alarmRepository,
             schedulingUseCase = alarmSchedulingUseCase,
+            calendarSyncer = calendarSyncUseCase,
             managementUseCase = alarmManagementUseCase,
         )
     }

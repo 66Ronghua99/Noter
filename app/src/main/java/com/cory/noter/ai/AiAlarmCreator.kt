@@ -18,6 +18,8 @@ import com.cory.noter.agent.tools.alarm.PauseAlarmTool
 import com.cory.noter.agent.tools.alarm.ResumeAlarmTool
 import com.cory.noter.alarm.AlarmManagementUseCase
 import com.cory.noter.alarm.AlarmSchedulingUseCase
+import com.cory.noter.calendar.CalendarAlarmSyncer
+import com.cory.noter.calendar.CalendarSyncResult
 import com.cory.noter.data.alarm.AlarmRepository
 import com.cory.noter.data.settings.SettingsRepository
 import com.cory.noter.domain.alarm.Alarm
@@ -67,6 +69,13 @@ class AiAlarmCreator(
     private val agentLoopRunner: AgentLoopRunner,
     private val alarmRepository: AlarmRepository,
     private val schedulingUseCase: AlarmSchedulingUseCase,
+    private val calendarSyncer: CalendarAlarmSyncer = CalendarAlarmSyncer { _, request ->
+        if (request.enabled) {
+            CalendarSyncResult.CalendarInsertFailed("Calendar sync dependency is not configured.")
+        } else {
+            CalendarSyncResult.Skipped
+        }
+    },
     private val managementUseCase: AlarmManagementUseCase = AlarmManagementUseCase(
         repository = alarmRepository,
         schedulingUseCase = schedulingUseCase,
@@ -95,6 +104,7 @@ class AiAlarmCreator(
                     ),
                     alarmRepository = alarmRepository,
                     schedulingUseCase = schedulingUseCase,
+                    calendarSyncer = calendarSyncer,
                     clock = clock,
                 ),
                 ListAlarmsTool(alarmRepository),

@@ -25,6 +25,13 @@ data class CalendarSyncRequest(
     val durationMinutes: Int,
 )
 
+fun interface CalendarAlarmSyncer {
+    suspend fun sync(
+        alarm: Alarm,
+        request: CalendarSyncRequest,
+    ): CalendarSyncResult
+}
+
 enum class CalendarSyncStatus(val value: String) {
     SYNCED("synced"),
     SKIPPED("skipped"),
@@ -120,8 +127,8 @@ class CalendarSyncUseCase(
     private val mappingRepository: AlarmCalendarEventRepository,
     private val clock: Clock = Clock.systemDefaultZone(),
     private val zoneIdProvider: () -> ZoneId = { ZoneId.systemDefault() },
-) {
-    suspend fun sync(
+) : CalendarAlarmSyncer {
+    override suspend fun sync(
         alarm: Alarm,
         request: CalendarSyncRequest,
     ): CalendarSyncResult {

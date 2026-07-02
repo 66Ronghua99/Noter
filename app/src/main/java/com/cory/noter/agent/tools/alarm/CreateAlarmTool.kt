@@ -9,6 +9,9 @@ import com.cory.noter.agent.AgentToolRisk
 import com.cory.noter.agent.AgentToolSpec
 import com.cory.noter.alarm.AlarmSchedulingUseCase
 import com.cory.noter.alarm.ScheduleResult
+import com.cory.noter.calendar.CalendarAlarmSyncer
+import com.cory.noter.calendar.CalendarSyncRequest
+import com.cory.noter.calendar.CalendarSyncResult
 import com.cory.noter.data.alarm.AlarmDraft
 import com.cory.noter.data.alarm.AlarmRepository
 import com.cory.noter.domain.ai.AiAlarmCalendarSync
@@ -34,6 +37,7 @@ class CreateAlarmTool(
     private val context: CreateAlarmToolContext,
     private val alarmRepository: AlarmRepository,
     private val schedulingUseCase: AlarmSchedulingUseCase,
+    private val calendarSyncer: CalendarAlarmSyncer,
     private val parser: CreateAlarmArgumentsParser = CreateAlarmArgumentsParser(),
     private val clock: Clock = Clock.systemDefaultZone(),
 ) : AgentTool {
@@ -95,18 +99,25 @@ class CreateAlarmTool(
         }
 
         return when (val scheduleResult = schedulingUseCase.syncSchedule(createdAlarm)) {
-            ScheduleResult.Scheduled -> AgentToolExecution.Success(
-                AgentToolResult(
-                    toolCallId = call.id,
-                    toolName = spec.name,
-                    content = createdAlarmContent(
-                        status = "created",
-                        alarm = createdAlarm,
-                        calendarSync = parsedDraft.calendarSync,
+            ScheduleResult.Scheduled -> {
+                val calendarSyncResult = syncCalendarIfEnabled(
+                    alarm = createdAlarm,
+                    calendarSync = parsedDraft.calendarSync,
+                )
+                AgentToolExecution.Success(
+                    AgentToolResult(
+                        toolCallId = call.id,
+                        toolName = spec.name,
+                        content = createdAlarmContent(
+                            status = "created",
+                            alarm = createdAlarm,
+                            calendarSync = parsedDraft.calendarSync,
+                            calendarSyncResult = calendarSyncResult,
+                        ),
+                        committed = true,
                     ),
-                    committed = true,
-                ),
-            )
+                )
+            }
 
             ScheduleResult.Cancelled -> AgentToolExecution.Failure(
                 failure = AgentFailure.ToolExecutionFailed(
@@ -119,6 +130,7 @@ class CreateAlarmTool(
                         status = "schedule_failed",
                         alarm = createdAlarm,
                         calendarSync = parsedDraft.calendarSync,
+                        calendarSyncResult = CalendarSyncResult.Skipped,
                     ) {
                         put("reason", "Alarm ${createdAlarm.id} scheduling returned Cancelled unexpectedly.")
                     },
@@ -137,6 +149,7 @@ class CreateAlarmTool(
                         status = "missing_scheduling_permission",
                         alarm = createdAlarm,
                         calendarSync = parsedDraft.calendarSync,
+                        calendarSyncResult = CalendarSyncResult.Skipped,
                     ) {
                         put("permission", scheduleResult.permission)
                     },
@@ -153,6 +166,7 @@ class CreateAlarmTool(
                         status = "schedule_failed",
                         alarm = createdAlarm,
                         calendarSync = parsedDraft.calendarSync,
+                        calendarSyncResult = CalendarSyncResult.Skipped,
                     ) {
                         put("reason", scheduleResult.reason)
                     },
@@ -162,10 +176,28 @@ class CreateAlarmTool(
         }
     }
 
+    private suspend fun syncCalendarIfEnabled(
+        alarm: Alarm,
+        calendarSync: AiAlarmCalendarSync,
+    ): CalendarSyncResult {
+        if (!calendarSync.enabled) {
+            return CalendarSyncResult.Skipped
+        }
+        return calendarSyncer.sync(
+            alarm = alarm,
+            request = CalendarSyncRequest(
+                enabled = calendarSync.enabled,
+                reason = calendarSync.reason,
+                durationMinutes = calendarSync.durationMinutes,
+            ),
+        )
+    }
+
     private fun createdAlarmContent(
         status: String,
         alarm: Alarm,
         calendarSync: AiAlarmCalendarSync,
+        calendarSyncResult: CalendarSyncResult,
         extra: kotlinx.serialization.json.JsonObjectBuilder.() -> Unit = {},
     ): JsonObject = buildJsonObject {
         put("status", status)
@@ -175,7 +207,28 @@ class CreateAlarmTool(
             put("enabled", calendarSync.enabled)
             put("reason", calendarSync.reason)
             put("durationMinutes", calendarSync.durationMinutes)
-            put("status", if (calendarSync.enabled) "pending_integration" else "skipped")
+            put("status", calendarSyncResult.status.value)
+            when (calendarSyncResult) {
+                is CalendarSyncResult.Synced -> {
+                    put("calendarId", calendarSyncResult.calendarId)
+                    put("eventId", calendarSyncResult.eventId)
+                }
+
+                is CalendarSyncResult.CalendarInsertFailed -> {
+                    put("failureReason", calendarSyncResult.reason)
+                }
+
+                is CalendarSyncResult.MappingPersistFailed -> {
+                    put("eventId", calendarSyncResult.eventId)
+                    put("failureReason", calendarSyncResult.reason)
+                }
+
+                CalendarSyncResult.CalendarNotWritable,
+                CalendarSyncResult.MissingCalendarPermission,
+                CalendarSyncResult.MissingDefaultCalendar,
+                CalendarSyncResult.Skipped,
+                -> Unit
+            }
         }
         extra()
     }

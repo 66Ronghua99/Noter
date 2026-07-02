@@ -7,6 +7,9 @@ import com.cory.noter.agent.AgentToolExecution
 import com.cory.noter.alarm.AlarmSchedulingUseCase
 import com.cory.noter.alarm.FakeAlarmScheduler
 import com.cory.noter.alarm.ScheduleResult
+import com.cory.noter.calendar.CalendarAlarmSyncer
+import com.cory.noter.calendar.CalendarSyncRequest
+import com.cory.noter.calendar.CalendarSyncResult
 import com.cory.noter.data.alarm.AlarmDraft
 import com.cory.noter.data.alarm.AlarmRepository
 import com.cory.noter.domain.alarm.AlarmSource
@@ -130,7 +133,14 @@ class CreateAlarmToolTest {
     fun `prompt compliant calendar sync arguments still create and schedule local alarm`() = runTest {
         val repository = FakeAlarmRepository(clock = clock, zoneId = zoneId)
         val scheduler = FakeAlarmScheduler()
-        val tool = createTool(repository = repository, scheduler = scheduler)
+        val calendarSyncer = RecordingCalendarSyncer(
+            result = CalendarSyncResult.Synced(
+                alarmId = 1,
+                calendarId = 42,
+                eventId = 9001,
+            ),
+        )
+        val tool = createTool(repository = repository, scheduler = scheduler, calendarSyncer = calendarSyncer)
 
         val result = tool.execute(
             AgentToolCall(
@@ -155,8 +165,158 @@ class CreateAlarmToolTest {
         assertThat(content).contains("\"calendarSync\":{\"enabled\":true")
         assertThat(content).contains("\"reason\":\"explicit_user_request\"")
         assertThat(content).contains("\"durationMinutes\":45")
+        assertThat(content).contains("\"status\":\"synced\"")
+        assertThat(content).contains("\"calendarId\":42")
+        assertThat(content).contains("\"eventId\":9001")
         assertThat(repository.alarms.first()).hasSize(1)
         assertThat(scheduler.scheduledAlarms).hasSize(1)
+        assertThat(calendarSyncer.calls).hasSize(1)
+        assertThat(calendarSyncer.calls.single().alarm).isEqualTo(repository.alarms.first().single())
+        assertThat(calendarSyncer.calls.single().request).isEqualTo(
+            CalendarSyncRequest(
+                enabled = true,
+                reason = "explicit_user_request",
+                durationMinutes = 45,
+            ),
+        )
+        assertThat(scheduler.scheduledIds).containsExactly(calendarSyncer.calls.single().alarm.id)
+    }
+
+    @Test
+    fun `disabled calendar sync returns skipped without invoking calendar syncer`() = runTest {
+        val repository = FakeAlarmRepository(clock = clock, zoneId = zoneId)
+        val calendarSyncer = RecordingCalendarSyncer(result = CalendarSyncResult.MissingDefaultCalendar)
+        val tool = createTool(repository = repository, calendarSyncer = calendarSyncer)
+
+        val result = tool.execute(
+            AgentToolCall(
+                id = "call-1",
+                name = "create_alarm",
+                arguments = validOnceArguments(),
+            ),
+        )
+
+        assertThat(result).isInstanceOf(AgentToolExecution.Success::class.java)
+        val success = result as AgentToolExecution.Success
+        assertThat(success.result.content.toString()).contains("\"calendarSync\":{\"enabled\":false")
+        assertThat(success.result.content.toString()).contains("\"status\":\"skipped\"")
+        assertThat(calendarSyncer.calls).isEmpty()
+        assertThat(repository.alarms.first()).hasSize(1)
+    }
+
+    @Test
+    fun `calendar permission failure is partial success without rolling back alarm`() = runTest {
+        val repository = FakeAlarmRepository(clock = clock, zoneId = zoneId)
+        val calendarSyncer = RecordingCalendarSyncer(result = CalendarSyncResult.MissingCalendarPermission)
+        val tool = createTool(repository = repository, calendarSyncer = calendarSyncer)
+
+        val result = tool.execute(
+            AgentToolCall(
+                id = "call-1",
+                name = "create_alarm",
+                arguments = calendarEnabledArguments(),
+            ),
+        )
+
+        assertThat(result).isInstanceOf(AgentToolExecution.Success::class.java)
+        val success = result as AgentToolExecution.Success
+        assertThat(success.result.content.toString()).contains("\"status\":\"created\"")
+        assertThat(success.result.content.toString()).contains("\"status\":\"missing_calendar_permission\"")
+        assertThat(repository.alarms.first()).hasSize(1)
+        assertThat(calendarSyncer.calls).hasSize(1)
+    }
+
+    @Test
+    fun `missing default calendar is partial success without rolling back alarm`() = runTest {
+        val repository = FakeAlarmRepository(clock = clock, zoneId = zoneId)
+        val calendarSyncer = RecordingCalendarSyncer(result = CalendarSyncResult.MissingDefaultCalendar)
+        val tool = createTool(repository = repository, calendarSyncer = calendarSyncer)
+
+        val result = tool.execute(
+            AgentToolCall(
+                id = "call-1",
+                name = "create_alarm",
+                arguments = calendarEnabledArguments(),
+            ),
+        )
+
+        assertThat(result).isInstanceOf(AgentToolExecution.Success::class.java)
+        val success = result as AgentToolExecution.Success
+        assertThat(success.result.content.toString()).contains("\"status\":\"missing_default_calendar\"")
+        assertThat(repository.alarms.first()).hasSize(1)
+    }
+
+    @Test
+    fun `calendar not writable is partial success without rolling back alarm`() = runTest {
+        val repository = FakeAlarmRepository(clock = clock, zoneId = zoneId)
+        val calendarSyncer = RecordingCalendarSyncer(result = CalendarSyncResult.CalendarNotWritable)
+        val tool = createTool(repository = repository, calendarSyncer = calendarSyncer)
+
+        val result = tool.execute(
+            AgentToolCall(
+                id = "call-1",
+                name = "create_alarm",
+                arguments = calendarEnabledArguments(),
+            ),
+        )
+
+        assertThat(result).isInstanceOf(AgentToolExecution.Success::class.java)
+        val success = result as AgentToolExecution.Success
+        assertThat(success.result.content.toString()).contains("\"status\":\"calendar_not_writable\"")
+        assertThat(repository.alarms.first()).hasSize(1)
+    }
+
+    @Test
+    fun `calendar provider failure is partial success with failure reason`() = runTest {
+        val repository = FakeAlarmRepository(clock = clock, zoneId = zoneId)
+        val calendarSyncer = RecordingCalendarSyncer(
+            result = CalendarSyncResult.CalendarInsertFailed("provider insert failed"),
+        )
+        val tool = createTool(repository = repository, calendarSyncer = calendarSyncer)
+
+        val result = tool.execute(
+            AgentToolCall(
+                id = "call-1",
+                name = "create_alarm",
+                arguments = calendarEnabledArguments(),
+            ),
+        )
+
+        assertThat(result).isInstanceOf(AgentToolExecution.Success::class.java)
+        val success = result as AgentToolExecution.Success
+        val content = success.result.content.toString()
+        assertThat(content).contains("\"status\":\"created\"")
+        assertThat(content).contains("\"status\":\"calendar_insert_failed\"")
+        assertThat(content).contains("\"failureReason\":\"provider insert failed\"")
+        assertThat(repository.alarms.first()).hasSize(1)
+    }
+
+    @Test
+    fun `calendar mapping failure is partial success with external event id and failure reason`() = runTest {
+        val repository = FakeAlarmRepository(clock = clock, zoneId = zoneId)
+        val calendarSyncer = RecordingCalendarSyncer(
+            result = CalendarSyncResult.MappingPersistFailed(
+                eventId = 9002,
+                reason = "mapping write failed",
+            ),
+        )
+        val tool = createTool(repository = repository, calendarSyncer = calendarSyncer)
+
+        val result = tool.execute(
+            AgentToolCall(
+                id = "call-1",
+                name = "create_alarm",
+                arguments = calendarEnabledArguments(),
+            ),
+        )
+
+        assertThat(result).isInstanceOf(AgentToolExecution.Success::class.java)
+        val success = result as AgentToolExecution.Success
+        val content = success.result.content.toString()
+        assertThat(content).contains("\"status\":\"mapping_persist_failed\"")
+        assertThat(content).contains("\"eventId\":9002")
+        assertThat(content).contains("\"failureReason\":\"mapping write failed\"")
+        assertThat(repository.alarms.first()).hasSize(1)
     }
 
     @Test
@@ -245,13 +405,20 @@ class CreateAlarmToolTest {
         val scheduler = FakeAlarmScheduler().apply {
             nextScheduleResult = ScheduleResult.MissingPermission(Manifest.permission.SCHEDULE_EXACT_ALARM)
         }
-        val tool = createTool(repository = repository, scheduler = scheduler)
+        val calendarSyncer = RecordingCalendarSyncer(
+            result = CalendarSyncResult.Synced(
+                alarmId = 1,
+                calendarId = 42,
+                eventId = 9001,
+            ),
+        )
+        val tool = createTool(repository = repository, scheduler = scheduler, calendarSyncer = calendarSyncer)
 
         val result = tool.execute(
             AgentToolCall(
                 id = "call-1",
                 name = "create_alarm",
-                arguments = validOnceArguments(),
+                arguments = calendarEnabledArguments(),
             ),
         )
 
@@ -267,6 +434,8 @@ class CreateAlarmToolTest {
         assertThat(failure.committedResult!!.committed).isTrue()
         assertThat(failure.committedResult!!.content.toString()).contains("\"status\":\"missing_scheduling_permission\"")
         assertThat(failure.committedResult!!.content.toString()).contains(Manifest.permission.SCHEDULE_EXACT_ALARM)
+        assertThat(failure.committedResult!!.content.toString()).contains("\"status\":\"skipped\"")
+        assertThat(calendarSyncer.calls).isEmpty()
     }
 
     @Test
@@ -297,6 +466,7 @@ class CreateAlarmToolTest {
     private fun createTool(
         repository: AlarmRepository = FakeAlarmRepository(clock = clock, zoneId = zoneId),
         scheduler: FakeAlarmScheduler = FakeAlarmScheduler(),
+        calendarSyncer: CalendarAlarmSyncer = RecordingCalendarSyncer(result = CalendarSyncResult.Skipped),
     ): CreateAlarmTool = CreateAlarmTool(
         context = CreateAlarmToolContext(
             userRequest = "tomorrow morning remind me to take medicine",
@@ -304,7 +474,18 @@ class CreateAlarmToolTest {
         ),
         alarmRepository = repository,
         schedulingUseCase = AlarmSchedulingUseCase(scheduler),
+        calendarSyncer = calendarSyncer,
         clock = clock,
+    )
+
+    private fun calendarEnabledArguments(): String = validOnceArguments(
+        calendarSync = """
+          "calendarSync": {
+            "enabled": true,
+            "reason": "explicit_user_request",
+            "durationMinutes": 45
+          }
+        """.trimIndent(),
     )
 
     private fun validOnceArguments(
@@ -435,5 +616,24 @@ class CreateAlarmToolTest {
         override suspend fun disable(id: Long): Alarm? = null
 
         override suspend fun delete(id: Long) = Unit
+    }
+
+    private class RecordingCalendarSyncer(
+        private val result: CalendarSyncResult,
+    ) : CalendarAlarmSyncer {
+        val calls = mutableListOf<Call>()
+
+        override suspend fun sync(
+            alarm: Alarm,
+            request: CalendarSyncRequest,
+        ): CalendarSyncResult {
+            calls += Call(alarm, request)
+            return result
+        }
+
+        data class Call(
+            val alarm: Alarm,
+            val request: CalendarSyncRequest,
+        )
     }
 }
