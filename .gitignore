@@ -6,6 +6,7 @@ artifacts/
 /*.md
 !/README.md
 !/README-zh.md
+!/AGENTS.md
 docs/superpowers/
 
 # Humanize RLCR local runtime state
