@@ -22,7 +22,10 @@ import com.cory.noter.alarm.AlarmSchedulingUseCase
 import com.cory.noter.alarm.AndroidAlarmScheduler
 import com.cory.noter.alarm.StartupReconciliation
 import com.cory.noter.calendar.AndroidCalendarSource
+import com.cory.noter.calendar.AndroidCalendarEventWriter
 import com.cory.noter.calendar.CalendarSource
+import com.cory.noter.calendar.CalendarSyncUseCase
+import com.cory.noter.calendar.CalendarEventWriter
 import com.cory.noter.data.alarm.AlarmDatabase
 import com.cory.noter.data.alarm.AlarmCalendarEventRepository
 import com.cory.noter.data.alarm.AlarmRepository
@@ -96,6 +99,19 @@ class AppContainer(
 
     val calendarSource: CalendarSource by lazy {
         AndroidCalendarSource(applicationContext)
+    }
+
+    val calendarEventWriter: CalendarEventWriter by lazy {
+        AndroidCalendarEventWriter(applicationContext)
+    }
+
+    val calendarSyncUseCase: CalendarSyncUseCase by lazy {
+        CalendarSyncUseCase(
+            settingsRepository = settingsRepository,
+            calendarSource = calendarSource,
+            eventWriter = calendarEventWriter,
+            mappingRepository = alarmCalendarEventRepository,
+        )
     }
 
     val alarmScheduler: AlarmScheduler by lazy {
