@@ -69,6 +69,8 @@
     <string name="ai_create_created_calendar_missing_permission_status">Alarm \"%1$s\" created. Allow calendar permission in Settings to sync it.</string>
     <string name="ai_create_created_calendar_missing_default_status">Alarm \"%1$s\" created. Choose a default calendar in Settings to sync it.</string>
     <string name="ai_create_created_calendar_not_writable_status">Alarm \"%1$s\" created. Choose a writable calendar in Settings to sync it.</string>
+    <string name="ai_create_created_calendar_insert_failed_status">Alarm \"%1$s\" created. Calendar provider could not save the event.</string>
+    <string name="ai_create_created_calendar_mapping_failed_status">Alarm \"%1$s\" created. Calendar sync record could not be saved.</string>
     <string name="ai_create_created_calendar_failed_status">Alarm \"%1$s\" created, but calendar sync needs attention: %2$s</string>
 
     <string name="voice_home_title">Voice alarm</string>
@@ -230,6 +232,8 @@
     <string name="notification_ai_created_calendar_missing_permission_big_text">Alarm \"%1$s\" was created. Allow calendar permission in Settings to sync it.</string>
     <string name="notification_ai_created_calendar_missing_default_big_text">Alarm \"%1$s\" was created. Choose a default calendar in Settings to sync it.</string>
     <string name="notification_ai_created_calendar_not_writable_big_text">Alarm \"%1$s\" was created. Choose a writable calendar in Settings to sync it.</string>
+    <string name="notification_ai_created_calendar_insert_failed_big_text">Alarm \"%1$s\" was created. Calendar provider could not save the event.</string>
+    <string name="notification_ai_created_calendar_mapping_failed_big_text">Alarm \"%1$s\" was created. Calendar sync record could not be saved.</string>
     <string name="notification_ai_created_calendar_failed_big_text">Alarm \"%1$s\" was created, but calendar sync needs attention: %2$s</string>
 
     <string name="notification_ringing_channel_name">Ringing alarms</string>

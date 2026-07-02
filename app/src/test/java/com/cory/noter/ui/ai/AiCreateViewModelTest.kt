@@ -6,6 +6,9 @@ import com.cory.noter.agent.AgentLoopRunner
 import com.cory.noter.agent.AgentMessage
 import com.cory.noter.agent.AgentMessageRole
 import com.cory.noter.agent.AgentToolCall
+import com.cory.noter.ai.AiCalendarSyncDetails
+import com.cory.noter.ai.AiCalendarSyncStatus
+import com.cory.noter.ai.AiCreateResult
 import com.cory.noter.ai.AiAlarmCreator
 import com.cory.noter.ai.AiAlarmPromptBuilder
 import com.cory.noter.ai.AsrModel
@@ -364,6 +367,39 @@ class AiCreateViewModelTest {
         }
     }
 
+    @Test
+    fun `blank provider and mapping failure reasons use generic status text instead of raw codes`() {
+        val cases = listOf(
+            AiCalendarSyncStatus.CALENDAR_INSERT_FAILED to
+                R.string.ai_create_created_calendar_insert_failed_status,
+            AiCalendarSyncStatus.MAPPING_PERSIST_FAILED to
+                R.string.ai_create_created_calendar_mapping_failed_status,
+        )
+
+        for ((status, expectedMessage) in cases) {
+            val result = AiCreateResult.Created(
+                alarm = alarmRepositoryAlarm(),
+                calendarSync = AiCalendarSyncDetails(
+                    enabled = true,
+                    reason = "explicit_user_request",
+                    durationMinutes = 45,
+                    status = status,
+                    failureReason = "",
+                ),
+            )
+
+            val statusMessage = result.toStatusMessageForTest()
+
+            assertThat(statusMessage).isEqualTo(
+                UiText.Resource(
+                    expectedMessage,
+                    listOf("Take medicine"),
+                ),
+            )
+            assertThat(statusMessage.toString()).doesNotContain(status.value)
+        }
+    }
+
     private class RecordingBackgroundScheduler : com.cory.noter.ai.AiCreateBackgroundScheduler {
         val prompts = mutableListOf<String>()
 
@@ -455,4 +491,39 @@ class AiCreateViewModelTest {
             defaultRingtoneUri = AppSettings.DefaultRingtoneUri,
         ),
     )
+
+    private fun alarmRepositoryAlarm() = com.cory.noter.domain.alarm.Alarm(
+        id = 10L,
+        title = "Take medicine",
+        hour = 8,
+        minute = 0,
+        repeatRule = com.cory.noter.domain.alarm.RepeatRule.Once(java.time.LocalDate.parse("2026-04-24")),
+        enabled = true,
+        ringtoneUri = AppSettings.DefaultRingtoneUri,
+        source = com.cory.noter.domain.alarm.AlarmSource.AI,
+        aiOriginalText = "take medicine",
+        nextTriggerAtMillis = 1_719_014_400_000,
+        createdAtMillis = 1_719_000_000_000,
+        updatedAtMillis = 1_719_000_000_000,
+    )
+
+    private fun AiCreateResult.toStatusMessageForTest(): UiText? {
+        val viewModel = AiCreateViewModel(
+            creator = AiAlarmCreator(
+                settingsRepository = FakeSettingsRepository(),
+                agentLoopRunner = AgentLoopRunner(FakeAgentLlmGateway()),
+                alarmRepository = FakeAlarmRepository(clock = clock, zoneId = zoneId),
+                schedulingUseCase = AlarmSchedulingUseCase(FakeAlarmScheduler()),
+                managementUseCase = managementUseCase(FakeAlarmRepository(clock = clock, zoneId = zoneId)),
+                clock = clock,
+            ),
+            settingsRepository = FakeSettingsRepository(),
+        )
+        val method = AiCreateViewModel::class.java.getDeclaredMethod(
+            "toStatusMessage",
+            AiCreateResult::class.java,
+        )
+        method.isAccessible = true
+        return method.invoke(viewModel, this) as UiText?
+    }
 }

@@ -63,8 +63,11 @@ data class AiCalendarSyncDetails(
     val eventId: Long? = null,
     val failureReason: String? = null,
 ) {
+    val hasFailureReason: Boolean
+        get() = !failureReason.isNullOrBlank()
+
     val failureLabel: String
-        get() = failureReason ?: status.value
+        get() = failureReason?.takeIf { it.isNotBlank() } ?: status.defaultFailureLabel
 
     companion object {
         fun skipped(): AiCalendarSyncDetails = AiCalendarSyncDetails(
@@ -91,6 +94,28 @@ enum class AiCalendarSyncStatus(val value: String) {
             entries.firstOrNull { it.value == value }
     }
 }
+
+private val AiCalendarSyncStatus.defaultFailureLabel: String
+    get() = when (this) {
+        AiCalendarSyncStatus.CALENDAR_INSERT_FAILED ->
+            "Calendar provider could not save the event."
+
+        AiCalendarSyncStatus.MAPPING_PERSIST_FAILED ->
+            "Calendar sync record could not be saved."
+
+        AiCalendarSyncStatus.MISSING_CALENDAR_PERMISSION ->
+            "Allow calendar permission in Settings."
+
+        AiCalendarSyncStatus.MISSING_DEFAULT_CALENDAR ->
+            "Choose a default calendar in Settings."
+
+        AiCalendarSyncStatus.CALENDAR_NOT_WRITABLE ->
+            "Choose a writable calendar in Settings."
+
+        AiCalendarSyncStatus.SYNCED,
+        AiCalendarSyncStatus.SKIPPED,
+        -> "Calendar sync did not complete."
+    }
 
 data class AiListedAlarm(
     val id: Long,

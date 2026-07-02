@@ -166,12 +166,33 @@ class AiCreateViewModel(
                     listOf(alarm.title),
                 )
 
-            AiCalendarSyncStatus.CALENDAR_INSERT_FAILED,
-            AiCalendarSyncStatus.MAPPING_PERSIST_FAILED,
-            -> UiText.Resource(
-                R.string.ai_create_created_calendar_failed_status,
-                listOf(alarm.title, calendarSync.failureLabel),
-            )
+            AiCalendarSyncStatus.CALENDAR_INSERT_FAILED -> {
+                if (calendarSync.hasFailureReason) {
+                    UiText.Resource(
+                        R.string.ai_create_created_calendar_failed_status,
+                        listOf(alarm.title, calendarSync.failureLabel),
+                    )
+                } else {
+                    UiText.Resource(
+                        R.string.ai_create_created_calendar_insert_failed_status,
+                        listOf(alarm.title),
+                    )
+                }
+            }
+
+            AiCalendarSyncStatus.MAPPING_PERSIST_FAILED -> {
+                if (calendarSync.hasFailureReason) {
+                    UiText.Resource(
+                        R.string.ai_create_created_calendar_failed_status,
+                        listOf(alarm.title, calendarSync.failureLabel),
+                    )
+                } else {
+                    UiText.Resource(
+                        R.string.ai_create_created_calendar_mapping_failed_status,
+                        listOf(alarm.title),
+                    )
+                }
+            }
         }
 
         else -> null

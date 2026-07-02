@@ -112,6 +112,40 @@ class AndroidAiCreateResultNotifierTest {
 
     @Test
     @Config(sdk = [Build.VERSION_CODES.S])
+    fun `created alarm notification maps blank provider and mapping failures to generic text`() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val notifier = AndroidAiCreateResultNotifier(context)
+        val cases = listOf(
+            AiCalendarSyncStatus.CALENDAR_INSERT_FAILED to "Calendar provider could not save the event.",
+            AiCalendarSyncStatus.MAPPING_PERSIST_FAILED to "Calendar sync record could not be saved.",
+        )
+
+        for ((status, expectedText) in cases) {
+            notifier.notifyResult(
+                AiCreateResult.Created(
+                    alarm = sampleAlarm(id = 10L),
+                    calendarSync = AiCalendarSyncDetails(
+                        enabled = true,
+                        reason = "explicit_user_request",
+                        durationMinutes = 45,
+                        status = status,
+                        failureReason = "",
+                    ),
+                ),
+            )
+
+            val bigText = postedNotification(context)
+                .extras
+                .getCharSequence(Notification.EXTRA_BIG_TEXT)
+                .toString()
+
+            assertThat(bigText).contains(expectedText)
+            assertThat(bigText).doesNotContain(status.value)
+        }
+    }
+
+    @Test
+    @Config(sdk = [Build.VERSION_CODES.S])
     fun `listed alarms notification includes alarm details in expanded text`() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val notifier = AndroidAiCreateResultNotifier(context)
