@@ -314,6 +314,56 @@ class AiCreateViewModelTest {
             )
     }
 
+    @Test
+    fun `created alarm calendar setup failures use actionable status text instead of raw codes`() = runTest {
+        val cases = listOf(
+            CalendarSyncResult.MissingCalendarPermission to
+                R.string.ai_create_created_calendar_missing_permission_status,
+            CalendarSyncResult.MissingDefaultCalendar to
+                R.string.ai_create_created_calendar_missing_default_status,
+            CalendarSyncResult.CalendarNotWritable to
+                R.string.ai_create_created_calendar_not_writable_status,
+        )
+
+        for ((syncResult, expectedMessage) in cases) {
+            val settingsRepository = validSettingsRepository()
+            val agentGateway = FakeAgentLlmGateway().apply {
+                results += createAlarmTurn(enabledCalendarAlarmJson())
+                results += endTaskTurn()
+            }
+            val alarmRepository = FakeAlarmRepository(clock = clock, zoneId = zoneId)
+            val viewModel = AiCreateViewModel(
+                creator = AiAlarmCreator(
+                    settingsRepository = settingsRepository,
+                    agentLoopRunner = AgentLoopRunner(agentGateway),
+                    alarmRepository = alarmRepository,
+                    schedulingUseCase = AlarmSchedulingUseCase(FakeAlarmScheduler()),
+                    calendarSyncer = CalendarAlarmSyncer { _, _ -> syncResult },
+                    managementUseCase = managementUseCase(alarmRepository),
+                    promptBuilder = AiAlarmPromptBuilder(),
+                    clock = clock,
+                ),
+                settingsRepository = settingsRepository,
+            )
+
+            advanceUntilIdle()
+            viewModel.onPromptChanged("tomorrow at 8 am remind me to take medicine and add it to my calendar")
+            viewModel.submit()
+            advanceUntilIdle()
+
+            val statusMessage = viewModel.uiState.value.statusMessage
+            assertThat(statusMessage).isEqualTo(
+                UiText.Resource(
+                    expectedMessage,
+                    listOf("Take medicine"),
+                ),
+            )
+            assertThat(statusMessage.toString()).doesNotContain("missing_calendar_permission")
+            assertThat(statusMessage.toString()).doesNotContain("missing_default_calendar")
+            assertThat(statusMessage.toString()).doesNotContain("calendar_not_writable")
+        }
+    }
+
     private class RecordingBackgroundScheduler : com.cory.noter.ai.AiCreateBackgroundScheduler {
         val prompts = mutableListOf<String>()
 

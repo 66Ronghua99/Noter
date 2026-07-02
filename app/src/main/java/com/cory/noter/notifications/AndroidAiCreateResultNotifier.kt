@@ -223,9 +223,24 @@ class AndroidAiCreateResultNotifier(
         AiCalendarSyncStatus.SKIPPED ->
             context.getString(R.string.notification_ai_created_calendar_skipped_big_text, alarm.title)
 
-        AiCalendarSyncStatus.MISSING_CALENDAR_PERMISSION,
-        AiCalendarSyncStatus.MISSING_DEFAULT_CALENDAR,
-        AiCalendarSyncStatus.CALENDAR_NOT_WRITABLE,
+        AiCalendarSyncStatus.MISSING_CALENDAR_PERMISSION ->
+            context.getString(
+                R.string.notification_ai_created_calendar_missing_permission_big_text,
+                alarm.title,
+            )
+
+        AiCalendarSyncStatus.MISSING_DEFAULT_CALENDAR ->
+            context.getString(
+                R.string.notification_ai_created_calendar_missing_default_big_text,
+                alarm.title,
+            )
+
+        AiCalendarSyncStatus.CALENDAR_NOT_WRITABLE ->
+            context.getString(
+                R.string.notification_ai_created_calendar_not_writable_big_text,
+                alarm.title,
+            )
+
         AiCalendarSyncStatus.CALENDAR_INSERT_FAILED,
         AiCalendarSyncStatus.MAPPING_PERSIST_FAILED,
         -> context.getString(

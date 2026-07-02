@@ -78,6 +78,40 @@ class AndroidAiCreateResultNotifierTest {
 
     @Test
     @Config(sdk = [Build.VERSION_CODES.S])
+    fun `created alarm notification maps calendar setup failures to actionable text`() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val notifier = AndroidAiCreateResultNotifier(context)
+        val cases = listOf(
+            AiCalendarSyncStatus.MISSING_CALENDAR_PERMISSION to "Allow calendar permission in Settings",
+            AiCalendarSyncStatus.MISSING_DEFAULT_CALENDAR to "Choose a default calendar in Settings",
+            AiCalendarSyncStatus.CALENDAR_NOT_WRITABLE to "Choose a writable calendar in Settings",
+        )
+
+        for ((status, expectedText) in cases) {
+            notifier.notifyResult(
+                AiCreateResult.Created(
+                    alarm = sampleAlarm(id = 10L),
+                    calendarSync = AiCalendarSyncDetails(
+                        enabled = true,
+                        reason = "explicit_user_request",
+                        durationMinutes = 45,
+                        status = status,
+                    ),
+                ),
+            )
+
+            val bigText = postedNotification(context)
+                .extras
+                .getCharSequence(Notification.EXTRA_BIG_TEXT)
+                .toString()
+
+            assertThat(bigText).contains(expectedText)
+            assertThat(bigText).doesNotContain(status.value)
+        }
+    }
+
+    @Test
+    @Config(sdk = [Build.VERSION_CODES.S])
     fun `listed alarms notification includes alarm details in expanded text`() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val notifier = AndroidAiCreateResultNotifier(context)

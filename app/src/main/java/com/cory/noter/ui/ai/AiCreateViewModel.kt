@@ -148,9 +148,24 @@ class AiCreateViewModel(
             AiCalendarSyncStatus.SKIPPED ->
                 UiText.Resource(R.string.ai_create_created_calendar_skipped_status, listOf(alarm.title))
 
-            AiCalendarSyncStatus.MISSING_CALENDAR_PERMISSION,
-            AiCalendarSyncStatus.MISSING_DEFAULT_CALENDAR,
-            AiCalendarSyncStatus.CALENDAR_NOT_WRITABLE,
+            AiCalendarSyncStatus.MISSING_CALENDAR_PERMISSION ->
+                UiText.Resource(
+                    R.string.ai_create_created_calendar_missing_permission_status,
+                    listOf(alarm.title),
+                )
+
+            AiCalendarSyncStatus.MISSING_DEFAULT_CALENDAR ->
+                UiText.Resource(
+                    R.string.ai_create_created_calendar_missing_default_status,
+                    listOf(alarm.title),
+                )
+
+            AiCalendarSyncStatus.CALENDAR_NOT_WRITABLE ->
+                UiText.Resource(
+                    R.string.ai_create_created_calendar_not_writable_status,
+                    listOf(alarm.title),
+                )
+
             AiCalendarSyncStatus.CALENDAR_INSERT_FAILED,
             AiCalendarSyncStatus.MAPPING_PERSIST_FAILED,
             -> UiText.Resource(
