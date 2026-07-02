@@ -294,7 +294,12 @@ class CreateAlarmArgumentsParserTest {
               "date": "2026-04-24",
               "confidence": 1.1,
               "needsClarification": false,
-              "clarificationReason": ""
+              "clarificationReason": "",
+              "calendarSync": {
+                "enabled": false,
+                "reason": "none",
+                "durationMinutes": 30
+              }
             }
             """.trimIndent(),
         )
@@ -321,7 +326,12 @@ class CreateAlarmArgumentsParserTest {
               "date": null,
               "confidence": 0.9,
               "needsClarification": false,
-              "clarificationReason": ""
+              "clarificationReason": "",
+              "calendarSync": {
+                "enabled": false,
+                "reason": "none",
+                "durationMinutes": 30
+              }
             }
             """.trimIndent(),
         )
@@ -412,7 +422,12 @@ class CreateAlarmArgumentsParserTest {
               "date": "2026-04-24",
               "confidence": 0.92,
               "needsClarification": false,
-              "clarificationReason": ""
+              "clarificationReason": "",
+              "calendarSync": {
+                "enabled": false,
+                "reason": "none",
+                "durationMinutes": 30
+              }
             }
             """.trimIndent(),
         )
@@ -438,7 +453,12 @@ class CreateAlarmArgumentsParserTest {
               },
               "confidence": 0.92,
               "needsClarification": false,
-              "clarificationReason": ""
+              "clarificationReason": "",
+              "calendarSync": {
+                "enabled": false,
+                "reason": "none",
+                "durationMinutes": 30
+              }
             }
             """.trimIndent(),
         )
@@ -465,7 +485,12 @@ class CreateAlarmArgumentsParserTest {
               "date": "2026-04-24",
               "confidence": 0.92,
               "needsClarification": false,
-              "clarificationReason": ""
+              "clarificationReason": "",
+              "calendarSync": {
+                "enabled": false,
+                "reason": "none",
+                "durationMinutes": 30
+              }
             }
             """.trimIndent(),
         )
@@ -515,7 +540,41 @@ class CreateAlarmArgumentsParserTest {
     }
 
     @Test
-    fun `clarification required throws distinct exception`() {
+    fun `clarification required with valid calendar sync throws distinct exception`() {
+        val result = parser.parse(
+            """
+            {
+              "title": "",
+              "hour": 8,
+              "minute": 30,
+              "repeatRule": {
+                "type": "once",
+                "daysOfWeek": [],
+                "startDate": null,
+                "endDate": null,
+                "intervalWeeks": null
+              },
+              "date": "2026-04-24",
+              "confidence": 0.2,
+              "needsClarification": true,
+              "clarificationReason": "Which day should I use?",
+              "calendarSync": {
+                "enabled": false,
+                "reason": "none",
+                "durationMinutes": 30
+              }
+            }
+            """.trimIndent(),
+        )
+
+        val error = result.exceptionOrNull()
+        assertThat(error).isInstanceOf(CreateAlarmArgumentsParser.ClarificationRequiredException::class.java)
+        assertThat((error as CreateAlarmArgumentsParser.ClarificationRequiredException).reason)
+            .isEqualTo("Which day should I use?")
+    }
+
+    @Test
+    fun `clarification required still rejects missing calendar sync`() {
         val result = parser.parse(
             """
             {
@@ -537,10 +596,11 @@ class CreateAlarmArgumentsParserTest {
             """.trimIndent(),
         )
 
-        val error = result.exceptionOrNull()
-        assertThat(error).isInstanceOf(CreateAlarmArgumentsParser.ClarificationRequiredException::class.java)
-        assertThat((error as CreateAlarmArgumentsParser.ClarificationRequiredException).reason)
-            .isEqualTo("Which day should I use?")
+        assertThat(result.isFailure).isTrue()
+        assertThat(result.exceptionOrNull()).isNotInstanceOf(
+            CreateAlarmArgumentsParser.ClarificationRequiredException::class.java,
+        )
+        assertThat(result.exceptionOrNull()).hasMessageThat().contains("calendarSync is required")
     }
 
     private fun validOnceArguments(

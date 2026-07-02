@@ -51,6 +51,7 @@ class CreateAlarmArgumentsParser {
 
         val needsClarification = root.requiredBoolean("needsClarification")
         val clarificationReason = root.requiredString("clarificationReason")
+        val calendarSync = root.requiredCalendarSync()
         if (needsClarification) {
             if (clarificationReason.isBlank()) {
                 throw invalid("clarificationReason must be non-empty when needsClarification is true")
@@ -135,8 +136,6 @@ class CreateAlarmArgumentsParser {
         if (!confidence.isFinite() || confidence !in 0.0..1.0) {
             throw invalid("confidence must be a finite number from 0.0 through 1.0")
         }
-
-        val calendarSync = root.requiredCalendarSync()
 
         AiAlarmDraft(
             title = title,

@@ -202,6 +202,26 @@ class CreateAlarmToolTest {
     }
 
     @Test
+    fun `clarification request missing calendar sync returns tool execution failure`() = runTest {
+        val repository = RecordingAlarmRepository(clock = clock, zoneId = zoneId)
+        val tool = createTool(repository = repository)
+
+        val result = tool.execute(
+            AgentToolCall(
+                id = "call-1",
+                name = "create_alarm",
+                arguments = clarificationArguments(includeCalendarSync = false),
+            ),
+        )
+
+        assertThat(result).isInstanceOf(AgentToolExecution.Failure::class.java)
+        val failure = result as AgentToolExecution.Failure
+        assertThat(failure.failure).isEqualTo(AgentFailure.ToolExecutionFailed("calendarSync is required"))
+        assertThat(failure.committedResult).isNull()
+        assertThat(repository.createCalls).isEqualTo(0)
+    }
+
+    @Test
     fun `repository create failure returns dedicated create failed agent failure`() = runTest {
         val tool = createTool(repository = CreateFailingAlarmRepository())
 
@@ -339,7 +359,20 @@ class CreateAlarmToolTest {
         }
     """.trimIndent()
 
-    private fun clarificationArguments(): String = """
+    private fun clarificationArguments(includeCalendarSync: Boolean = true): String {
+        val calendarSync = if (includeCalendarSync) {
+            """
+              ,
+              "calendarSync": {
+                "enabled": false,
+                "reason": "none",
+                "durationMinutes": 30
+              }
+            """.trimIndent()
+        } else {
+            ""
+        }
+        return """
         {
           "title": "Take medicine",
           "hour": 8,
@@ -354,14 +387,10 @@ class CreateAlarmToolTest {
           "date": "2026-04-24",
           "confidence": 0.45,
           "needsClarification": true,
-          "clarificationReason": "Which day should I use?",
-          "calendarSync": {
-            "enabled": false,
-            "reason": "none",
-            "durationMinutes": 30
-          }
+          "clarificationReason": "Which day should I use?"$calendarSync
         }
     """.trimIndent()
+    }
 
     private class RecordingAlarmRepository(
         clock: Clock,
