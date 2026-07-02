@@ -17,6 +17,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.cory.noter.R
 import com.cory.noter.ai.AiAlarmManagementAction
+import com.cory.noter.ai.AiCalendarSyncStatus
 import com.cory.noter.ai.AiCreateResult
 import com.cory.noter.ai.AiCreateResultNotifier
 import com.cory.noter.ai.AiListedAlarmFormatter
@@ -51,7 +52,8 @@ class AndroidAiCreateResultNotifier(
                 id = RESULT_NOTIFICATION_ID,
                 notification = builder
                     .setContentTitle(context.getString(R.string.notification_ai_created_title))
-                    .setContentText(result.alarm.title)
+                    .setContentText(result.createdContentText())
+                    .setStyle(NotificationCompat.BigTextStyle().bigText(result.createdBigText()))
                     .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                     .build(),
             )
@@ -197,6 +199,40 @@ class AndroidAiCreateResultNotifier(
 
         AiAlarmManagementAction.RESUMED ->
             context.getString(R.string.notification_ai_resumed, alarm.title)
+    }
+
+    private fun AiCreateResult.Created.createdContentText(): String = when (calendarSync.status) {
+        AiCalendarSyncStatus.SYNCED ->
+            context.getString(R.string.notification_ai_created_synced, alarm.title)
+
+        AiCalendarSyncStatus.SKIPPED ->
+            context.getString(R.string.notification_ai_created_calendar_skipped, alarm.title)
+
+        AiCalendarSyncStatus.MISSING_CALENDAR_PERMISSION,
+        AiCalendarSyncStatus.MISSING_DEFAULT_CALENDAR,
+        AiCalendarSyncStatus.CALENDAR_NOT_WRITABLE,
+        AiCalendarSyncStatus.CALENDAR_INSERT_FAILED,
+        AiCalendarSyncStatus.MAPPING_PERSIST_FAILED,
+        -> context.getString(R.string.notification_ai_created_calendar_failed, alarm.title)
+    }
+
+    private fun AiCreateResult.Created.createdBigText(): String = when (calendarSync.status) {
+        AiCalendarSyncStatus.SYNCED ->
+            context.getString(R.string.notification_ai_created_synced_big_text, alarm.title)
+
+        AiCalendarSyncStatus.SKIPPED ->
+            context.getString(R.string.notification_ai_created_calendar_skipped_big_text, alarm.title)
+
+        AiCalendarSyncStatus.MISSING_CALENDAR_PERMISSION,
+        AiCalendarSyncStatus.MISSING_DEFAULT_CALENDAR,
+        AiCalendarSyncStatus.CALENDAR_NOT_WRITABLE,
+        AiCalendarSyncStatus.CALENDAR_INSERT_FAILED,
+        AiCalendarSyncStatus.MAPPING_PERSIST_FAILED,
+        -> context.getString(
+            R.string.notification_ai_created_calendar_failed_big_text,
+            alarm.title,
+            calendarSync.failureLabel,
+        )
     }
 
     private companion object {

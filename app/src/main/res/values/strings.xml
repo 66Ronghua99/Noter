@@ -64,6 +64,9 @@
     <string name="ai_create_management_paused_indefinitely_status">Paused %1$s indefinitely.</string>
     <string name="ai_create_management_resumed_status">Resumed %1$s.</string>
     <string name="ai_create_listed_alarms_status">Listed %1$d alarms.</string>
+    <string name="ai_create_created_synced_status">Alarm \"%1$s\" created and synced to calendar.</string>
+    <string name="ai_create_created_calendar_skipped_status">Alarm \"%1$s\" created. Calendar sync skipped.</string>
+    <string name="ai_create_created_calendar_failed_status">Alarm \"%1$s\" created, but calendar sync needs attention: %2$s</string>
 
     <string name="voice_home_title">Voice alarm</string>
     <string name="voice_home_idle_prompt">Hold the button and say the alarm.</string>
@@ -216,6 +219,12 @@
     <string name="notification_ai_paused_indefinitely">Paused %1$s indefinitely.</string>
     <string name="notification_ai_resumed">Resumed %1$s.</string>
     <string name="notification_ai_listed">Listed %1$d alarms.</string>
+    <string name="notification_ai_created_synced">%1$s synced to calendar.</string>
+    <string name="notification_ai_created_synced_big_text">Alarm \"%1$s\" was created and synced to calendar.</string>
+    <string name="notification_ai_created_calendar_skipped">%1$s created.</string>
+    <string name="notification_ai_created_calendar_skipped_big_text">Alarm \"%1$s\" was created. Calendar sync was skipped.</string>
+    <string name="notification_ai_created_calendar_failed">%1$s created; calendar sync needs attention.</string>
+    <string name="notification_ai_created_calendar_failed_big_text">Alarm \"%1$s\" was created, but calendar sync needs attention: %2$s</string>
 
     <string name="notification_ringing_channel_name">Ringing alarms</string>
     <string name="notification_ringing_channel_description">Alarm notifications for active ringing flows.</string>

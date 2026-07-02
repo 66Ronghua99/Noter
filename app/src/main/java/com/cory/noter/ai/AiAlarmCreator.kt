@@ -31,6 +31,8 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.longOrNull
 
 sealed interface AiCreateResult {
@@ -46,7 +48,48 @@ sealed interface AiCreateResult {
     data class ScheduleFailed(val alarm: Alarm, val reason: String) : AiCreateResult
     data class ManagementSucceeded(val alarm: Alarm, val action: AiAlarmManagementAction) : AiCreateResult
     data class AlarmsListed(val alarms: List<AiListedAlarm>) : AiCreateResult
-    data class Created(val alarm: Alarm) : AiCreateResult
+    data class Created(
+        val alarm: Alarm,
+        val calendarSync: AiCalendarSyncDetails = AiCalendarSyncDetails.skipped(),
+    ) : AiCreateResult
+}
+
+data class AiCalendarSyncDetails(
+    val enabled: Boolean,
+    val reason: String,
+    val durationMinutes: Int,
+    val status: AiCalendarSyncStatus,
+    val calendarId: Long? = null,
+    val eventId: Long? = null,
+    val failureReason: String? = null,
+) {
+    val failureLabel: String
+        get() = failureReason ?: status.value
+
+    companion object {
+        fun skipped(): AiCalendarSyncDetails = AiCalendarSyncDetails(
+            enabled = false,
+            reason = "none",
+            durationMinutes = 30,
+            status = AiCalendarSyncStatus.SKIPPED,
+        )
+    }
+}
+
+enum class AiCalendarSyncStatus(val value: String) {
+    SYNCED("synced"),
+    SKIPPED("skipped"),
+    MISSING_CALENDAR_PERMISSION("missing_calendar_permission"),
+    MISSING_DEFAULT_CALENDAR("missing_default_calendar"),
+    CALENDAR_NOT_WRITABLE("calendar_not_writable"),
+    CALENDAR_INSERT_FAILED("calendar_insert_failed"),
+    MAPPING_PERSIST_FAILED("mapping_persist_failed"),
+    ;
+
+    companion object {
+        fun fromValue(value: String): AiCalendarSyncStatus? =
+            entries.firstOrNull { it.value == value }
+    }
 }
 
 data class AiListedAlarm(
@@ -196,7 +239,14 @@ class AiAlarmCreator(
             ?: return AiCreateResult.InvalidResponse("Agent tool result referenced a missing alarm.")
 
         return when (status) {
-            "created" -> AiCreateResult.Created(alarm)
+            "created" -> {
+                val calendarSync = content.toCalendarSyncDetails()
+                    ?: return AiCreateResult.InvalidResponse(
+                        "Agent create result did not include a valid calendarSync status.",
+                    )
+                AiCreateResult.Created(alarm, calendarSync)
+            }
+
             "paused_next_occurrence" -> AiCreateResult.ManagementSucceeded(
                 alarm = alarm,
                 action = AiAlarmManagementAction.PAUSED_NEXT_OCCURRENCE,
@@ -282,6 +332,24 @@ class AiAlarmCreator(
         return AiCreateResult.AlarmsListed(alarms)
     }
 
+    private fun Map<String, JsonElement>.toCalendarSyncDetails(): AiCalendarSyncDetails? {
+        val calendarSync = get("calendarSync") as? JsonObject ?: return null
+        val enabled = calendarSync.requiredBoolean("enabled") ?: return null
+        val reason = calendarSync.requiredString("reason") ?: return null
+        val durationMinutes = calendarSync.requiredInt("durationMinutes") ?: return null
+        val statusValue = calendarSync.requiredString("status") ?: return null
+        val status = AiCalendarSyncStatus.fromValue(statusValue) ?: return null
+        return AiCalendarSyncDetails(
+            enabled = enabled,
+            reason = reason,
+            durationMinutes = durationMinutes,
+            status = status,
+            calendarId = calendarSync.optionalLong("calendarId"),
+            eventId = calendarSync.optionalLong("eventId"),
+            failureReason = calendarSync.optionalString("failureReason"),
+        )
+    }
+
     private fun AgentToolResult.toClarificationRequiredOrNull(): AiCreateResult.ClarificationRequired? {
         val status = content.requiredString("status") ?: return null
         if (status != "rejected" || committed) {
@@ -312,6 +380,25 @@ class AiAlarmCreator(
             ?.takeIf { it.isString }
             ?.content
             ?.takeIf { it.isNotBlank() }
+
+    private fun Map<String, JsonElement>.optionalString(key: String): String? {
+        val element = get(key) ?: return null
+        if (element is JsonNull) {
+            return null
+        }
+        return (element as? JsonPrimitive)
+            ?.takeIf { it.isString }
+            ?.content
+            ?.takeIf { it.isNotBlank() }
+    }
+
+    private fun Map<String, JsonElement>.requiredBoolean(key: String): Boolean? =
+        (get(key) as? JsonPrimitive)
+            ?.takeUnless { it.isString }
+            ?.booleanOrNull
+
+    private fun Map<String, JsonElement>.requiredInt(key: String): Int? =
+        (get(key) as? JsonPrimitive)?.intOrNull
 
     private fun Map<String, JsonElement>.requiredLong(key: String): Long? =
         (get(key) as? JsonPrimitive)?.longOrNull

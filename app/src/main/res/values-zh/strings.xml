@@ -64,6 +64,9 @@
     <string name="ai_create_management_paused_indefinitely_status">已无限期暂停 %1$s。</string>
     <string name="ai_create_management_resumed_status">已恢复 %1$s。</string>
     <string name="ai_create_listed_alarms_status">已列出 %1$d 个闹钟。</string>
+    <string name="ai_create_created_synced_status">闹钟“%1$s”已创建并同步到日历。</string>
+    <string name="ai_create_created_calendar_skipped_status">闹钟“%1$s”已创建，未同步到日历。</string>
+    <string name="ai_create_created_calendar_failed_status">闹钟“%1$s”已创建，但日历同步需要处理：%2$s</string>
 
     <string name="voice_home_title">语音闹钟</string>
     <string name="voice_home_idle_prompt">按住按钮，说出你想创建的闹钟。</string>
@@ -216,6 +219,12 @@
     <string name="notification_ai_paused_indefinitely">已无限期暂停 %1$s。</string>
     <string name="notification_ai_resumed">已恢复 %1$s。</string>
     <string name="notification_ai_listed">已列出 %1$d 个闹钟。</string>
+    <string name="notification_ai_created_synced">%1$s 已同步到日历。</string>
+    <string name="notification_ai_created_synced_big_text">闹钟“%1$s”已创建并同步到日历。</string>
+    <string name="notification_ai_created_calendar_skipped">%1$s 已创建。</string>
+    <string name="notification_ai_created_calendar_skipped_big_text">闹钟“%1$s”已创建，未同步到日历。</string>
+    <string name="notification_ai_created_calendar_failed">%1$s 已创建；日历同步需要处理。</string>
+    <string name="notification_ai_created_calendar_failed_big_text">闹钟“%1$s”已创建，但日历同步需要处理：%2$s</string>
 
     <string name="notification_ringing_channel_name">响铃闹钟</string>
     <string name="notification_ringing_channel_description">正在响铃流程的闹钟通知。</string>

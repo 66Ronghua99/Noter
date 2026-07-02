@@ -6,6 +6,7 @@ import com.cory.noter.ai.AiAlarmManagementAction
 import com.cory.noter.ai.AiAlarmCreator
 import com.cory.noter.ai.AiCreateBackgroundScheduler
 import com.cory.noter.ai.AiCreateResult
+import com.cory.noter.ai.AiCalendarSyncStatus
 import com.cory.noter.ai.AiListedAlarmFormatter
 import com.cory.noter.R
 import com.cory.noter.data.settings.SettingsRepository
@@ -138,6 +139,24 @@ class AiCreateViewModel(
 
             AiAlarmManagementAction.RESUMED ->
                 UiText.Resource(R.string.ai_create_management_resumed_status, listOf(alarm.title))
+        }
+
+        is AiCreateResult.Created -> when (calendarSync.status) {
+            AiCalendarSyncStatus.SYNCED ->
+                UiText.Resource(R.string.ai_create_created_synced_status, listOf(alarm.title))
+
+            AiCalendarSyncStatus.SKIPPED ->
+                UiText.Resource(R.string.ai_create_created_calendar_skipped_status, listOf(alarm.title))
+
+            AiCalendarSyncStatus.MISSING_CALENDAR_PERMISSION,
+            AiCalendarSyncStatus.MISSING_DEFAULT_CALENDAR,
+            AiCalendarSyncStatus.CALENDAR_NOT_WRITABLE,
+            AiCalendarSyncStatus.CALENDAR_INSERT_FAILED,
+            AiCalendarSyncStatus.MAPPING_PERSIST_FAILED,
+            -> UiText.Resource(
+                R.string.ai_create_created_calendar_failed_status,
+                listOf(alarm.title, calendarSync.failureLabel),
+            )
         }
 
         else -> null

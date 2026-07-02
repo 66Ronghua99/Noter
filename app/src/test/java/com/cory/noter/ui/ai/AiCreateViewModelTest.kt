@@ -13,6 +13,8 @@ import com.cory.noter.alarm.AlarmManagementUseCase
 import com.cory.noter.alarm.AlarmSchedulingUseCase
 import com.cory.noter.alarm.FakeAlarmScheduler
 import com.cory.noter.alarm.ScheduleResult
+import com.cory.noter.calendar.CalendarAlarmSyncer
+import com.cory.noter.calendar.CalendarSyncResult
 import com.cory.noter.domain.alarm.NextTriggerCalculator
 import com.cory.noter.data.settings.FakeSettingsRepository
 import com.cory.noter.domain.settings.AppSettings
@@ -26,6 +28,7 @@ import java.time.Instant
 import java.time.ZoneId
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.flow.first
 import org.junit.Rule
 import org.junit.Test
 
@@ -230,6 +233,87 @@ class AiCreateViewModelTest {
         assertThat(status.value).contains("pause: none")
     }
 
+    @Test
+    fun `created alarm with synced calendar becomes synced status message`() = runTest {
+        val settingsRepository = validSettingsRepository()
+        val agentGateway = FakeAgentLlmGateway().apply {
+            results += createAlarmTurn(enabledCalendarAlarmJson())
+            results += endTaskTurn()
+        }
+        val alarmRepository = FakeAlarmRepository(clock = clock, zoneId = zoneId)
+        val viewModel = AiCreateViewModel(
+            creator = AiAlarmCreator(
+                settingsRepository = settingsRepository,
+                agentLoopRunner = AgentLoopRunner(agentGateway),
+                alarmRepository = alarmRepository,
+                schedulingUseCase = AlarmSchedulingUseCase(FakeAlarmScheduler()),
+                calendarSyncer = CalendarAlarmSyncer { alarm, _ ->
+                    CalendarSyncResult.Synced(
+                        alarmId = alarm.id,
+                        calendarId = 42,
+                        eventId = 9001,
+                    )
+                },
+                managementUseCase = managementUseCase(alarmRepository),
+                promptBuilder = AiAlarmPromptBuilder(),
+                clock = clock,
+            ),
+            settingsRepository = settingsRepository,
+        )
+
+        advanceUntilIdle()
+        viewModel.onPromptChanged("tomorrow at 8 am remind me to take medicine and add it to my calendar")
+        viewModel.submit()
+        advanceUntilIdle()
+
+        val createdAlarm = alarmRepository.alarms.first().single()
+        assertThat(viewModel.uiState.value.errorMessage).isNull()
+        assertThat(viewModel.uiState.value.createdAlarmId).isEqualTo(createdAlarm.id)
+        assertThat(viewModel.uiState.value.statusMessage)
+            .isEqualTo(UiText.Resource(R.string.ai_create_created_synced_status, listOf("Take medicine")))
+    }
+
+    @Test
+    fun `created alarm with calendar failure becomes partial success status message`() = runTest {
+        val settingsRepository = validSettingsRepository()
+        val agentGateway = FakeAgentLlmGateway().apply {
+            results += createAlarmTurn(enabledCalendarAlarmJson())
+            results += endTaskTurn()
+        }
+        val alarmRepository = FakeAlarmRepository(clock = clock, zoneId = zoneId)
+        val viewModel = AiCreateViewModel(
+            creator = AiAlarmCreator(
+                settingsRepository = settingsRepository,
+                agentLoopRunner = AgentLoopRunner(agentGateway),
+                alarmRepository = alarmRepository,
+                schedulingUseCase = AlarmSchedulingUseCase(FakeAlarmScheduler()),
+                calendarSyncer = CalendarAlarmSyncer { _, _ ->
+                    CalendarSyncResult.CalendarInsertFailed("provider insert failed")
+                },
+                managementUseCase = managementUseCase(alarmRepository),
+                promptBuilder = AiAlarmPromptBuilder(),
+                clock = clock,
+            ),
+            settingsRepository = settingsRepository,
+        )
+
+        advanceUntilIdle()
+        viewModel.onPromptChanged("tomorrow at 8 am remind me to take medicine and add it to my calendar")
+        viewModel.submit()
+        advanceUntilIdle()
+
+        val createdAlarm = alarmRepository.alarms.first().single()
+        assertThat(viewModel.uiState.value.errorMessage).isNull()
+        assertThat(viewModel.uiState.value.createdAlarmId).isEqualTo(createdAlarm.id)
+        assertThat(viewModel.uiState.value.statusMessage)
+            .isEqualTo(
+                UiText.Resource(
+                    R.string.ai_create_created_calendar_failed_status,
+                    listOf("Take medicine", "provider insert failed"),
+                ),
+            )
+    }
+
     private class RecordingBackgroundScheduler : com.cory.noter.ai.AiCreateBackgroundScheduler {
         val prompts = mutableListOf<String>()
 
@@ -266,4 +350,59 @@ class AiCreateViewModelTest {
           }
         }
     """.trimIndent()
+
+    private fun enabledCalendarAlarmJson(): String = """
+        {
+          "title": "Take medicine",
+          "hour": 8,
+          "minute": 0,
+          "repeatRule": { "type": "once", "daysOfWeek": [] },
+          "date": "2026-04-24",
+          "confidence": 0.92,
+          "needsClarification": false,
+          "clarificationReason": "",
+          "calendarSync": {
+            "enabled": true,
+            "reason": "explicit_user_request",
+            "durationMinutes": 45
+          }
+        }
+    """.trimIndent()
+
+    private fun createAlarmTurn(arguments: String): AgentLlmResult.Message = AgentLlmResult.Message(
+        AgentMessage(
+            role = AgentMessageRole.ASSISTANT,
+            content = "",
+            toolCalls = listOf(
+                AgentToolCall(
+                    id = "call-1",
+                    name = "create_alarm",
+                    arguments = arguments,
+                ),
+            ),
+        ),
+    )
+
+    private fun endTaskTurn(): AgentLlmResult.Message = AgentLlmResult.Message(
+        AgentMessage(
+            role = AgentMessageRole.ASSISTANT,
+            content = "",
+            toolCalls = listOf(
+                AgentToolCall(
+                    id = "call-end",
+                    name = "end_task",
+                    arguments = """{"reason":"Alarm created."}""",
+                ),
+            ),
+        ),
+    )
+
+    private fun validSettingsRepository(): FakeSettingsRepository = FakeSettingsRepository(
+        initialSettings = AppSettings(
+            openRouterApiKey = "sk-or-v1-test",
+            selectedModelId = "deepseek/deepseek-v3.2",
+            selectedAsrModelId = AsrModel.DefaultId,
+            defaultRingtoneUri = AppSettings.DefaultRingtoneUri,
+        ),
+    )
 }

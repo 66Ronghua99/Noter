@@ -77,6 +77,32 @@ class AiCreateBackgroundSchedulerTest {
     }
 
     @Test
+    fun `worker succeeds when created alarm has failed calendar sync`() = runTest {
+        val expected = AiCreateResult.Created(
+            alarm = sampleAlarm(id = 10L),
+            calendarSync = AiCalendarSyncDetails(
+                enabled = true,
+                reason = "explicit_user_request",
+                durationMinutes = 45,
+                status = AiCalendarSyncStatus.CALENDAR_INSERT_FAILED,
+                failureReason = "provider insert failed",
+            ),
+        )
+        val runtime = RecordingRuntime(expected)
+        AiCreateWorker.runtimeFactory = { runtime }
+        val worker = buildWorker("tomorrow at 8 am remind me to take medicine")
+
+        val result = worker.doWork()
+
+        assertThat(result).isInstanceOf(ListenableWorker.Result.Success::class.java)
+        assertThat(runtime.events).containsExactly(
+            "notifyStarted",
+            "createFromText:tomorrow at 8 am remind me to take medicine",
+            "notifyResult:$expected",
+        ).inOrder()
+    }
+
+    @Test
     fun `worker retries transient ai create failures and still notifies result`() = runTest {
         val transientResults = listOf(
             AiCreateResult.NetworkFailure("timeout") to "notifyResult:${AiCreateResult.NetworkFailure("timeout")}",

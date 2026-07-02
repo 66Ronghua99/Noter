@@ -15,6 +15,8 @@ import com.cory.noter.alarm.AlarmManagementUseCase
 import com.cory.noter.alarm.AlarmSchedulingUseCase
 import com.cory.noter.alarm.FakeAlarmScheduler
 import com.cory.noter.alarm.ScheduleResult
+import com.cory.noter.calendar.CalendarAlarmSyncer
+import com.cory.noter.calendar.CalendarSyncResult
 import com.cory.noter.data.alarm.AlarmDraft
 import com.cory.noter.data.alarm.AlarmDatabase
 import com.cory.noter.data.alarm.AlarmRepository
@@ -33,6 +35,10 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonObject
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -255,7 +261,9 @@ class AiAlarmCreatorTest {
         val result = creator.createFromText("tomorrow morning remind me to take medicine")
 
         assertThat(result).isInstanceOf(AiCreateResult.Created::class.java)
-        val created = (result as AiCreateResult.Created).alarm
+        val createdResult = result as AiCreateResult.Created
+        val created = createdResult.alarm
+        assertThat(createdResult.calendarSync.status).isEqualTo(AiCalendarSyncStatus.SKIPPED)
         assertThat(created.id).isGreaterThan(0)
         assertThat(created.title).isEqualTo("Take medicine")
         assertThat(created.hour).isEqualTo(8)
@@ -297,6 +305,140 @@ class AiAlarmCreatorTest {
         assertThat(fakeAgentGateway.requests.first().tools.map { it.name })
             .doesNotContain("submit_alarm_draft")
     }
+
+    @Test
+    fun `created result carries synced calendar status details`() = runTest {
+        settingsRepository.set(validSettings())
+        val syncedCreator = creatorWithCalendarSyncer(
+            CalendarAlarmSyncer { alarm, _ ->
+                CalendarSyncResult.Synced(
+                    alarmId = alarm.id,
+                    calendarId = 42,
+                    eventId = 9001,
+                )
+            },
+        )
+        fakeAgentGateway.results += createAlarmTurn(enabledCalendarAlarmJson())
+        fakeAgentGateway.results += endTaskTurn()
+
+        val result = syncedCreator.createFromText("tomorrow morning add my medicine alarm to calendar")
+
+        assertThat(result).isInstanceOf(AiCreateResult.Created::class.java)
+        val created = result as AiCreateResult.Created
+        assertThat(created.calendarSync.enabled).isTrue()
+        assertThat(created.calendarSync.reason).isEqualTo("explicit_user_request")
+        assertThat(created.calendarSync.durationMinutes).isEqualTo(45)
+        assertThat(created.calendarSync.status).isEqualTo(AiCalendarSyncStatus.SYNCED)
+        assertThat(created.calendarSync.calendarId).isEqualTo(42)
+        assertThat(created.calendarSync.eventId).isEqualTo(9001)
+    }
+
+    @Test
+    fun `calendar sync failure remains created result with failure details`() = runTest {
+        settingsRepository.set(validSettings())
+        val failureCreator = creatorWithCalendarSyncer(
+            CalendarAlarmSyncer { _, _ ->
+                CalendarSyncResult.CalendarInsertFailed("provider insert failed")
+            },
+        )
+        fakeAgentGateway.results += createAlarmTurn(enabledCalendarAlarmJson())
+        fakeAgentGateway.results += endTaskTurn()
+
+        val result = failureCreator.createFromText("tomorrow morning add my medicine alarm to calendar")
+
+        assertThat(result).isInstanceOf(AiCreateResult.Created::class.java)
+        val created = result as AiCreateResult.Created
+        assertThat(created.calendarSync.status).isEqualTo(AiCalendarSyncStatus.CALENDAR_INSERT_FAILED)
+        assertThat(created.calendarSync.failureReason).isEqualTo("provider insert failed")
+        assertThat(repository.alarms.first()).hasSize(1)
+    }
+
+    @Test
+    fun `Chinese unclear request preserves Chinese rejection reason`() = runTest {
+        settingsRepository.set(validSettings())
+        fakeAgentGateway.results += AgentLlmResult.Message(
+            AgentMessage(
+                role = AgentMessageRole.ASSISTANT,
+                content = "",
+                toolCalls = listOf(
+                    AgentToolCall(
+                        id = "call-reject",
+                        name = "reject_unclear_request",
+                        arguments = """{"reason":"请告诉我是明天还是下周一。"}""",
+                    ),
+                ),
+            ),
+        )
+        fakeAgentGateway.results += endTaskTurn()
+
+        val result = creator.createFromText("帮我设一个提醒")
+
+        assertThat(result).isEqualTo(AiCreateResult.ClarificationRequired("请告诉我是明天还是下周一。"))
+        assertThat(repository.alarms.first()).isEmpty()
+    }
+
+    @Test
+    fun `English unclear request preserves English rejection reason`() = runTest {
+        settingsRepository.set(validSettings())
+        fakeAgentGateway.results += AgentLlmResult.Message(
+            AgentMessage(
+                role = AgentMessageRole.ASSISTANT,
+                content = "",
+                toolCalls = listOf(
+                    AgentToolCall(
+                        id = "call-reject",
+                        name = "reject_unclear_request",
+                        arguments = """{"reason":"Which day should I use?"}""",
+                    ),
+                ),
+            ),
+        )
+        fakeAgentGateway.results += endTaskTurn()
+
+        val result = creator.createFromText("remind me in the morning")
+
+        assertThat(result).isEqualTo(AiCreateResult.ClarificationRequired("Which day should I use?"))
+        assertThat(repository.alarms.first()).isEmpty()
+    }
+
+    @Test
+    fun `structured calendar fields remain unlocalized for Chinese request`() = runTest {
+        settingsRepository.set(validSettings())
+        val syncedCreator = creatorWithCalendarSyncer(
+            CalendarAlarmSyncer { alarm, _ ->
+                CalendarSyncResult.Synced(
+                    alarmId = alarm.id,
+                    calendarId = 42,
+                    eventId = 9001,
+                )
+            },
+        )
+        fakeAgentGateway.results += createAlarmTurn(enabledCalendarAlarmJson())
+        fakeAgentGateway.results += endTaskTurn()
+
+        val result = syncedCreator.createFromText("明天早上八点提醒我吃药，并同步到日历")
+
+        assertThat(result).isInstanceOf(AiCreateResult.Created::class.java)
+        val calendarSync = (result as AiCreateResult.Created).calendarSync
+        assertThat(calendarSync.status.value).isEqualTo("synced")
+        assertThat(calendarSync.reason).isEqualTo("explicit_user_request")
+        assertThat(calendarSync.calendarId).isEqualTo(42)
+        assertThat(calendarSync.eventId).isEqualTo(9001)
+    }
+
+    @Test
+    fun `unknown and malformed calendar sync status is rejected`() {
+        val unknownStatus = creator.parseCalendarSyncForTest(
+            calendarSyncContent(status = "已同步"),
+        )
+        val missingStatus = creator.parseCalendarSyncForTest(
+            calendarSyncContent(status = null),
+        )
+
+        assertThat(unknownStatus).isNull()
+        assertThat(missingStatus).isNull()
+    }
+
 
     @Test
     fun `duplicate create tool calls commit only one alarm`() = runTest {
@@ -1229,6 +1371,74 @@ class AiAlarmCreatorTest {
         }
     """.trimIndent()
 
+    private fun enabledCalendarAlarmJson(): String = """
+        {
+          "title": "Take medicine",
+          "hour": 8,
+          "minute": 30,
+          "repeatRule": { "type": "once", "daysOfWeek": [] },
+          "date": "2026-04-24",
+          "confidence": 0.92,
+          "needsClarification": false,
+          "clarificationReason": "",
+          "calendarSync": {
+            "enabled": true,
+            "reason": "explicit_user_request",
+            "durationMinutes": 45
+          }
+        }
+    """.trimIndent()
+
+    private fun createAlarmTurn(arguments: String): AgentLlmResult.Message = AgentLlmResult.Message(
+        AgentMessage(
+            role = AgentMessageRole.ASSISTANT,
+            content = "",
+            toolCalls = listOf(
+                AgentToolCall(
+                    id = "call-1",
+                    name = "create_alarm",
+                    arguments = arguments,
+                ),
+            ),
+        ),
+    )
+
+    private fun endTaskTurn(): AgentLlmResult.Message = AgentLlmResult.Message(
+        AgentMessage(
+            role = AgentMessageRole.ASSISTANT,
+            content = "",
+            toolCalls = listOf(
+                AgentToolCall(
+                    id = "call-end",
+                    name = "end_task",
+                    arguments = """{"reason":"Alarm created."}""",
+                ),
+            ),
+        ),
+    )
+
+    private fun creatorWithCalendarSyncer(calendarSyncer: CalendarAlarmSyncer): AiAlarmCreator = AiAlarmCreator(
+        settingsRepository = settingsRepository,
+        agentLoopRunner = AgentLoopRunner(fakeAgentGateway),
+        alarmRepository = repository,
+        schedulingUseCase = AlarmSchedulingUseCase(fakeScheduler),
+        calendarSyncer = calendarSyncer,
+        managementUseCase = creatorManagementUseCase(),
+        promptBuilder = AiAlarmPromptBuilder(),
+        clock = Clock.fixed(now.toInstant(), zone),
+    )
+
+    private fun calendarSyncContent(status: String?): JsonObject = buildJsonObject {
+        putJsonObject("calendarSync") {
+            put("enabled", true)
+            put("reason", "explicit_user_request")
+            put("durationMinutes", 45)
+            if (status != null) {
+                put("status", status)
+            }
+        }
+    }
+
     private fun activeDailyDraft(enabled: Boolean = true): AlarmDraft = AlarmDraft(
         title = "Take medicine",
         hour = 8,
@@ -1282,5 +1492,15 @@ class AiAlarmCreatorTest {
         )
         method.isAccessible = true
         return method.invoke(this, failure) as AiCreateResult
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun AiAlarmCreator.parseCalendarSyncForTest(content: JsonObject): AiCalendarSyncDetails? {
+        val method = AiAlarmCreator::class.java.getDeclaredMethod(
+            "toCalendarSyncDetails",
+            Map::class.java,
+        )
+        method.isAccessible = true
+        return method.invoke(this, content) as AiCalendarSyncDetails?
     }
 }
