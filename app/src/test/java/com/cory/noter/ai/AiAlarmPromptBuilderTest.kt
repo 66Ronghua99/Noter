@@ -18,18 +18,13 @@ class AiAlarmPromptBuilderTest {
     }
 
     @Test
-    fun `prompt includes local context allowed rules and tool instructions`() {
-        val now = ZonedDateTime.of(2026, 4, 23, 15, 45, 0, 0, ZoneId.of("Asia/Shanghai"))
+    fun `system prompt includes stable rules without per request context`() {
+        val prompt = AiAlarmPromptBuilder().buildSystemPrompt()
 
-        val prompt = AiAlarmPromptBuilder().build(
-            userRequest = "tomorrow morning remind me to take medicine",
-            now = now,
-        )
-
-        assertThat(prompt).contains("tomorrow morning remind me to take medicine")
-        assertThat(prompt).contains("Current local date: 2026-04-23")
-        assertThat(prompt).contains("Current local time: 15:45")
-        assertThat(prompt).contains("Timezone: Asia/Shanghai")
+        assertThat(prompt).doesNotContain("tomorrow morning remind me to take medicine")
+        assertThat(prompt).doesNotContain("2026-04-23")
+        assertThat(prompt).doesNotContain("15:45")
+        assertThat(prompt).doesNotContain("Asia/Shanghai")
         assertThat(prompt).contains("once")
         assertThat(prompt).contains("daily")
         assertThat(prompt).contains("weekdays")
@@ -41,6 +36,11 @@ class AiAlarmPromptBuilderTest {
         assertThat(prompt).contains("Monday is 1")
         assertThat(prompt).contains("Sunday is 7")
         assertThat(prompt).contains("Call create_alarm")
+        assertThat(prompt).contains("calendarSync")
+        assertThat(prompt).contains("durationMinutes")
+        assertThat(prompt).contains("1 and 1440")
+        assertThat(prompt).contains("30 minutes")
+        assertThat(prompt).contains("Use the user's language")
         assertThat(prompt).contains("Call list_alarms when the user asks to list alarms")
         assertThat(prompt).contains("Call list_alarms before pause_alarm or resume_alarm when the target alarm is unknown")
         assertThat(prompt).contains("Only call end_task after list_alarms for direct list requests")
@@ -53,5 +53,20 @@ class AiAlarmPromptBuilderTest {
         assertThat(prompt).contains("poor voice transcript")
         assertThat(prompt).doesNotContain("submit_alarm_draft")
         assertThat(prompt).doesNotContain("Return only JSON")
+    }
+
+    @Test
+    fun `user message includes request and local context`() {
+        val now = ZonedDateTime.of(2026, 4, 23, 15, 45, 0, 0, ZoneId.of("Asia/Shanghai"))
+
+        val message = AiAlarmPromptBuilder().buildUserMessage(
+            userRequest = "tomorrow morning remind me to take medicine",
+            now = now,
+        )
+
+        assertThat(message).contains("tomorrow morning remind me to take medicine")
+        assertThat(message).contains("Current local date: 2026-04-23")
+        assertThat(message).contains("Current local time: 15:45")
+        assertThat(message).contains("Timezone: Asia/Shanghai")
     }
 }

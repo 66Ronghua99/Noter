@@ -3,6 +3,7 @@ package com.cory.noter.data.settings
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.cory.noter.ai.AsrModel
 import com.cory.noter.ai.OpenRouterModel
@@ -22,6 +23,7 @@ class DataStoreSettingsRepository(
             selectedModelId = storedModelId?.also(::requireKnownModelId) ?: OpenRouterModel.DefaultId,
             selectedAsrModelId = storedAsrModelId?.also(::requireKnownAsrModelId) ?: AsrModel.DefaultId,
             defaultRingtoneUri = preferences[DEFAULT_RINGTONE_URI] ?: AppSettings.DefaultRingtoneUri,
+            defaultCalendarId = preferences[DEFAULT_CALENDAR_ID],
             themePresetId = themeSettings.presetId,
             customThemeSeedColor = themeSettings.customSeedColor,
         )
@@ -61,6 +63,20 @@ class DataStoreSettingsRepository(
         Unit
     }
 
+    override suspend fun setDefaultCalendarId(calendarId: Long): Result<Unit> = runCatching {
+        dataStore.edit { preferences ->
+            preferences[DEFAULT_CALENDAR_ID] = calendarId
+        }
+        Unit
+    }
+
+    override suspend fun clearDefaultCalendarId(): Result<Unit> = runCatching {
+        dataStore.edit { preferences ->
+            preferences.remove(DEFAULT_CALENDAR_ID)
+        }
+        Unit
+    }
+
     override suspend fun setThemePreset(presetId: String): Result<Unit> = runCatching {
         requireKnownThemePresetId(presetId)
         dataStore.edit { preferences ->
@@ -84,6 +100,7 @@ class DataStoreSettingsRepository(
         val SELECTED_MODEL_ID = stringPreferencesKey("selected_model_id")
         val SELECTED_ASR_MODEL_ID = stringPreferencesKey("selected_asr_model_id")
         val DEFAULT_RINGTONE_URI = stringPreferencesKey("default_ringtone_uri")
+        val DEFAULT_CALENDAR_ID = longPreferencesKey("default_calendar_id")
         val THEME_PRESET_ID = stringPreferencesKey("theme_preset_id")
         val CUSTOM_THEME_SEED_COLOR = stringPreferencesKey("custom_theme_seed_color")
     }
@@ -142,6 +159,7 @@ class DataStoreSettingsRepository(
             selectedModelId = OpenRouterModel.DefaultId,
             selectedAsrModelId = AsrModel.DefaultId,
             defaultRingtoneUri = AppSettings.DefaultRingtoneUri,
+            defaultCalendarId = null,
             themePresetId = presetId,
             customThemeSeedColor = customSeedColor,
         )

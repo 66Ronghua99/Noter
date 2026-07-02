@@ -36,6 +36,7 @@ data class SettingsUiState(
     val selectedModelId: String = OpenRouterModel.DefaultId,
     val selectedAsrModelId: String = AsrModel.DefaultId,
     val defaultRingtoneUri: String = "",
+    val defaultCalendarId: Long? = null,
     val themePresetId: String = AppSettings.DefaultThemePresetId,
     val customThemeSeedColor: String? = null,
     val customThemeSeedColorInput: String = "",
@@ -68,6 +69,7 @@ class SettingsViewModel(
                         selectedModelId = settings.selectedModelId,
                         selectedAsrModelId = settings.selectedAsrModelId,
                         defaultRingtoneUri = settings.defaultRingtoneUri,
+                        defaultCalendarId = settings.defaultCalendarId,
                         themePresetId = settings.themePresetId,
                         customThemeSeedColor = settings.customThemeSeedColor,
                         customThemeSeedColorInput = settings.customThemeSeedColor
@@ -127,6 +129,24 @@ class SettingsViewModel(
     fun onDefaultRingtoneSelected(ringtoneUri: String) {
         viewModelScope.launch {
             val result = settingsRepository.setDefaultRingtoneUri(ringtoneUri)
+            mutableUiState.update {
+                it.copy(errorMessage = result.exceptionOrNull()?.message?.let(UiText::Raw))
+            }
+        }
+    }
+
+    fun onDefaultCalendarSelected(calendarId: Long) {
+        viewModelScope.launch {
+            val result = settingsRepository.setDefaultCalendarId(calendarId)
+            mutableUiState.update {
+                it.copy(errorMessage = result.exceptionOrNull()?.message?.let(UiText::Raw))
+            }
+        }
+    }
+
+    fun clearDefaultCalendar() {
+        viewModelScope.launch {
+            val result = settingsRepository.clearDefaultCalendarId()
             mutableUiState.update {
                 it.copy(errorMessage = result.exceptionOrNull()?.message?.let(UiText::Raw))
             }

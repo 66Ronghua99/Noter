@@ -112,7 +112,11 @@ class AiAlarmCreator(
                 initialMessages = listOf(
                     AgentMessage(
                         AgentMessageRole.SYSTEM,
-                        promptBuilder.build(userRequest, ZonedDateTime.now(clock)),
+                        promptBuilder.buildSystemPrompt(),
+                    ),
+                    AgentMessage(
+                        AgentMessageRole.USER,
+                        promptBuilder.buildUserMessage(userRequest, ZonedDateTime.now(clock)),
                     ),
                 ),
                 toolRegistry = toolRegistry,

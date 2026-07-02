@@ -91,6 +91,7 @@ class AiAlarmCreatorTest {
                 selectedModelId = OpenRouterModel.DefaultId,
                 selectedAsrModelId = AsrModel.DefaultId,
                 defaultRingtoneUri = AppSettings.DefaultRingtoneUri,
+                defaultCalendarId = null,
             ),
         )
 
@@ -272,7 +273,16 @@ class AiAlarmCreatorTest {
         assertThat(fakeAgentGateway.requests).hasSize(2)
         assertThat(fakeAgentGateway.requests[0].modelId)
             .isEqualTo("deepseek/deepseek-v3.2")
-        assertThat(fakeAgentGateway.requests[0].messages.single().content)
+        assertThat(fakeAgentGateway.requests[0].messages).hasSize(2)
+        assertThat(fakeAgentGateway.requests[0].messages[0].role)
+            .isEqualTo(AgentMessageRole.SYSTEM)
+        assertThat(fakeAgentGateway.requests[0].messages[0].content)
+            .doesNotContain("tomorrow morning remind me to take medicine")
+        assertThat(fakeAgentGateway.requests[0].messages[1].role)
+            .isEqualTo(AgentMessageRole.USER)
+        assertThat(fakeAgentGateway.requests[0].messages[1].content)
+            .contains("tomorrow morning remind me to take medicine")
+        assertThat(fakeAgentGateway.requests[0].messages[1].content)
             .contains("Current local date: 2026-04-23")
         assertThat(fakeAgentGateway.requests.first().tools.map { it.name })
             .containsExactly(

@@ -13,6 +13,7 @@ class FakeSettingsRepository(
         selectedModelId = OpenRouterModel.DefaultId,
         selectedAsrModelId = AsrModel.DefaultId,
         defaultRingtoneUri = AppSettings.DefaultRingtoneUri,
+        defaultCalendarId = null,
     ),
 ) : SettingsRepository {
     private val state = MutableStateFlow(initialSettings)
@@ -49,6 +50,16 @@ class FakeSettingsRepository(
 
     override suspend fun setDefaultRingtoneUri(ringtoneUri: String): Result<Unit> {
         state.update { it.copy(defaultRingtoneUri = ringtoneUri) }
+        return Result.success(Unit)
+    }
+
+    override suspend fun setDefaultCalendarId(calendarId: Long): Result<Unit> {
+        state.update { it.copy(defaultCalendarId = calendarId) }
+        return Result.success(Unit)
+    }
+
+    override suspend fun clearDefaultCalendarId(): Result<Unit> {
+        state.update { it.copy(defaultCalendarId = null) }
         return Result.success(Unit)
     }
 

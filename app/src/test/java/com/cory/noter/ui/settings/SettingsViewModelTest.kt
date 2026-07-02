@@ -294,6 +294,55 @@ class SettingsViewModelTest {
     }
 
     @Test
+    fun `calendar id state follows repository settings`() = runTest {
+        val repository = FakeSettingsRepository(
+            initialSettings = AppSettings(
+                openRouterApiKey = "",
+                selectedModelId = OpenRouterModel.DefaultId,
+                selectedAsrModelId = AsrModel.DefaultId,
+                defaultRingtoneUri = AppSettings.DefaultRingtoneUri,
+                defaultCalendarId = 91L,
+            ),
+        )
+        val viewModel = SettingsViewModel(
+            settingsRepository = repository,
+            exactAlarmPermissionReader = PermissionStatusReader { true },
+            notificationPermissionProvider = { true },
+            batteryOptimizationIgnoredProvider = { true },
+        )
+
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.defaultCalendarId).isEqualTo(91L)
+    }
+
+    @Test
+    fun `selecting and clearing default calendar saves settings value`() = runTest {
+        val repository = FakeSettingsRepository()
+        val viewModel = SettingsViewModel(
+            settingsRepository = repository,
+            exactAlarmPermissionReader = PermissionStatusReader { true },
+            notificationPermissionProvider = { true },
+            batteryOptimizationIgnoredProvider = { true },
+        )
+
+        advanceUntilIdle()
+        viewModel.onDefaultCalendarSelected(42L)
+        advanceUntilIdle()
+
+        assertThat(repository.settings.first().defaultCalendarId).isEqualTo(42L)
+        assertThat(viewModel.uiState.value.defaultCalendarId).isEqualTo(42L)
+        assertThat(viewModel.uiState.value.errorMessage).isNull()
+
+        viewModel.clearDefaultCalendar()
+        advanceUntilIdle()
+
+        assertThat(repository.settings.first().defaultCalendarId).isNull()
+        assertThat(viewModel.uiState.value.defaultCalendarId).isNull()
+        assertThat(viewModel.uiState.value.errorMessage).isNull()
+    }
+
+    @Test
     fun `refresh permission rows re-reads current permission state`() = runTest {
         val repository = FakeSettingsRepository()
         var notificationGranted = false
@@ -349,6 +398,12 @@ class SettingsViewModelTest {
 
         override suspend fun setDefaultRingtoneUri(ringtoneUri: String): Result<Unit> =
             delegate.setDefaultRingtoneUri(ringtoneUri)
+
+        override suspend fun setDefaultCalendarId(calendarId: Long): Result<Unit> =
+            delegate.setDefaultCalendarId(calendarId)
+
+        override suspend fun clearDefaultCalendarId(): Result<Unit> =
+            delegate.clearDefaultCalendarId()
 
         override suspend fun setThemePreset(presetId: String): Result<Unit> =
             delegate.setThemePreset(presetId)

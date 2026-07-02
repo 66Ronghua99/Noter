@@ -26,6 +26,7 @@ class DataStoreSettingsRepositoryTest {
         assertThat(settings.selectedModelId).isEqualTo(OpenRouterModel.DefaultId)
         assertThat(settings.selectedAsrModelId).isEqualTo(AsrModel.DefaultId)
         assertThat(settings.defaultRingtoneUri).isEqualTo(AppSettings.DefaultRingtoneUri)
+        assertThat(settings.defaultCalendarId).isNull()
         assertThat(settings.themePresetId).isEqualTo(AppSettings.DefaultThemePresetId)
         assertThat(settings.customThemeSeedColor).isNull()
     }
@@ -104,6 +105,27 @@ class DataStoreSettingsRepositoryTest {
         assertThat(
             repository.settings.first().defaultRingtoneUri,
         ).isEqualTo("content://media/internal/audio/media/25")
+    }
+
+    @Test
+    fun `saving default calendar id persists it in settings flow`() = runTest {
+        val repository = createRepository(backgroundScope)
+
+        val result = repository.setDefaultCalendarId(42L)
+
+        assertThat(result.isSuccess).isTrue()
+        assertThat(repository.settings.first().defaultCalendarId).isEqualTo(42L)
+    }
+
+    @Test
+    fun `clearing default calendar id removes it from settings flow`() = runTest {
+        val repository = createRepository(backgroundScope)
+
+        assertThat(repository.setDefaultCalendarId(42L).isSuccess).isTrue()
+        val result = repository.clearDefaultCalendarId()
+
+        assertThat(result.isSuccess).isTrue()
+        assertThat(repository.settings.first().defaultCalendarId).isNull()
     }
 
     @Test
@@ -276,6 +298,7 @@ class DataStoreSettingsRepositoryTest {
                 selectedModelId = "deepseek/deepseek-v3.2",
                 selectedAsrModelId = "mistralai/voxtral-mini-transcribe",
                 defaultRingtoneUri = "content://media/internal/audio/media/99",
+                defaultCalendarId = null,
                 themePresetId = AppSettings.DefaultThemePresetId,
                 customThemeSeedColor = null,
             ),

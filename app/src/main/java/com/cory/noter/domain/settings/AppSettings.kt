@@ -5,6 +5,7 @@ data class AppSettings(
     val selectedModelId: String,
     val selectedAsrModelId: String,
     val defaultRingtoneUri: String,
+    val defaultCalendarId: Long? = null,
     val themePresetId: String = DefaultThemePresetId,
     val customThemeSeedColor: String? = null,
 ) {
