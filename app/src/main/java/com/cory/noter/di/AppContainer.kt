@@ -24,7 +24,9 @@ import com.cory.noter.alarm.StartupReconciliation
 import com.cory.noter.calendar.AndroidCalendarSource
 import com.cory.noter.calendar.CalendarSource
 import com.cory.noter.data.alarm.AlarmDatabase
+import com.cory.noter.data.alarm.AlarmCalendarEventRepository
 import com.cory.noter.data.alarm.AlarmRepository
+import com.cory.noter.data.alarm.RoomAlarmCalendarEventRepository
 import com.cory.noter.data.alarm.RoomAlarmRepository
 import com.cory.noter.data.settings.DataStoreSettingsRepository
 import com.cory.noter.data.settings.SettingsRepository
@@ -60,12 +62,20 @@ class AppContainer(
             AlarmDatabase::class.java,
             DATABASE_NAME,
         )
-            .addMigrations(AlarmDatabase.MIGRATION_1_2, AlarmDatabase.MIGRATION_2_3)
+            .addMigrations(
+                AlarmDatabase.MIGRATION_1_2,
+                AlarmDatabase.MIGRATION_2_3,
+                AlarmDatabase.MIGRATION_3_4,
+            )
             .build()
     }
 
     val alarmRepository: AlarmRepository by lazy {
         RoomAlarmRepository(database.alarmDao())
+    }
+
+    val alarmCalendarEventRepository: AlarmCalendarEventRepository by lazy {
+        RoomAlarmCalendarEventRepository(database.alarmCalendarEventDao())
     }
 
     private val settingsDataStore by lazy {
