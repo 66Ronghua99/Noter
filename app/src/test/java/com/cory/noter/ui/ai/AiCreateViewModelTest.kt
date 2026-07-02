@@ -258,7 +258,12 @@ class AiCreateViewModelTest {
           "date": "2026-04-24",
           "confidence": 0.92,
           "needsClarification": false,
-          "clarificationReason": ""
+          "clarificationReason": "",
+          "calendarSync": {
+            "enabled": false,
+            "reason": "none",
+            "durationMinutes": 30
+          }
         }
     """.trimIndent()
 }

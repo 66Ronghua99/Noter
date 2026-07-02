@@ -22,7 +22,131 @@ class CreateAlarmArgumentsParserTest {
         assertThat(draft.repeatRule).isEqualTo(RepeatRule.Once(LocalDate.of(2026, 4, 24)))
         assertThat(draft.originalDate).isEqualTo(LocalDate.of(2026, 4, 24))
         assertThat(draft.confidence).isEqualTo(0.92)
+        assertThat(draft.calendarSync.enabled).isFalse()
+        assertThat(draft.calendarSync.reason).isEqualTo("none")
+        assertThat(draft.calendarSync.durationMinutes).isEqualTo(30)
         assertThat(draft.originalResponseText).isEqualTo(json)
+    }
+
+    @Test
+    fun `parses enabled calendar sync for explicit user request`() {
+        val result = parser.parse(
+            validOnceArguments(
+                calendarSync = """
+                  "calendarSync": {
+                    "enabled": true,
+                    "reason": "explicit_user_request",
+                    "durationMinutes": 45
+                  }
+                """.trimIndent(),
+            ),
+        )
+
+        val draft = result.getOrThrow()
+        assertThat(draft.calendarSync.enabled).isTrue()
+        assertThat(draft.calendarSync.reason).isEqualTo("explicit_user_request")
+        assertThat(draft.calendarSync.durationMinutes).isEqualTo(45)
+    }
+
+    @Test
+    fun `parses enabled calendar sync for calendar like event`() {
+        val result = parser.parse(
+            validOnceArguments(
+                calendarSync = """
+                  "calendarSync": {
+                    "enabled": true,
+                    "reason": "calendar_like_event",
+                    "durationMinutes": 60
+                  }
+                """.trimIndent(),
+            ),
+        )
+
+        val draft = result.getOrThrow()
+        assertThat(draft.calendarSync.enabled).isTrue()
+        assertThat(draft.calendarSync.reason).isEqualTo("calendar_like_event")
+        assertThat(draft.calendarSync.durationMinutes).isEqualTo(60)
+    }
+
+    @Test
+    fun `calendar sync duration defaults to thirty minutes when omitted`() {
+        val result = parser.parse(
+            validOnceArguments(
+                calendarSync = """
+                  "calendarSync": {
+                    "enabled": false,
+                    "reason": "none"
+                  }
+                """.trimIndent(),
+            ),
+        )
+
+        val draft = result.getOrThrow()
+        assertThat(draft.calendarSync.enabled).isFalse()
+        assertThat(draft.calendarSync.reason).isEqualTo("none")
+        assertThat(draft.calendarSync.durationMinutes).isEqualTo(30)
+    }
+
+    @Test
+    fun `rejects missing calendar sync`() {
+        val result = parser.parse(validOnceArguments(calendarSync = null))
+
+        assertThat(result.isFailure).isTrue()
+        assertThat(result.exceptionOrNull()).hasMessageThat().contains("calendarSync is required")
+    }
+
+    @Test
+    fun `rejects unknown calendar sync reason`() {
+        val result = parser.parse(
+            validOnceArguments(
+                calendarSync = """
+                  "calendarSync": {
+                    "enabled": true,
+                    "reason": "birthday",
+                    "durationMinutes": 30
+                  }
+                """.trimIndent(),
+            ),
+        )
+
+        assertThat(result.isFailure).isTrue()
+        assertThat(result.exceptionOrNull()).hasMessageThat().contains("calendarSync.reason")
+    }
+
+    @Test
+    fun `rejects disabled calendar sync with non none reason`() {
+        val result = parser.parse(
+            validOnceArguments(
+                calendarSync = """
+                  "calendarSync": {
+                    "enabled": false,
+                    "reason": "explicit_user_request",
+                    "durationMinutes": 30
+                  }
+                """.trimIndent(),
+            ),
+        )
+
+        assertThat(result.isFailure).isTrue()
+        assertThat(result.exceptionOrNull()).hasMessageThat().contains("calendarSync.reason must be none")
+    }
+
+    @Test
+    fun `rejects calendar sync duration outside bounds`() {
+        val result = parser.parse(
+            validOnceArguments(
+                calendarSync = """
+                  "calendarSync": {
+                    "enabled": true,
+                    "reason": "explicit_user_request",
+                    "durationMinutes": 1441
+                  }
+                """.trimIndent(),
+            ),
+        )
+
+        assertThat(result.isFailure).isTrue()
+        assertThat(result.exceptionOrNull()).hasMessageThat().contains("calendarSync.durationMinutes")
     }
 
     @Test
@@ -52,7 +176,12 @@ class CreateAlarmArgumentsParserTest {
               "date": "2026-04-24",
               "confidence": 0.92,
               "needsClarification": false,
-              "clarificationReason": ""
+              "clarificationReason": "",
+              "calendarSync": {
+                "enabled": false,
+                "reason": "none",
+                "durationMinutes": 30
+              }
             }
             """.trimIndent(),
         )
@@ -133,7 +262,12 @@ class CreateAlarmArgumentsParserTest {
               "date": "2026-04-24",
               "confidence": -0.1,
               "needsClarification": false,
-              "clarificationReason": ""
+              "clarificationReason": "",
+              "calendarSync": {
+                "enabled": false,
+                "reason": "none",
+                "durationMinutes": 30
+              }
             }
             """.trimIndent(),
         )
@@ -214,7 +348,12 @@ class CreateAlarmArgumentsParserTest {
               "date": "",
               "confidence": 0.88,
               "needsClarification": false,
-              "clarificationReason": ""
+              "clarificationReason": "",
+              "calendarSync": {
+                "enabled": false,
+                "reason": "none",
+                "durationMinutes": 30
+              }
             }
             """.trimIndent(),
         )
@@ -241,7 +380,12 @@ class CreateAlarmArgumentsParserTest {
               "date": "",
               "confidence": 0.88,
               "needsClarification": false,
-              "clarificationReason": ""
+              "clarificationReason": "",
+              "calendarSync": {
+                "enabled": false,
+                "reason": "none",
+                "durationMinutes": 30
+              }
             }
             """.trimIndent(),
         )
@@ -348,7 +492,12 @@ class CreateAlarmArgumentsParserTest {
               "date": "",
               "confidence": 0.88,
               "needsClarification": false,
-              "clarificationReason": ""
+              "clarificationReason": "",
+              "calendarSync": {
+                "enabled": false,
+                "reason": "none",
+                "durationMinutes": 30
+              }
             }
             """.trimIndent(),
         )
@@ -394,7 +543,17 @@ class CreateAlarmArgumentsParserTest {
             .isEqualTo("Which day should I use?")
     }
 
-    private fun validOnceArguments(): String = """
+    private fun validOnceArguments(
+        calendarSync: String? = """
+          "calendarSync": {
+            "enabled": false,
+            "reason": "none",
+            "durationMinutes": 30
+          }
+        """.trimIndent(),
+    ): String {
+        val calendarSyncLine = calendarSync?.let { ",\n$it" }.orEmpty()
+        return """
         {
           "title": "Take medicine",
           "hour": 8,
@@ -409,7 +568,8 @@ class CreateAlarmArgumentsParserTest {
           "date": "2026-04-24",
           "confidence": 0.92,
           "needsClarification": false,
-          "clarificationReason": ""
+          "clarificationReason": ""$calendarSyncLine
         }
     """.trimIndent()
+    }
 }

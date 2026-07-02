@@ -1220,7 +1220,12 @@ class AiAlarmCreatorTest {
           "date": "2026-04-24",
           "confidence": 0.92,
           "needsClarification": false,
-          "clarificationReason": ""
+          "clarificationReason": "",
+          "calendarSync": {
+            "enabled": false,
+            "reason": "none",
+            "durationMinutes": 30
+          }
         }
     """.trimIndent()
 
@@ -1252,7 +1257,12 @@ class AiAlarmCreatorTest {
           "date": "2026-04-24",
           "confidence": 0.4,
           "needsClarification": true,
-          "clarificationReason": "Which day should I use?"
+          "clarificationReason": "Which day should I use?",
+          "calendarSync": {
+            "enabled": false,
+            "reason": "none",
+            "durationMinutes": 30
+          }
         }
     """.trimIndent()
 

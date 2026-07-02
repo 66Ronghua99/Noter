@@ -10,5 +10,12 @@ data class AiAlarmDraft(
     val repeatRule: RepeatRule,
     val originalDate: LocalDate?,
     val confidence: Double,
+    val calendarSync: AiAlarmCalendarSync,
     val originalResponseText: String,
+)
+
+data class AiAlarmCalendarSync(
+    val enabled: Boolean,
+    val reason: String,
+    val durationMinutes: Int,
 )

@@ -46,6 +46,7 @@ class CreateAlarmToolTest {
             "confidence",
             "needsClarification",
             "clarificationReason",
+            "calendarSync",
         )
         val repeatRuleProperties = properties["repeatRule"]!!.jsonObject["properties"]!!.jsonObject
         assertThat(repeatRuleProperties.keys).containsExactly(
@@ -64,7 +65,13 @@ class CreateAlarmToolTest {
             "confidence",
             "needsClarification",
             "clarificationReason",
+            "calendarSync",
         ).inOrder()
+        val calendarSyncProperties = properties["calendarSync"]!!.jsonObject["properties"]!!.jsonObject
+        assertThat(calendarSyncProperties.keys).containsExactly("enabled", "reason", "durationMinutes")
+        assertThat(properties["calendarSync"]!!.jsonObject["required"]!!.jsonArray.map { it.jsonPrimitive.content })
+            .containsExactly("enabled", "reason")
+            .inOrder()
         assertThat(properties["repeatRule"]!!.jsonObject["required"]!!.jsonArray.map { it.jsonPrimitive.content })
             .containsExactly("type", "daysOfWeek")
             .inOrder()
@@ -89,6 +96,8 @@ class CreateAlarmToolTest {
         val success = result as AgentToolExecution.Success
         assertThat(success.result.committed).isTrue()
         assertThat(success.result.content.toString()).contains("\"status\":\"created\"")
+        assertThat(success.result.content.toString()).contains("\"calendarSync\":{\"enabled\":false")
+        assertThat(success.result.content.toString()).contains("\"status\":\"skipped\"")
         val alarms = repository.alarms.first()
         assertThat(alarms).hasSize(1)
         val alarm = alarms.single()
@@ -115,6 +124,39 @@ class CreateAlarmToolTest {
         assertThat(failure.failure).isEqualTo(AgentFailure.ToolExecutionFailed("Invalid JSON"))
         assertThat(failure.committedResult).isNull()
         assertThat(repository.createCalls).isEqualTo(0)
+    }
+
+    @Test
+    fun `prompt compliant calendar sync arguments still create and schedule local alarm`() = runTest {
+        val repository = FakeAlarmRepository(clock = clock, zoneId = zoneId)
+        val scheduler = FakeAlarmScheduler()
+        val tool = createTool(repository = repository, scheduler = scheduler)
+
+        val result = tool.execute(
+            AgentToolCall(
+                id = "call-1",
+                name = "create_alarm",
+                arguments = validOnceArguments(
+                    calendarSync = """
+                      "calendarSync": {
+                        "enabled": true,
+                        "reason": "explicit_user_request",
+                        "durationMinutes": 45
+                      }
+                    """.trimIndent(),
+                ),
+            ),
+        )
+
+        assertThat(result).isInstanceOf(AgentToolExecution.Success::class.java)
+        val success = result as AgentToolExecution.Success
+        val content = success.result.content.toString()
+        assertThat(content).contains("\"status\":\"created\"")
+        assertThat(content).contains("\"calendarSync\":{\"enabled\":true")
+        assertThat(content).contains("\"reason\":\"explicit_user_request\"")
+        assertThat(content).contains("\"durationMinutes\":45")
+        assertThat(repository.alarms.first()).hasSize(1)
+        assertThat(scheduler.scheduledAlarms).hasSize(1)
     }
 
     @Test
@@ -245,7 +287,15 @@ class CreateAlarmToolTest {
         clock = clock,
     )
 
-    private fun validOnceArguments(): String = """
+    private fun validOnceArguments(
+        calendarSync: String = """
+          "calendarSync": {
+            "enabled": false,
+            "reason": "none",
+            "durationMinutes": 30
+          }
+        """.trimIndent(),
+    ): String = """
         {
           "title": "Take medicine",
           "hour": 8,
@@ -260,7 +310,8 @@ class CreateAlarmToolTest {
           "date": "2026-04-24",
           "confidence": 0.92,
           "needsClarification": false,
-          "clarificationReason": ""
+          "clarificationReason": "",
+          $calendarSync
         }
     """.trimIndent()
 
@@ -279,7 +330,12 @@ class CreateAlarmToolTest {
           "date": "2026-04-23",
           "confidence": 0.92,
           "needsClarification": false,
-          "clarificationReason": ""
+          "clarificationReason": "",
+          "calendarSync": {
+            "enabled": false,
+            "reason": "none",
+            "durationMinutes": 30
+          }
         }
     """.trimIndent()
 
@@ -298,7 +354,12 @@ class CreateAlarmToolTest {
           "date": "2026-04-24",
           "confidence": 0.45,
           "needsClarification": true,
-          "clarificationReason": "Which day should I use?"
+          "clarificationReason": "Which day should I use?",
+          "calendarSync": {
+            "enabled": false,
+            "reason": "none",
+            "durationMinutes": 30
+          }
         }
     """.trimIndent()
 

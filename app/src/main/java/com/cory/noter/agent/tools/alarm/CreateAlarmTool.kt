@@ -11,6 +11,7 @@ import com.cory.noter.alarm.AlarmSchedulingUseCase
 import com.cory.noter.alarm.ScheduleResult
 import com.cory.noter.data.alarm.AlarmDraft
 import com.cory.noter.data.alarm.AlarmRepository
+import com.cory.noter.domain.ai.AiAlarmCalendarSync
 import com.cory.noter.domain.alarm.Alarm
 import com.cory.noter.domain.alarm.AlarmSource
 import com.cory.noter.domain.alarm.AlarmValidation
@@ -98,7 +99,11 @@ class CreateAlarmTool(
                 AgentToolResult(
                     toolCallId = call.id,
                     toolName = spec.name,
-                    content = createdAlarmContent("created", createdAlarm),
+                    content = createdAlarmContent(
+                        status = "created",
+                        alarm = createdAlarm,
+                        calendarSync = parsedDraft.calendarSync,
+                    ),
                     committed = true,
                 ),
             )
@@ -110,7 +115,11 @@ class CreateAlarmTool(
                 committedResult = AgentToolResult(
                     toolCallId = call.id,
                     toolName = spec.name,
-                    content = createdAlarmContent("schedule_failed", createdAlarm) {
+                    content = createdAlarmContent(
+                        status = "schedule_failed",
+                        alarm = createdAlarm,
+                        calendarSync = parsedDraft.calendarSync,
+                    ) {
                         put("reason", "Alarm ${createdAlarm.id} scheduling returned Cancelled unexpectedly.")
                     },
                     committed = true,
@@ -124,7 +133,11 @@ class CreateAlarmTool(
                 committedResult = AgentToolResult(
                     toolCallId = call.id,
                     toolName = spec.name,
-                    content = createdAlarmContent("missing_scheduling_permission", createdAlarm) {
+                    content = createdAlarmContent(
+                        status = "missing_scheduling_permission",
+                        alarm = createdAlarm,
+                        calendarSync = parsedDraft.calendarSync,
+                    ) {
                         put("permission", scheduleResult.permission)
                     },
                     committed = true,
@@ -136,7 +149,11 @@ class CreateAlarmTool(
                 committedResult = AgentToolResult(
                     toolCallId = call.id,
                     toolName = spec.name,
-                    content = createdAlarmContent("schedule_failed", createdAlarm) {
+                    content = createdAlarmContent(
+                        status = "schedule_failed",
+                        alarm = createdAlarm,
+                        calendarSync = parsedDraft.calendarSync,
+                    ) {
                         put("reason", scheduleResult.reason)
                     },
                     committed = true,
@@ -148,11 +165,18 @@ class CreateAlarmTool(
     private fun createdAlarmContent(
         status: String,
         alarm: Alarm,
+        calendarSync: AiAlarmCalendarSync,
         extra: kotlinx.serialization.json.JsonObjectBuilder.() -> Unit = {},
     ): JsonObject = buildJsonObject {
         put("status", status)
         put("alarmId", alarm.id)
         put("title", alarm.title)
+        putJsonObject("calendarSync") {
+            put("enabled", calendarSync.enabled)
+            put("reason", calendarSync.reason)
+            put("durationMinutes", calendarSync.durationMinutes)
+            put("status", if (calendarSync.enabled) "pending_integration" else "skipped")
+        }
         extra()
     }
 
@@ -252,6 +276,34 @@ class CreateAlarmTool(
                 put("type", "string")
                 put("description", "Non-empty only when needsClarification is true.")
             }
+            putJsonObject("calendarSync") {
+                put("type", "object")
+                put("additionalProperties", false)
+                putJsonObject("properties") {
+                    putJsonObject("enabled") {
+                        put("type", "boolean")
+                        put("description", "True only for explicit calendar requests or clear calendar-like events.")
+                    }
+                    putJsonObject("reason") {
+                        put("type", "string")
+                        put("enum", buildJsonArray {
+                            addString("explicit_user_request")
+                            addString("calendar_like_event")
+                            addString("none")
+                        })
+                    }
+                    putJsonObject("durationMinutes") {
+                        put("type", "integer")
+                        put("minimum", 1)
+                        put("maximum", 1440)
+                        put("description", "Calendar event duration in minutes; omit to use the app default of 30.")
+                    }
+                }
+                putJsonArray("required") {
+                    addString("enabled")
+                    addString("reason")
+                }
+            }
         }
         putJsonArray("required") {
             addString("title")
@@ -262,6 +314,7 @@ class CreateAlarmTool(
             addString("confidence")
             addString("needsClarification")
             addString("clarificationReason")
+            addString("calendarSync")
         }
     }
 

@@ -1,5 +1,6 @@
 package com.cory.noter.agent.tools.alarm
 
+import com.cory.noter.domain.ai.AiAlarmCalendarSync
 import com.cory.noter.domain.ai.AiAlarmDraft
 import com.cory.noter.domain.alarm.RepeatRule
 import java.time.DayOfWeek
@@ -44,6 +45,7 @@ class CreateAlarmArgumentsParser {
                 "confidence",
                 "needsClarification",
                 "clarificationReason",
+                "calendarSync",
             ),
         )
 
@@ -134,6 +136,8 @@ class CreateAlarmArgumentsParser {
             throw invalid("confidence must be a finite number from 0.0 through 1.0")
         }
 
+        val calendarSync = root.requiredCalendarSync()
+
         AiAlarmDraft(
             title = title,
             hour = hour,
@@ -141,6 +145,7 @@ class CreateAlarmArgumentsParser {
             repeatRule = repeatRule,
             originalDate = originalDate,
             confidence = confidence,
+            calendarSync = calendarSync,
             originalResponseText = arguments,
         )
     }
@@ -215,6 +220,36 @@ class CreateAlarmArgumentsParser {
         }
     }
 
+    private fun JsonObject.requiredCalendarSync(): AiAlarmCalendarSync {
+        val calendarSyncObject = requiredObject("calendarSync")
+        calendarSyncObject.requireOnlyKeys(
+            allowedKeys = setOf("enabled", "reason", "durationMinutes"),
+            owner = "calendarSync",
+        )
+        val enabled = calendarSyncObject.requiredBoolean("enabled")
+        val reason = calendarSyncObject.requiredString("reason")
+        if (reason !in CalendarSyncReasons) {
+            throw invalid(
+                "calendarSync.reason must be one of explicit_user_request, calendar_like_event, none",
+            )
+        }
+        if (!enabled && reason != "none") {
+            throw invalid("calendarSync.reason must be none when calendarSync.enabled is false")
+        }
+        if (enabled && reason == "none") {
+            throw invalid("calendarSync.reason must not be none when calendarSync.enabled is true")
+        }
+        val durationMinutes = calendarSyncObject.optionalInt("durationMinutes") ?: 30
+        if (durationMinutes !in 1..1440) {
+            throw invalid("calendarSync.durationMinutes must be an integer from 1 through 1440")
+        }
+        return AiAlarmCalendarSync(
+            enabled = enabled,
+            reason = reason,
+            durationMinutes = durationMinutes,
+        )
+    }
+
     private fun JsonObject.optionalDateOrNull(name: String): LocalDate? {
         val element = this[name] ?: return null
         return when (element) {
@@ -255,7 +290,23 @@ class CreateAlarmArgumentsParser {
         return element as? JsonPrimitive ?: throw invalid("$name must be a primitive value")
     }
 
+    private fun JsonObject.optionalInt(name: String): Int? {
+        val element = this[name] ?: return null
+        if (element is JsonNull) {
+            return null
+        }
+        val primitive = element as? JsonPrimitive ?: throw invalid("$name must be an integer")
+        if (primitive.isString) {
+            throw invalid("$name must be an integer")
+        }
+        return primitive.intOrNull ?: throw invalid("$name must be an integer")
+    }
+
     private fun invalid(message: String, cause: Throwable? = null): IllegalArgumentException {
         return IllegalArgumentException(message, cause)
+    }
+
+    private companion object {
+        val CalendarSyncReasons = setOf("explicit_user_request", "calendar_like_event", "none")
     }
 }
