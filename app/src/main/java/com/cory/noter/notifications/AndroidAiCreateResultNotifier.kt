@@ -241,35 +241,22 @@ class AndroidAiCreateResultNotifier(
                 alarm.title,
             )
 
-        AiCalendarSyncStatus.CALENDAR_INSERT_FAILED -> {
-            if (calendarSync.hasFailureReason) {
-                context.getString(
-                    R.string.notification_ai_created_calendar_failed_big_text,
-                    alarm.title,
-                    calendarSync.failureLabel,
-                )
-            } else {
-                context.getString(
-                    R.string.notification_ai_created_calendar_insert_failed_big_text,
-                    alarm.title,
-                )
-            }
-        }
+        AiCalendarSyncStatus.CALENDAR_INSERT_FAILED ->
+            calendarFailureBigText(R.string.notification_ai_created_calendar_insert_failed_big_text)
 
-        AiCalendarSyncStatus.MAPPING_PERSIST_FAILED -> {
-            if (calendarSync.hasFailureReason) {
-                context.getString(
-                    R.string.notification_ai_created_calendar_failed_big_text,
-                    alarm.title,
-                    calendarSync.failureLabel,
-                )
-            } else {
-                context.getString(
-                    R.string.notification_ai_created_calendar_mapping_failed_big_text,
-                    alarm.title,
-                )
-            }
+        AiCalendarSyncStatus.MAPPING_PERSIST_FAILED ->
+            calendarFailureBigText(R.string.notification_ai_created_calendar_mapping_failed_big_text)
+    }
+
+    private fun AiCreateResult.Created.calendarFailureBigText(genericMessageRes: Int): String {
+        if (calendarSync.hasFailureReason) {
+            return context.getString(
+                R.string.notification_ai_created_calendar_failed_big_text,
+                alarm.title,
+                calendarSync.failureLabel,
+            )
         }
+        return context.getString(genericMessageRes, alarm.title)
     }
 
     private companion object {

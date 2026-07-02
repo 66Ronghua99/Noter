@@ -166,35 +166,23 @@ class AiCreateViewModel(
                     listOf(alarm.title),
                 )
 
-            AiCalendarSyncStatus.CALENDAR_INSERT_FAILED -> {
-                if (calendarSync.hasFailureReason) {
-                    UiText.Resource(
-                        R.string.ai_create_created_calendar_failed_status,
-                        listOf(alarm.title, calendarSync.failureLabel),
-                    )
-                } else {
-                    UiText.Resource(
-                        R.string.ai_create_created_calendar_insert_failed_status,
-                        listOf(alarm.title),
-                    )
-                }
-            }
+            AiCalendarSyncStatus.CALENDAR_INSERT_FAILED ->
+                toCalendarFailureStatus(R.string.ai_create_created_calendar_insert_failed_status)
 
-            AiCalendarSyncStatus.MAPPING_PERSIST_FAILED -> {
-                if (calendarSync.hasFailureReason) {
-                    UiText.Resource(
-                        R.string.ai_create_created_calendar_failed_status,
-                        listOf(alarm.title, calendarSync.failureLabel),
-                    )
-                } else {
-                    UiText.Resource(
-                        R.string.ai_create_created_calendar_mapping_failed_status,
-                        listOf(alarm.title),
-                    )
-                }
-            }
+            AiCalendarSyncStatus.MAPPING_PERSIST_FAILED ->
+                toCalendarFailureStatus(R.string.ai_create_created_calendar_mapping_failed_status)
         }
 
         else -> null
+    }
+
+    private fun AiCreateResult.Created.toCalendarFailureStatus(genericMessageRes: Int): UiText {
+        if (calendarSync.hasFailureReason) {
+            return UiText.Resource(
+                R.string.ai_create_created_calendar_failed_status,
+                listOf(alarm.title, calendarSync.failureLabel),
+            )
+        }
+        return UiText.Resource(genericMessageRes, listOf(alarm.title))
     }
 }
