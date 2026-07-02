@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.provider.CalendarContract
 import androidx.core.content.ContextCompat
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -42,13 +43,21 @@ class AndroidCalendarSource(
         )
 
         val calendars = mutableListOf<DeviceCalendar>()
-        context.contentResolver.query(
-            CalendarContract.Calendars.CONTENT_URI,
-            projection,
-            null,
-            null,
-            "${CalendarContract.Calendars.CALENDAR_DISPLAY_NAME} COLLATE NOCASE ASC",
-        )?.use { cursor ->
+        val cursor = try {
+            context.contentResolver.query(
+                CalendarContract.Calendars.CONTENT_URI,
+                projection,
+                null,
+                null,
+                "${CalendarContract.Calendars.CALENDAR_DISPLAY_NAME} COLLATE NOCASE ASC",
+            )
+        } catch (error: RuntimeException) {
+            if (error is CancellationException) {
+                throw error
+            }
+            return@withContext CalendarSourceResult.MissingPermission
+        }
+        cursor?.use { cursor ->
             val idIndex = cursor.getColumnIndexOrThrow(CalendarContract.Calendars._ID)
             val displayNameIndex = cursor.getColumnIndexOrThrow(
                 CalendarContract.Calendars.CALENDAR_DISPLAY_NAME,
