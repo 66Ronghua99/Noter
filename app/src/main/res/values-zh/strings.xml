@@ -30,6 +30,9 @@
     <string name="alarm_list_pause_indefinitely">无限期</string>
     <string name="alarm_list_paused_next_format">已暂停下一次：%1$s</string>
     <string name="alarm_list_paused_indefinitely">已无限期暂停</string>
+    <string name="alarm_list_delete_dialog_title">删除闹钟？</string>
+    <string name="alarm_list_delete_dialog_body">要删除“%1$s”吗？此操作无法撤销。</string>
+    <string name="alarm_list_delete_dialog_confirm">删除</string>
     <string name="alarm_list_management_missing_alarm">闹钟已不存在。</string>
     <string name="alarm_list_management_stale_trigger">操作完成前闹钟状态已变化。</string>
     <string name="alarm_list_schedule_permission_saved_error">闹钟已保存，但调度需要权限：%1$s</string>

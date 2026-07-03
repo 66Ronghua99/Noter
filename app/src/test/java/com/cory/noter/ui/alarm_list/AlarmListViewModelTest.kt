@@ -192,6 +192,66 @@ class AlarmListViewModelTest {
     }
 
     @Test
+    fun `requesting delete opens confirmation without deleting alarm`() = runTest {
+        val repository = FakeAlarmRepository(clock = clock, zoneId = zoneId)
+        repository.seed(activeDailyAlarm())
+        val viewModel = AlarmListViewModel(
+            repository = repository,
+            schedulingUseCase = AlarmSchedulingUseCase(FakeAlarmScheduler()),
+            managementUseCase = managementUseCase(repository, FakeAlarmScheduler()),
+        )
+        advanceUntilIdle()
+
+        viewModel.onDeleteAlarmRequested(alarmId = 7L)
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.deleteConfirmDialog?.alarmId).isEqualTo(7L)
+        assertThat(viewModel.uiState.value.deleteConfirmDialog?.alarmTitle).isEqualTo("Take medicine")
+        assertThat(repository.get(7L)).isNotNull()
+    }
+
+    @Test
+    fun `canceling delete confirmation preserves alarm`() = runTest {
+        val repository = FakeAlarmRepository(clock = clock, zoneId = zoneId)
+        repository.seed(activeDailyAlarm())
+        val viewModel = AlarmListViewModel(
+            repository = repository,
+            schedulingUseCase = AlarmSchedulingUseCase(FakeAlarmScheduler()),
+            managementUseCase = managementUseCase(repository, FakeAlarmScheduler()),
+        )
+        advanceUntilIdle()
+
+        viewModel.onDeleteAlarmRequested(alarmId = 7L)
+        viewModel.onCancelDeleteConfirmation()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.deleteConfirmDialog).isNull()
+        assertThat(repository.get(7L)).isNotNull()
+    }
+
+    @Test
+    fun `confirming delete removes alarm and cancels schedule`() = runTest {
+        val repository = FakeAlarmRepository(clock = clock, zoneId = zoneId)
+        repository.seed(activeDailyAlarm())
+        val scheduler = FakeAlarmScheduler()
+        val viewModel = AlarmListViewModel(
+            repository = repository,
+            schedulingUseCase = AlarmSchedulingUseCase(scheduler),
+            managementUseCase = managementUseCase(repository, scheduler),
+        )
+        advanceUntilIdle()
+
+        viewModel.onDeleteAlarmRequested(alarmId = 7L)
+        viewModel.onConfirmDeleteAlarm()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.deleteConfirmDialog).isNull()
+        assertThat(repository.get(7L)).isNull()
+        assertThat(scheduler.cancelledIds).contains(7L)
+        assertThat(viewModel.uiState.value.errorMessage).isNull()
+    }
+
+    @Test
     fun `paused row exposes user facing switch state and status`() = runTest {
         val repository = FakeAlarmRepository(clock = clock, zoneId = zoneId)
         repository.seed(

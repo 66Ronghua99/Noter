@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -58,8 +59,10 @@ fun AlarmListScreen(
     onConfirmPauseNextOccurrence: () -> Unit,
     onConfirmPauseIndefinitely: () -> Unit,
     onCancelPauseChoice: () -> Unit,
+    onDeleteAlarmRequested: (Long) -> Unit,
+    onConfirmDeleteAlarm: () -> Unit,
+    onCancelDeleteConfirmation: () -> Unit,
     onEditAlarm: (Long) -> Unit,
-    onDeleteAlarm: (Long) -> Unit,
     onOpenSettings: () -> Unit,
     onOpenManualCreate: () -> Unit,
     onOpenAiCreate: () -> Unit,
@@ -105,6 +108,13 @@ fun AlarmListScreen(
                 onCancel = onCancelPauseChoice,
             )
         }
+        state.deleteConfirmDialog?.let { dialog ->
+            DeleteConfirmDialog(
+                dialog = dialog,
+                onConfirmDelete = onConfirmDeleteAlarm,
+                onCancel = onCancelDeleteConfirmation,
+            )
+        }
         if (state.alarms.isEmpty()) {
             Column(
                 modifier = Modifier
@@ -139,7 +149,7 @@ fun AlarmListScreen(
                         alarm = alarm,
                         onAlarmEnabledChanged = onAlarmEnabledChanged,
                         onEditAlarm = onEditAlarm,
-                        onDeleteAlarm = onDeleteAlarm,
+                        onDeleteAlarmRequested = onDeleteAlarmRequested,
                     )
                 }
                 item {
@@ -154,6 +164,41 @@ fun AlarmListScreen(
             }
         }
     }
+}
+
+@Composable
+private fun DeleteConfirmDialog(
+    dialog: AlarmDeleteConfirmDialogUiModel,
+    onConfirmDelete: () -> Unit,
+    onCancel: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onCancel,
+        title = { Text(text = stringResource(R.string.alarm_list_delete_dialog_title)) },
+        text = {
+            Text(
+                text = stringResource(
+                    R.string.alarm_list_delete_dialog_body,
+                    dialog.alarmTitle,
+                ),
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = onConfirmDelete,
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error,
+                ),
+            ) {
+                Text(text = stringResource(R.string.alarm_list_delete_dialog_confirm))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onCancel) {
+                Text(text = stringResource(R.string.common_cancel))
+            }
+        },
+    )
 }
 
 @Composable
@@ -233,7 +278,7 @@ private fun AlarmRow(
     alarm: AlarmListItemUiModel,
     onAlarmEnabledChanged: (Long, Boolean) -> Unit,
     onEditAlarm: (Long) -> Unit,
-    onDeleteAlarm: (Long) -> Unit,
+    onDeleteAlarmRequested: (Long) -> Unit,
 ) {
     val locale = currentConfigurationLocale()
     val nextTriggerText = formatNextTrigger(alarm.nextTriggerAtMillis, locale)
@@ -287,7 +332,7 @@ private fun AlarmRow(
                 TextButton(onClick = { onEditAlarm(alarm.id) }) {
                     Text(text = stringResource(R.string.alarm_list_edit))
                 }
-                TextButton(onClick = { onDeleteAlarm(alarm.id) }) {
+                TextButton(onClick = { onDeleteAlarmRequested(alarm.id) }) {
                     Text(text = stringResource(R.string.common_delete))
                 }
             }

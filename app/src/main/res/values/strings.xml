@@ -30,6 +30,9 @@
     <string name="alarm_list_pause_indefinitely">Indefinitely</string>
     <string name="alarm_list_paused_next_format">Paused next: %1$s</string>
     <string name="alarm_list_paused_indefinitely">Paused indefinitely</string>
+    <string name="alarm_list_delete_dialog_title">Delete alarm?</string>
+    <string name="alarm_list_delete_dialog_body">Delete “%1$s”? This can’t be undone.</string>
+    <string name="alarm_list_delete_dialog_confirm">Delete</string>
     <string name="alarm_list_management_missing_alarm">Alarm no longer exists.</string>
     <string name="alarm_list_management_stale_trigger">Alarm state changed before this action could finish.</string>
     <string name="alarm_list_schedule_permission_saved_error">Alarm saved but scheduling needs permission: %1$s</string>

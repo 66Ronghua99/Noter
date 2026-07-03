@@ -22,10 +22,16 @@ import kotlinx.coroutines.launch
 data class AlarmListUiState(
     val alarms: List<AlarmListItemUiModel> = emptyList(),
     val pauseChoiceDialog: AlarmPauseChoiceDialogUiModel? = null,
+    val deleteConfirmDialog: AlarmDeleteConfirmDialogUiModel? = null,
     val errorMessage: UiText? = null,
 )
 
 data class AlarmPauseChoiceDialogUiModel(
+    val alarmId: Long,
+    val alarmTitle: String,
+)
+
+data class AlarmDeleteConfirmDialogUiModel(
     val alarmId: Long,
     val alarmTitle: String,
 )
@@ -109,7 +115,26 @@ class AlarmListViewModel(
         mutableUiState.update { it.copy(pauseChoiceDialog = null) }
     }
 
-    fun onDeleteAlarm(alarmId: Long) {
+    fun onDeleteAlarmRequested(alarmId: Long) {
+        viewModelScope.launch {
+            val alarm = repository.get(alarmId) ?: return@launch
+            mutableUiState.update {
+                it.copy(
+                    deleteConfirmDialog = AlarmDeleteConfirmDialogUiModel(
+                        alarmId = alarm.id,
+                        alarmTitle = alarm.title,
+                    ),
+                )
+            }
+        }
+    }
+
+    fun onCancelDeleteConfirmation() {
+        mutableUiState.update { it.copy(deleteConfirmDialog = null) }
+    }
+
+    fun onConfirmDeleteAlarm() {
+        val alarmId = mutableUiState.value.deleteConfirmDialog?.alarmId ?: return
         viewModelScope.launch {
             repository.delete(alarmId)
             handleScheduleResult(
@@ -165,7 +190,12 @@ class AlarmListViewModel(
             is ScheduleResult.Failed -> UiText.Raw(result.reason)
         }
 
-        mutableUiState.update { it.copy(errorMessage = errorMessage) }
+        mutableUiState.update {
+            it.copy(
+                deleteConfirmDialog = null,
+                errorMessage = errorMessage,
+            )
+        }
     }
 
     private fun toUiModel(alarm: Alarm): AlarmListItemUiModel = AlarmListItemUiModel(

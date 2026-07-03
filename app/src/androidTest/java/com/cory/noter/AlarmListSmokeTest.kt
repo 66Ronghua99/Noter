@@ -13,6 +13,7 @@ import com.cory.noter.ui.alarm_list.AlarmPauseChoiceDialogUiModel
 import com.cory.noter.ui.alarm_list.AlarmPauseStatusUiModel
 import com.cory.noter.ui.alarm_list.AlarmListTestTags
 import com.cory.noter.ui.alarm_list.AlarmListUiState
+import com.cory.noter.ui.alarm_list.AlarmDeleteConfirmDialogUiModel
 import com.cory.noter.domain.alarm.RepeatRule
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -34,8 +35,10 @@ class AlarmListSmokeTest {
                     onConfirmPauseNextOccurrence = {},
                     onConfirmPauseIndefinitely = {},
                     onCancelPauseChoice = {},
+                    onDeleteAlarmRequested = {},
+                    onConfirmDeleteAlarm = {},
+                    onCancelDeleteConfirmation = {},
                     onEditAlarm = {},
-                    onDeleteAlarm = {},
                     onOpenSettings = { openedSettings += 1 },
                     onOpenManualCreate = {},
                     onOpenAiCreate = {},
@@ -78,8 +81,10 @@ class AlarmListSmokeTest {
                     onConfirmPauseNextOccurrence = {},
                     onConfirmPauseIndefinitely = {},
                     onCancelPauseChoice = {},
+                    onDeleteAlarmRequested = {},
+                    onConfirmDeleteAlarm = {},
+                    onCancelDeleteConfirmation = {},
                     onEditAlarm = {},
-                    onDeleteAlarm = {},
                     onOpenSettings = {},
                     onOpenManualCreate = {},
                     onOpenAiCreate = {},
@@ -91,5 +96,43 @@ class AlarmListSmokeTest {
         composeRule.onNodeWithText("Pause alarm").assertIsDisplayed()
         composeRule.onNodeWithText("Next occurrence").assertIsDisplayed()
         composeRule.onNodeWithText("Indefinitely").assertIsDisplayed()
+    }
+
+    @Test
+    fun alarm_list_shows_delete_confirmation() {
+        var confirmedDelete = 0
+        var canceledDelete = 0
+
+        composeRule.setContent {
+            MaterialTheme {
+                AlarmListScreen(
+                    state = AlarmListUiState(
+                        deleteConfirmDialog = AlarmDeleteConfirmDialogUiModel(
+                            alarmId = 7L,
+                            alarmTitle = "Wake up",
+                        ),
+                    ),
+                    onAlarmEnabledChanged = { _, _ -> },
+                    onConfirmPauseNextOccurrence = {},
+                    onConfirmPauseIndefinitely = {},
+                    onCancelPauseChoice = {},
+                    onDeleteAlarmRequested = {},
+                    onConfirmDeleteAlarm = { confirmedDelete += 1 },
+                    onCancelDeleteConfirmation = { canceledDelete += 1 },
+                    onEditAlarm = {},
+                    onOpenSettings = {},
+                    onOpenManualCreate = {},
+                    onOpenAiCreate = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Delete alarm?").assertIsDisplayed()
+        composeRule.onNodeWithText("Delete “Wake up”? This can’t be undone.").assertIsDisplayed()
+        composeRule.onNodeWithText("Cancel").assertIsDisplayed().performClick()
+        assertEquals(1, canceledDelete)
+
+        composeRule.onNodeWithText("Delete").assertIsDisplayed().performClick()
+        assertEquals(1, confirmedDelete)
     }
 }

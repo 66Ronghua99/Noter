@@ -5,14 +5,20 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.cory.noter.R
+import com.cory.noter.NoterApplication
+import com.cory.noter.ai.AsrModel
+import com.cory.noter.ai.OpenRouterModel
 import com.cory.noter.alarm.RingingService
+import com.cory.noter.domain.settings.AppSettings
+import com.cory.noter.ui.theme.NoterTheme
 
 class RingingActivity : ComponentActivity() {
     private var currentAlarm by mutableStateOf(RingingAlarmState())
@@ -22,8 +28,17 @@ class RingingActivity : ComponentActivity() {
         updateFromIntent(intent)
 
         setContent {
-            MaterialTheme {
-                Surface(modifier = Modifier) {
+            val appContainer = (application as NoterApplication).appContainer
+            val settings by appContainer.settingsRepository.themeSettings.collectAsState(
+                initial = AppSettings(
+                    openRouterApiKey = "",
+                    selectedModelId = OpenRouterModel.DefaultId,
+                    selectedAsrModelId = AsrModel.DefaultId,
+                    defaultRingtoneUri = AppSettings.DefaultRingtoneUri,
+                ),
+            )
+            NoterTheme(settings = settings) {
+                Surface(modifier = Modifier.fillMaxSize()) {
                     RingingScreen(
                         title = currentAlarm.title,
                         onStop = {
