@@ -1,0 +1,14 @@
+.git
+.github
+.gradle
+.gradle-user
+.idea
+.android-sdk
+.jdk
+artifacts
+app/build
+server/noter-api/node_modules
+server/noter-api/dist
+docs/superpowers
+*.env
+local.properties

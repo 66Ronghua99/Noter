@@ -1,0 +1,162 @@
+name: Noter API Build and Deploy
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+    paths:
+      - "server/noter-api/**"
+      - "deploy/production/**"
+      - ".github/workflows/server-deploy.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: noter-production
+  cancel-in-progress: false
+
+env:
+  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/noter-api
+
+jobs:
+  quality:
+    name: Backend quality gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: server/noter-api/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: server/noter-api
+        run: npm ci
+
+      - name: Check formatting
+        working-directory: server/noter-api
+        run: npm run format:check
+
+      - name: Lint
+        working-directory: server/noter-api
+        run: npm run lint
+
+      - name: Typecheck
+        working-directory: server/noter-api
+        run: npm run typecheck
+
+      - name: Run backend tests
+        working-directory: server/noter-api
+        run: npm test
+
+  publish:
+    name: Publish immutable GHCR image
+    needs: quality
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and publish commit image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/production/Dockerfile
+          push: true
+          tags: ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          provenance: false
+
+  deploy:
+    name: Deploy to production over verified SSH
+    needs: publish
+    if: ${{ vars.PRODUCTION_DEPLOY_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+      DEPLOY_SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+      DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+      IMAGE_REF: ghcr.io/${{ github.repository_owner }}/noter-api:${{ github.sha }}
+    steps:
+      - name: Check out deployment files
+        uses: actions/checkout@v4
+
+      - name: Validate SSH deployment inputs
+        run: |
+          set -euo pipefail
+          : "${DEPLOY_HOST:?DEPLOY_HOST is required}"
+          : "${DEPLOY_USER:?DEPLOY_USER is required}"
+          : "${DEPLOY_SSH_PRIVATE_KEY:?DEPLOY_SSH_PRIVATE_KEY is required}"
+          : "${DEPLOY_KNOWN_HOSTS:?DEPLOY_KNOWN_HOSTS is required}"
+          DEPLOY_PORT="${DEPLOY_PORT:-22}"
+          [[ "$DEPLOY_PORT" =~ ^[0-9]+$ && "$DEPLOY_PORT" -ge 1 && "$DEPLOY_PORT" -le 65535 ]]
+
+          mkdir -p "$RUNNER_TEMP/noter-ssh"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$RUNNER_TEMP/noter-ssh/known_hosts"
+          chmod 600 "$RUNNER_TEMP/noter-ssh/known_hosts"
+          if [[ "$DEPLOY_PORT" == 22 ]]; then
+            host_key="${DEPLOY_HOST}"
+          else
+            host_key="[${DEPLOY_HOST}]:${DEPLOY_PORT}"
+          fi
+          ssh-keygen -F "$host_key" -f "$RUNNER_TEMP/noter-ssh/known_hosts" >/dev/null
+          printf '%s' "$DEPLOY_SSH_PRIVATE_KEY" > "$RUNNER_TEMP/noter-ssh/id_ed25519"
+          chmod 600 "$RUNNER_TEMP/noter-ssh/id_ed25519"
+
+      - name: Stage versioned deployment files
+        env:
+          SSH_OPTIONS: >-
+            -p ${{ secrets.DEPLOY_PORT || 22 }}
+            -i ${{ runner.temp }}/noter-ssh/id_ed25519
+            -o BatchMode=yes
+            -o StrictHostKeyChecking=yes
+            -o UserKnownHostsFile=${{ runner.temp }}/noter-ssh/known_hosts
+        run: |
+          set -euo pipefail
+          staging_dir="/opt/noter/staging/$GITHUB_SHA"
+          # The image reference is constructed from GitHub's SHA and is immutable.
+          ssh $SSH_OPTIONS "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p '$staging_dir'"
+          scp $SSH_OPTIONS \
+            deploy/production/compose.yml \
+            deploy/production/Caddyfile \
+            deploy/production/deploy.sh \
+            "$DEPLOY_USER@$DEPLOY_HOST:$staging_dir/"
+
+      - name: Apply exact image and verify readiness
+        env:
+          SSH_OPTIONS: >-
+            -p ${{ secrets.DEPLOY_PORT || 22 }}
+            -i ${{ runner.temp }}/noter-ssh/id_ed25519
+            -o BatchMode=yes
+            -o StrictHostKeyChecking=yes
+            -o UserKnownHostsFile=${{ runner.temp }}/noter-ssh/known_hosts
+        run: |
+          set -euo pipefail
+          staging_dir="/opt/noter/staging/$GITHUB_SHA"
+          ssh $SSH_OPTIONS "$DEPLOY_USER@$DEPLOY_HOST" \
+            "chmod 700 '$staging_dir/deploy.sh' && \
+             NOTER_DEPLOY_DIR=/opt/noter \
+             NOTER_CANDIDATE_DIR='$staging_dir' \
+             NOTER_IMAGE_STATE_FILE=/opt/noter/.image-reference \
+             '$staging_dir/deploy.sh' '$IMAGE_REF'"

@@ -224,8 +224,7 @@ class VoiceHomeViewModel(
             status = VoiceHomeStatus.Idle,
             noticeMessage = null,
             errorMessage = failure.toUiText(),
-            showRetryAction = failure !is VoiceCaptureFailure.MissingApiKey &&
-                failure !is VoiceCaptureFailure.UnsupportedAsrModel,
+            showRetryAction = failure !is VoiceCaptureFailure.UpdateRequired,
             showPermissionRecoveryAction = false,
             showTextFallbackAction = true,
             lastResult = this,
@@ -236,10 +235,9 @@ class VoiceHomeViewModel(
         VoiceCaptureFailure.AlreadyRecording -> UiText.Resource(R.string.voice_home_already_recording)
         VoiceCaptureFailure.NoActiveRecording -> UiText.Resource(R.string.voice_home_no_active_recording)
         VoiceCaptureFailure.BlankTranscript -> UiText.Resource(R.string.voice_home_blank_transcript)
-        VoiceCaptureFailure.MissingApiKey -> UiText.Resource(R.string.voice_home_missing_api_key)
-        is VoiceCaptureFailure.UnsupportedAsrModel -> {
-            UiText.Resource(R.string.voice_home_unsupported_asr_model, listOf(modelId))
-        }
+        VoiceCaptureFailure.ServiceUnavailable -> UiText.Resource(R.string.voice_home_service_unavailable)
+        VoiceCaptureFailure.UpdateRequired -> UiText.Resource(R.string.voice_home_update_required)
+        VoiceCaptureFailure.UploadTooLarge -> UiText.Resource(R.string.voice_home_upload_too_large)
         is VoiceCaptureFailure.RecordingFailed -> UiText.Resource(R.string.voice_home_recording_failed, listOf(reason))
         is VoiceCaptureFailure.AsrFailed -> UiText.Resource(R.string.voice_home_asr_failed, listOf(reason))
     }

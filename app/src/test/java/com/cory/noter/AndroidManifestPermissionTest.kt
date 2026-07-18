@@ -9,7 +9,7 @@ import javax.xml.parsers.DocumentBuilderFactory
 
 class AndroidManifestPermissionTest {
     @Test
-    fun `manifest requests internet permission for OpenRouter calls`() {
+    fun `manifest requests internet permission for first party API calls`() {
         val requestedPermissions = requestedManifestPermissions()
 
         assertThat(requestedPermissions).contains("android.permission.INTERNET")
@@ -31,10 +31,10 @@ class AndroidManifestPermissionTest {
     }
 
     @Test
-    fun `manifest declares speech recognition service query for system STT discovery`() {
+    fun `manifest does not declare system speech recognition discovery`() {
         val queriedIntentActions = queriedManifestIntentActions()
 
-        assertThat(queriedIntentActions).contains("android.speech.RecognitionService")
+        assertThat(queriedIntentActions).doesNotContain("android.speech.RecognitionService")
     }
 
     private fun requestedManifestPermissions(): List<String> {

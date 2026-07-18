@@ -75,7 +75,7 @@ class EndTaskToolTest {
 
         assertThat(result).isEqualTo(
             AgentToolExecution.Failure(
-                AgentFailure.ToolExecutionFailed("Invalid JSON"),
+                AgentFailure.CorrectableToolFailure("Invalid JSON"),
             ),
         )
     }

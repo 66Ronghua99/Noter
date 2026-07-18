@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -5,6 +7,17 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
     id("com.google.devtools.ksp")
 }
+
+val localProperties = Properties().also { properties ->
+    rootProject.file("local.properties").takeIf { it.isFile }?.inputStream()?.use(properties::load)
+}
+
+fun firstBuildInput(name: String): String =
+    providers.environmentVariable(name).orNull?.trim()?.takeIf { it.isNotEmpty() }
+        ?: localProperties.getProperty(name)?.trim().orEmpty()
+
+val noterApiBaseUrl = firstBuildInput("NOTER_API_BASE_URL")
+val noterClientToken = firstBuildInput("NOTER_CLIENT_TOKEN")
 
 android {
     namespace = "com.cory.noter"
@@ -17,6 +30,12 @@ android {
         versionCode = 1
         versionName = "0.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField("String", "NOTER_API_BASE_URL", "\"${noterApiBaseUrl.replace("\"", "\\\"")}\"")
+        buildConfigField("String", "NOTER_CLIENT_TOKEN", "\"${noterClientToken.replace("\"", "\\\"")}\"")
+    }
+
+    buildFeatures {
+        buildConfig = true
     }
 
     compileOptions {
@@ -33,6 +52,20 @@ android {
     testOptions {
         unitTests {
             isIncludeAndroidResources = true
+        }
+    }
+}
+
+tasks.configureEach {
+    if (name.contains("release", ignoreCase = true)) {
+        doFirst {
+            val missing = buildList {
+                if (noterApiBaseUrl.isBlank()) add("NOTER_API_BASE_URL")
+                if (noterClientToken.isBlank()) add("NOTER_CLIENT_TOKEN")
+            }
+            check(missing.isEmpty()) {
+                "Missing required first-party Android release inputs: ${missing.joinToString(", ")}"
+            }
         }
     }
 }

@@ -9,18 +9,15 @@ import com.cory.noter.ai.AiCreateResult
 import com.cory.noter.ai.AiCalendarSyncStatus
 import com.cory.noter.ai.AiListedAlarmFormatter
 import com.cory.noter.R
-import com.cory.noter.data.settings.SettingsRepository
 import com.cory.noter.ui.text.UiText
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class AiCreateUiState(
     val prompt: String = "",
-    val selectedModelId: String = "",
     val isLoading: Boolean = false,
     val errorMessage: UiText? = null,
     val statusMessage: UiText? = null,
@@ -30,21 +27,10 @@ data class AiCreateUiState(
 
 class AiCreateViewModel(
     private val creator: AiAlarmCreator,
-    settingsRepository: SettingsRepository,
     private val backgroundScheduler: AiCreateBackgroundScheduler? = null,
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(AiCreateUiState())
     val uiState: StateFlow<AiCreateUiState> = mutableUiState.asStateFlow()
-
-    init {
-        viewModelScope.launch {
-            settingsRepository.settings.collect { settings ->
-                mutableUiState.update { current ->
-                    current.copy(selectedModelId = settings.selectedModelId)
-                }
-            }
-        }
-    }
 
     fun onPromptChanged(prompt: String) {
         mutableUiState.update {
@@ -105,16 +91,18 @@ class AiCreateViewModel(
     }
 
     private fun AiCreateResult.toErrorMessage(): UiText? = when (this) {
-        AiCreateResult.MissingApiKey ->
-            UiText.Resource(R.string.ai_create_missing_api_key_error)
-
-        AiCreateResult.MissingModel ->
-            UiText.Resource(R.string.ai_create_missing_model_error)
-
-        is AiCreateResult.NetworkFailure -> UiText.Resource(R.string.ai_create_network_failure_error, listOf(reason))
-        is AiCreateResult.RateLimited -> UiText.Resource(R.string.ai_create_rate_limited_error, listOf(reason))
-        is AiCreateResult.RemoteFailure -> UiText.Resource(R.string.ai_create_remote_failure_error, listOf(code, reason))
-        is AiCreateResult.InvalidResponse -> UiText.Raw(reason)
+        is AiCreateResult.NetworkFailure,
+        is AiCreateResult.RateLimited,
+        is AiCreateResult.RemoteFailure,
+        -> UiText.Resource(R.string.ai_create_service_unavailable_error)
+        is AiCreateResult.ServiceFailure -> UiText.Resource(
+            if (code == "invalid_service_response") {
+                R.string.ai_create_update_required_error
+            } else {
+                R.string.ai_create_service_unavailable_error
+            },
+        )
+        is AiCreateResult.InvalidResponse -> UiText.Resource(R.string.ai_create_update_required_error)
         is AiCreateResult.ClarificationRequired -> UiText.Raw(reason)
         is AiCreateResult.CreateFailed -> UiText.Raw(reason)
         is AiCreateResult.MissingSchedulingPermission ->

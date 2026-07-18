@@ -4,8 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.annotation.StringRes
 import com.cory.noter.R
-import com.cory.noter.ai.AsrModel
-import com.cory.noter.ai.OpenRouterModel
 import com.cory.noter.calendar.CalendarSource
 import com.cory.noter.calendar.CalendarSourceResult
 import com.cory.noter.calendar.DeviceCalendar
@@ -59,16 +57,11 @@ data class CalendarSettingsUiModel(
 )
 
 data class SettingsUiState(
-    val openRouterApiKey: String = "",
-    val selectedModelId: String = OpenRouterModel.DefaultId,
-    val selectedAsrModelId: String = AsrModel.DefaultId,
     val defaultRingtoneUri: String = "",
     val defaultCalendarId: Long? = null,
     val themePresetId: String = AppSettings.DefaultThemePresetId,
     val customThemeSeedColor: String? = null,
     val customThemeSeedColorInput: String = "",
-    val modelOptions: List<String> = OpenRouterModel.builtInIds,
-    val asrModelOptions: List<String> = AsrModel.builtInIds,
     val themePresetOptions: List<String> = AppSettings.BuiltInThemePresetIds.toList(),
     val directoryRows: List<SettingsDirectoryRowUiModel> = emptyList(),
     val permissionRows: List<PermissionGuidanceUiModel> = emptyList(),
@@ -97,9 +90,6 @@ class SettingsViewModel(
                 val calendarSettings = loadCalendarSettings(settings.defaultCalendarId)
                 mutableUiState.update { current ->
                     val updated = current.copy(
-                        openRouterApiKey = settings.openRouterApiKey,
-                        selectedModelId = settings.selectedModelId,
-                        selectedAsrModelId = settings.selectedAsrModelId,
                         defaultRingtoneUri = settings.defaultRingtoneUri,
                         defaultCalendarId = settings.defaultCalendarId,
                         themePresetId = settings.themePresetId,
@@ -129,42 +119,6 @@ class SettingsViewModel(
             mutableUiState.update { current ->
                 val updated = current.copy(calendarSettings = calendarSettings)
                 updated.copy(directoryRows = buildDirectoryRows(updated))
-            }
-        }
-    }
-
-    fun onApiKeyChanged(apiKey: String) {
-        mutableUiState.update {
-            it.copy(
-                openRouterApiKey = apiKey,
-                errorMessage = null,
-            )
-        }
-    }
-
-    fun saveApiKey() {
-        viewModelScope.launch {
-            val result = settingsRepository.setOpenRouterApiKey(uiState.value.openRouterApiKey)
-            mutableUiState.update {
-                it.copy(errorMessage = result.exceptionOrNull()?.message?.let(UiText::Raw))
-            }
-        }
-    }
-
-    fun onModelSelected(modelId: String) {
-        viewModelScope.launch {
-            val result = settingsRepository.setSelectedModel(modelId)
-            mutableUiState.update {
-                it.copy(errorMessage = result.exceptionOrNull()?.message?.let(UiText::Raw))
-            }
-        }
-    }
-
-    fun onAsrModelSelected(modelId: String) {
-        viewModelScope.launch {
-            val result = settingsRepository.setSelectedAsrModel(modelId)
-            mutableUiState.update {
-                it.copy(errorMessage = result.exceptionOrNull()?.message?.let(UiText::Raw))
             }
         }
     }
@@ -246,14 +200,6 @@ class SettingsViewModel(
                 id = "appearance",
                 titleResId = R.string.settings_directory_appearance,
                 summary = appearanceSummary(state),
-            ),
-            SettingsDirectoryRowUiModel(
-                id = "ai_voice",
-                titleResId = R.string.settings_directory_ai_voice,
-                summary = UiText.Resource(
-                    R.string.settings_summary_ai_voice,
-                    listOf(state.selectedModelId),
-                ),
             ),
             SettingsDirectoryRowUiModel(
                 id = "sound",

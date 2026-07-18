@@ -39,8 +39,6 @@ class AgentLoopRunnerTest {
 
         val result = runner.run(
             AgentRunRequest(
-                apiKey = "sk-test",
-                modelId = "deepseek/deepseek-v4-flash",
                 initialMessages = listOf(AgentMessage(AgentMessageRole.USER, "tomorrow at 8")),
                 toolRegistry = AgentToolRegistry(listOf(tool)),
                 toolChoice = AgentToolChoice.Required("create_alarm"),
@@ -461,8 +459,6 @@ class AgentLoopRunnerTest {
         ),
         toolChoice: AgentToolChoice = AgentToolChoice.Required("create_alarm"),
     ): AgentRunRequest = AgentRunRequest(
-        apiKey = "sk-test",
-        modelId = "deepseek/deepseek-v4-flash",
         initialMessages = listOf(AgentMessage(AgentMessageRole.USER, "tomorrow at 8")),
         toolRegistry = toolRegistry,
         toolChoice = toolChoice,

@@ -11,7 +11,6 @@ import com.cory.noter.ai.AiCalendarSyncStatus
 import com.cory.noter.ai.AiCreateResult
 import com.cory.noter.ai.AiAlarmCreator
 import com.cory.noter.ai.AiAlarmPromptBuilder
-import com.cory.noter.ai.AsrModel
 import com.cory.noter.alarm.AlarmManagementUseCase
 import com.cory.noter.alarm.AlarmSchedulingUseCase
 import com.cory.noter.alarm.FakeAlarmScheduler
@@ -43,20 +42,22 @@ class AiCreateViewModelTest {
     private val clock = Clock.fixed(Instant.parse("2026-04-23T01:00:00Z"), zoneId)
 
     @Test
-    fun `missing api key becomes explicit settings error`() = runTest {
+    fun `service authentication failure becomes generic service error`() = runTest {
         val settingsRepository = FakeSettingsRepository()
         val alarmRepository = FakeAlarmRepository(clock = clock, zoneId = zoneId)
+        val gateway = FakeAgentLlmGateway().apply {
+            results += AgentLlmResult.ServiceFailure("unauthorized", false)
+        }
         val viewModel = AiCreateViewModel(
             creator = AiAlarmCreator(
                 settingsRepository = settingsRepository,
-                agentLoopRunner = AgentLoopRunner(FakeAgentLlmGateway()),
+                agentLoopRunner = AgentLoopRunner(gateway),
                 alarmRepository = alarmRepository,
                 schedulingUseCase = AlarmSchedulingUseCase(FakeAlarmScheduler()),
                 managementUseCase = managementUseCase(alarmRepository),
                 promptBuilder = AiAlarmPromptBuilder(),
                 clock = clock,
             ),
-            settingsRepository = settingsRepository,
         )
 
         advanceUntilIdle()
@@ -65,7 +66,7 @@ class AiCreateViewModelTest {
         advanceUntilIdle()
 
         assertThat(viewModel.uiState.value.errorMessage)
-            .isEqualTo(UiText.Resource(R.string.ai_create_missing_api_key_error))
+            .isEqualTo(UiText.Resource(R.string.ai_create_service_unavailable_error))
         assertThat(viewModel.uiState.value.isLoading).isFalse()
     }
 
@@ -73,9 +74,6 @@ class AiCreateViewModelTest {
     fun `missing exact alarm permission exposes permission action`() = runTest {
         val settingsRepository = FakeSettingsRepository(
             initialSettings = AppSettings(
-                openRouterApiKey = "sk-or-v1-test",
-                selectedModelId = "deepseek/deepseek-v3.2",
-                selectedAsrModelId = AsrModel.DefaultId,
                 defaultRingtoneUri = AppSettings.DefaultRingtoneUri,
             ),
         )
@@ -110,7 +108,6 @@ class AiCreateViewModelTest {
                 promptBuilder = AiAlarmPromptBuilder(),
                 clock = clock,
             ),
-            settingsRepository = settingsRepository,
         )
 
         advanceUntilIdle()
@@ -142,7 +139,6 @@ class AiCreateViewModelTest {
                 promptBuilder = AiAlarmPromptBuilder(),
                 clock = clock,
             ),
-            settingsRepository = FakeSettingsRepository(),
             backgroundScheduler = backgroundScheduler,
         )
 
@@ -161,9 +157,6 @@ class AiCreateViewModelTest {
     fun `list only result becomes visible status instead of error`() = runTest {
         val settingsRepository = FakeSettingsRepository(
             initialSettings = AppSettings(
-                openRouterApiKey = "sk-or-v1-test",
-                selectedModelId = "deepseek/deepseek-v3.2",
-                selectedAsrModelId = AsrModel.DefaultId,
                 defaultRingtoneUri = AppSettings.DefaultRingtoneUri,
             ),
         )
@@ -219,7 +212,6 @@ class AiCreateViewModelTest {
                 promptBuilder = AiAlarmPromptBuilder(),
                 clock = clock,
             ),
-            settingsRepository = settingsRepository,
         )
 
         advanceUntilIdle()
@@ -261,7 +253,6 @@ class AiCreateViewModelTest {
                 promptBuilder = AiAlarmPromptBuilder(),
                 clock = clock,
             ),
-            settingsRepository = settingsRepository,
         )
 
         advanceUntilIdle()
@@ -297,7 +288,6 @@ class AiCreateViewModelTest {
                 promptBuilder = AiAlarmPromptBuilder(),
                 clock = clock,
             ),
-            settingsRepository = settingsRepository,
         )
 
         advanceUntilIdle()
@@ -346,7 +336,6 @@ class AiCreateViewModelTest {
                     promptBuilder = AiAlarmPromptBuilder(),
                     clock = clock,
                 ),
-                settingsRepository = settingsRepository,
             )
 
             advanceUntilIdle()
@@ -485,9 +474,6 @@ class AiCreateViewModelTest {
 
     private fun validSettingsRepository(): FakeSettingsRepository = FakeSettingsRepository(
         initialSettings = AppSettings(
-            openRouterApiKey = "sk-or-v1-test",
-            selectedModelId = "deepseek/deepseek-v3.2",
-            selectedAsrModelId = AsrModel.DefaultId,
             defaultRingtoneUri = AppSettings.DefaultRingtoneUri,
         ),
     )
@@ -517,7 +503,6 @@ class AiCreateViewModelTest {
                 managementUseCase = managementUseCase(FakeAlarmRepository(clock = clock, zoneId = zoneId)),
                 clock = clock,
             ),
-            settingsRepository = FakeSettingsRepository(),
         )
         val method = AiCreateViewModel::class.java.getDeclaredMethod(
             "toStatusMessage",

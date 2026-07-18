@@ -21,7 +21,6 @@ object Routes {
     const val SETTINGS = "settings"
     const val SETTINGS_HOME = "settings/home"
     const val SETTINGS_APPEARANCE = "settings/appearance"
-    const val SETTINGS_AI_VOICE = "settings/ai"
     const val SETTINGS_SOUND = "settings/sound"
     const val SETTINGS_CALENDAR = "settings/calendar"
     const val SETTINGS_PERMISSIONS = "settings/permissions"
@@ -50,7 +49,6 @@ fun NoterApp(
     ) -> Unit,
     settingsScreen: @Composable (
         onOpenAppearance: () -> Unit,
-        onOpenAiVoice: () -> Unit,
         onOpenSound: () -> Unit,
         onOpenCalendar: () -> Unit,
         onOpenPermissions: () -> Unit,
@@ -58,10 +56,6 @@ fun NoterApp(
         settingsViewModelStoreOwner: ViewModelStoreOwner,
     ) -> Unit,
     appearanceSettingsScreen: @Composable (
-        onBack: () -> Unit,
-        settingsViewModelStoreOwner: ViewModelStoreOwner,
-    ) -> Unit,
-    aiVoiceSettingsScreen: @Composable (
         onBack: () -> Unit,
         settingsViewModelStoreOwner: ViewModelStoreOwner,
     ) -> Unit,
@@ -133,7 +127,6 @@ fun NoterApp(
                 )
                 settingsScreen(
                     { navController.navigate(Routes.SETTINGS_APPEARANCE) },
-                    { navController.navigate(Routes.SETTINGS_AI_VOICE) },
                     { navController.navigate(Routes.SETTINGS_SOUND) },
                     { navController.navigate(Routes.SETTINGS_CALENDAR) },
                     { navController.navigate(Routes.SETTINGS_PERMISSIONS) },
@@ -147,16 +140,6 @@ fun NoterApp(
                     backStackEntry,
                 )
                 appearanceSettingsScreen(
-                    { navController.popBackStack() },
-                    settingsViewModelStoreOwner,
-                )
-            }
-            composable(route = Routes.SETTINGS_AI_VOICE) { backStackEntry ->
-                val settingsViewModelStoreOwner = rememberSettingsViewModelStoreOwner(
-                    navController,
-                    backStackEntry,
-                )
-                aiVoiceSettingsScreen(
                     { navController.popBackStack() },
                     settingsViewModelStoreOwner,
                 )

@@ -174,12 +174,18 @@ class AndroidAiCreateResultNotifier(
     )
 
     private fun AiCreateResult.failureText(): String = when (this) {
-        AiCreateResult.MissingApiKey -> context.getString(R.string.notification_ai_missing_api_key)
-        AiCreateResult.MissingModel -> context.getString(R.string.notification_ai_missing_model)
-        is AiCreateResult.NetworkFailure -> context.getString(R.string.notification_ai_network_failure, reason)
-        is AiCreateResult.RateLimited -> context.getString(R.string.notification_ai_rate_limited, reason)
-        is AiCreateResult.RemoteFailure -> context.getString(R.string.notification_ai_remote_failure, code, reason)
-        is AiCreateResult.InvalidResponse -> reason
+        is AiCreateResult.ServiceFailure -> context.getString(
+            if (code == "invalid_service_response") {
+                R.string.notification_ai_update_required
+            } else {
+                R.string.notification_ai_service_unavailable
+            },
+        )
+        is AiCreateResult.NetworkFailure,
+        is AiCreateResult.RateLimited,
+        is AiCreateResult.RemoteFailure,
+        -> context.getString(R.string.notification_ai_service_unavailable)
+        is AiCreateResult.InvalidResponse -> context.getString(R.string.notification_ai_update_required)
         is AiCreateResult.ClarificationRequired -> reason
         is AiCreateResult.CreateFailed -> reason
         is AiCreateResult.ScheduleFailed -> reason

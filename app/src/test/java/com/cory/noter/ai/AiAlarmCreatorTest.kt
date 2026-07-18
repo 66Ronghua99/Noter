@@ -90,21 +90,12 @@ class AiAlarmCreatorTest {
     }
 
     @Test
-    fun `missing api key fails before network request`() = runTest {
-        settingsRepository.set(
-            AppSettings(
-                openRouterApiKey = "",
-                selectedModelId = OpenRouterModel.DefaultId,
-                selectedAsrModelId = AsrModel.DefaultId,
-                defaultRingtoneUri = AppSettings.DefaultRingtoneUri,
-                defaultCalendarId = null,
-            ),
-        )
-
+    fun `service failure stays outside the model and local write boundary`() = runTest {
+        fakeAgentGateway.results += AgentLlmResult.ServiceFailure("unauthorized", false)
         val result = creator.createFromText("tomorrow 8 remind me to take medicine")
 
-        assertThat(result).isEqualTo(AiCreateResult.MissingApiKey)
-        assertThat(fakeAgentGateway.requests).isEmpty()
+        assertThat(result).isEqualTo(AiCreateResult.ServiceFailure("unauthorized", false))
+        assertThat(fakeAgentGateway.requests).hasSize(1)
         assertThat(repository.alarms.first()).isEmpty()
     }
 
@@ -122,13 +113,12 @@ class AiAlarmCreatorTest {
 
     @Test
     fun `rate limited model leaves alarms unchanged`() = runTest {
-        settingsRepository.set(validSettings(modelId = "deepseek/deepseek-v3.2"))
+        settingsRepository.set(validSettings())
         fakeAgentGateway.results += AgentLlmResult.RateLimited("Rate limit exceeded.")
 
         val result = creator.createFromText("tomorrow 8 remind me to take medicine")
 
         assertThat(result).isEqualTo(AiCreateResult.RateLimited("Rate limit exceeded."))
-        assertThat(fakeAgentGateway.requests.single().modelId).isEqualTo("deepseek/deepseek-v3.2")
         assertThat(repository.alarms.first()).isEmpty()
     }
 
@@ -230,7 +220,7 @@ class AiAlarmCreatorTest {
 
     @Test
     fun `valid response creates ai alarm and schedules it`() = runTest {
-        settingsRepository.set(validSettings(modelId = "deepseek/deepseek-v3.2"))
+        settingsRepository.set(validSettings())
         fakeAgentGateway.results += AgentLlmResult.Message(
             AgentMessage(
                 role = AgentMessageRole.ASSISTANT,
@@ -279,8 +269,6 @@ class AiAlarmCreatorTest {
         assertThat(repository.alarms.first()).containsExactly(created)
         assertThat(fakeScheduler.scheduledAlarms[created.id]).isEqualTo(created)
         assertThat(fakeAgentGateway.requests).hasSize(2)
-        assertThat(fakeAgentGateway.requests[0].modelId)
-            .isEqualTo("deepseek/deepseek-v3.2")
         assertThat(fakeAgentGateway.requests[0].messages).hasSize(2)
         assertThat(fakeAgentGateway.requests[0].messages[0].role)
             .isEqualTo(AgentMessageRole.SYSTEM)
@@ -1344,12 +1332,7 @@ class AiAlarmCreatorTest {
         assertThat(repository.alarms.first()).isEmpty()
     }
 
-    private fun validSettings(
-        modelId: String = OpenRouterModel.DefaultId,
-    ): AppSettings = AppSettings(
-        openRouterApiKey = "sk-or-v1-test",
-        selectedModelId = modelId,
-        selectedAsrModelId = AsrModel.DefaultId,
+    private fun validSettings(): AppSettings = AppSettings(
         defaultRingtoneUri = AppSettings.DefaultRingtoneUri,
     )
 

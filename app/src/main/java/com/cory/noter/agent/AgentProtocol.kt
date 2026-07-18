@@ -86,16 +86,12 @@ sealed interface AgentToolChoice {
 }
 
 data class AgentRunRequest(
-    val apiKey: String,
-    val modelId: String,
     val initialMessages: List<AgentMessage>,
     val toolRegistry: AgentToolRegistry,
     val toolChoice: AgentToolChoice = AgentToolChoice.Auto,
 )
 
 data class AgentLlmRequest(
-    val apiKey: String,
-    val modelId: String,
     val messages: List<AgentMessage>,
     val tools: List<AgentToolSpec>,
     val toolChoice: AgentToolChoice,
@@ -111,6 +107,12 @@ sealed interface AgentLlmResult {
     data class RemoteFailure(val code: Int, val reason: String) : AgentLlmResult
 
     data class InvalidResponse(val reason: String) : AgentLlmResult
+
+    data class ServiceFailure(
+        val code: String,
+        val retryable: Boolean,
+        val retryAfterSeconds: Long? = null,
+    ) : AgentLlmResult
 }
 
 interface AgentLlmGateway {
@@ -145,6 +147,9 @@ sealed interface AgentFailure {
 
     data class ToolExecutionFailed(val reason: String) : AgentFailure
 
+    /** A local argument/schema error that the model may safely correct once before any write. */
+    data class CorrectableToolFailure(val reason: String) : AgentFailure
+
     data class ClarificationRequired(val reason: String) : AgentFailure
 
     data class CreateFailed(val reason: String) : AgentFailure
@@ -154,6 +159,8 @@ sealed interface AgentFailure {
     data class RateLimited(val reason: String) : AgentFailure
 
     data class ModelFailure(val reason: String) : AgentFailure
+
+    data class ServiceFailure(val code: String, val retryable: Boolean) : AgentFailure
 
     data class RemoteFailure(val code: Int, val reason: String) : AgentFailure
 

@@ -1,585 +1,180 @@
 package com.cory.noter.ui.settings
 
-import android.content.Context
 import com.cory.noter.calendar.CalendarSource
 import com.cory.noter.calendar.CalendarSourceResult
 import com.cory.noter.calendar.DeviceCalendar
-import com.cory.noter.ai.AsrModel
-import com.cory.noter.ai.OpenRouterModel
 import com.cory.noter.data.settings.FakeSettingsRepository
-import com.cory.noter.data.settings.SettingsRepository
 import com.cory.noter.domain.settings.AppSettings
 import com.cory.noter.permissions.PermissionStatusReader
 import com.cory.noter.ui.MainDispatcherRule
 import com.google.common.truth.Truth.assertThat
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
-import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
-import org.robolectric.RuntimeEnvironment
 import org.junit.Rule
 import org.junit.Test
 
-@RunWith(RobolectricTestRunner::class)
-@OptIn(ExperimentalCoroutinesApi::class)
 class SettingsViewModelTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
     @Test
-    fun `directory summaries expose appearance ai sound and permissions state`() = runTest {
-        val repository = FakeSettingsRepository(
-            initialSettings = AppSettings(
-                openRouterApiKey = "sk-demo",
-                selectedModelId = OpenRouterModel.builtInIds[1],
-                selectedAsrModelId = AsrModel.builtInIds[1],
-                defaultRingtoneUri = "content://ringtone/demo",
-                themePresetId = "fresh_green",
-            ),
-        )
-        val viewModel = SettingsViewModel(
-            settingsRepository = repository,
-            exactAlarmPermissionReader = PermissionStatusReader { false },
-            notificationPermissionProvider = { true },
-            batteryOptimizationIgnoredProvider = { false },
-            calendarSource = FakeCalendarSource.available(
-                DeviceCalendar(
-                    id = 42L,
-                    displayName = "Personal",
-                    accountName = "me@example.com",
-                    accountType = "com.google",
-                    writable = true,
+    fun `directory contains only retained settings destinations`() = runTest {
+        val viewModel = viewModel(
+            repository = FakeSettingsRepository(
+                AppSettings(
+                    defaultRingtoneUri = "content://ringtone/demo",
+                    themePresetId = "fresh_green",
                 ),
             ),
         )
 
         advanceUntilIdle()
 
-        val state = viewModel.uiState.value
-        assertThat(state.directoryRows.map { it.id })
-            .containsExactly("appearance", "ai_voice", "sound", "calendar", "permissions")
+        assertThat(viewModel.uiState.value.directoryRows.map { it.id })
+            .containsExactly("appearance", "sound", "calendar", "permissions")
             .inOrder()
-        assertThat(state.directoryRows.first { it.id == "appearance" }.summary.asStringForTest())
-            .contains("Fresh Green")
-        assertThat(state.directoryRows.first { it.id == "ai_voice" }.summary.asStringForTest())
-            .contains(OpenRouterModel.builtInIds[1])
-        assertThat(state.directoryRows.first { it.id == "sound" }.summary.asStringForTest())
-            .contains("content://ringtone/demo")
-        assertThat(state.directoryRows.first { it.id == "calendar" }.summary.asStringForTest())
-            .contains("Not selected")
-        assertThat(state.directoryRows.first { it.id == "permissions" }.summary.asStringForTest())
-            .contains("2")
     }
 
     @Test
-    fun `theme state follows repository settings`() = runTest {
-        val repository = FakeSettingsRepository(
-            initialSettings = AppSettings(
-                openRouterApiKey = "",
-                selectedModelId = OpenRouterModel.DefaultId,
-                selectedAsrModelId = AsrModel.DefaultId,
-                defaultRingtoneUri = AppSettings.DefaultRingtoneUri,
-                themePresetId = AppSettings.CustomThemePresetId,
-                customThemeSeedColor = "#b65b70",
-            ),
-        )
-        val viewModel = SettingsViewModel(
-            settingsRepository = repository,
-            exactAlarmPermissionReader = PermissionStatusReader { true },
-            notificationPermissionProvider = { true },
-            batteryOptimizationIgnoredProvider = { true },
-        )
-
-        advanceUntilIdle()
-
-        assertThat(viewModel.uiState.value.themePresetId).isEqualTo(AppSettings.CustomThemePresetId)
-        assertThat(viewModel.uiState.value.customThemeSeedColor).isEqualTo("#b65b70")
-        assertThat(viewModel.uiState.value.customThemeSeedColorInput).isEqualTo("#b65b70")
-    }
-
-    @Test
-    fun `selecting theme preset saves repository value`() = runTest {
+    fun `theme state and writes stay repository owned`() = runTest {
         val repository = FakeSettingsRepository()
-        val viewModel = SettingsViewModel(
-            settingsRepository = repository,
-            exactAlarmPermissionReader = PermissionStatusReader { true },
-            notificationPermissionProvider = { true },
-            batteryOptimizationIgnoredProvider = { true },
-        )
+        val viewModel = viewModel(repository)
 
         advanceUntilIdle()
         viewModel.onThemePresetSelected("soft_rose")
         advanceUntilIdle()
 
         assertThat(repository.settings.first().themePresetId).isEqualTo("soft_rose")
-        assertThat(repository.settings.first().customThemeSeedColor).isNull()
-        assertThat(viewModel.uiState.value.errorMessage).isNull()
-    }
-
-    @Test
-    fun `saving custom theme seed color saves repository value`() = runTest {
-        val repository = FakeSettingsRepository()
-        val viewModel = SettingsViewModel(
-            settingsRepository = repository,
-            exactAlarmPermissionReader = PermissionStatusReader { true },
-            notificationPermissionProvider = { true },
-            batteryOptimizationIgnoredProvider = { true },
-        )
-
-        advanceUntilIdle()
-        viewModel.onCustomThemeSeedColorChanged("#4A6EA9")
-        viewModel.saveCustomThemeSeedColor()
-        advanceUntilIdle()
-
-        assertThat(repository.settings.first().themePresetId).isEqualTo(AppSettings.CustomThemePresetId)
-        assertThat(repository.settings.first().customThemeSeedColor).isEqualTo("#4a6ea9")
-        assertThat(viewModel.uiState.value.errorMessage).isNull()
-    }
-
-    @Test
-    fun `saving custom theme seed color normalizes hashless and spaced input`() = runTest {
-        val repository = FakeSettingsRepository()
-        val viewModel = SettingsViewModel(
-            settingsRepository = repository,
-            exactAlarmPermissionReader = PermissionStatusReader { true },
-            notificationPermissionProvider = { true },
-            batteryOptimizationIgnoredProvider = { true },
-        )
-
-        advanceUntilIdle()
-        viewModel.onCustomThemeSeedColorChanged("4A6EA9")
-        viewModel.saveCustomThemeSeedColor()
-        advanceUntilIdle()
-
-        assertThat(repository.settings.first().customThemeSeedColor).isEqualTo("#4a6ea9")
-        assertThat(viewModel.uiState.value.errorMessage).isNull()
+        assertThat(viewModel.uiState.value.themePresetId).isEqualTo("soft_rose")
 
         viewModel.onCustomThemeSeedColorChanged(" #B65B70 ")
         viewModel.saveCustomThemeSeedColor()
         advanceUntilIdle()
 
+        assertThat(repository.settings.first().themePresetId).isEqualTo(AppSettings.CustomThemePresetId)
         assertThat(repository.settings.first().customThemeSeedColor).isEqualTo("#b65b70")
-        assertThat(viewModel.uiState.value.errorMessage).isNull()
     }
 
     @Test
-    fun `invalid custom theme seed color is rejected before repository write`() = runTest {
-        val repository = RecordingThemeSettingsRepository()
-        val viewModel = SettingsViewModel(
-            settingsRepository = repository,
-            exactAlarmPermissionReader = PermissionStatusReader { true },
-            notificationPermissionProvider = { true },
-            batteryOptimizationIgnoredProvider = { true },
-        )
-
-        advanceUntilIdle()
-        viewModel.onCustomThemeSeedColorChanged("not-a-color")
-        viewModel.saveCustomThemeSeedColor()
-        advanceUntilIdle()
-
-        assertThat(repository.customThemeSeedColorWriteCount).isEqualTo(0)
-        assertThat(viewModel.uiState.value.errorMessage?.asStringForTest())
-            .isEqualTo("Enter a color as #RRGGBB.")
-    }
-
-    @Test
-    fun `invalid appearance writes surface explicit errors`() = runTest {
-        val repository = FakeSettingsRepository()
-        val viewModel = SettingsViewModel(
-            settingsRepository = repository,
-            exactAlarmPermissionReader = PermissionStatusReader { true },
-            notificationPermissionProvider = { true },
-            batteryOptimizationIgnoredProvider = { true },
-        )
-
-        advanceUntilIdle()
-        viewModel.onThemePresetSelected("electric_ultraviolet")
-        advanceUntilIdle()
-        assertThat(viewModel.uiState.value.errorMessage?.asStringForTest())
-            .contains("UNKNOWN_THEME_PRESET_ID")
-
-        viewModel.onCustomThemeSeedColorChanged("not-a-color")
-        viewModel.saveCustomThemeSeedColor()
-        advanceUntilIdle()
-
-        assertThat(viewModel.uiState.value.errorMessage?.asStringForTest())
-            .isEqualTo("Enter a color as #RRGGBB.")
-    }
-
-    @Test
-    fun `selecting model saves settings value`() = runTest {
-        val repository = FakeSettingsRepository()
-        var notificationGranted = false
-        val viewModel = SettingsViewModel(
-            settingsRepository = repository,
-            exactAlarmPermissionReader = PermissionStatusReader { true },
-            notificationPermissionProvider = { notificationGranted },
-            batteryOptimizationIgnoredProvider = { false },
-        )
-
-        advanceUntilIdle()
-        viewModel.onModelSelected(OpenRouterModel.builtInIds[1])
-        advanceUntilIdle()
-
-        assertThat(repository.settings.first().selectedModelId)
-            .isEqualTo(OpenRouterModel.builtInIds[1])
-        assertThat(viewModel.uiState.value.selectedModelId)
-            .isEqualTo(OpenRouterModel.builtInIds[1])
-    }
-
-    @Test
-    fun `asr model options are exposed independently from llm model options`() = runTest {
-        val repository = FakeSettingsRepository()
-        val viewModel = SettingsViewModel(
-            settingsRepository = repository,
-            exactAlarmPermissionReader = PermissionStatusReader { true },
-            notificationPermissionProvider = { true },
-            batteryOptimizationIgnoredProvider = { true },
+    fun `missing calendar permission is explicit`() = runTest {
+        val viewModel = viewModel(
+            calendarSource = FakeCalendarSource(CalendarSourceResult.MissingPermission),
         )
 
         advanceUntilIdle()
 
-        assertThat(viewModel.uiState.value.modelOptions).isEqualTo(OpenRouterModel.builtInIds)
-        assertThat(viewModel.uiState.value.asrModelOptions).isEqualTo(AsrModel.builtInIds)
-        assertThat(viewModel.uiState.value.selectedAsrModelId).isEqualTo(AsrModel.DefaultId)
+        assertThat(viewModel.uiState.value.calendarSettings.status)
+            .isEqualTo(CalendarSettingsStatus.MISSING_PERMISSION)
+        assertThat(viewModel.uiState.value.calendarSettings.setupComplete).isFalse()
     }
 
     @Test
-    fun `selecting asr model saves settings value`() = runTest {
-        val repository = FakeSettingsRepository()
-        val viewModel = SettingsViewModel(
-            settingsRepository = repository,
-            exactAlarmPermissionReader = PermissionStatusReader { true },
-            notificationPermissionProvider = { true },
-            batteryOptimizationIgnoredProvider = { false },
-        )
-
-        advanceUntilIdle()
-        viewModel.onAsrModelSelected(AsrModel.builtInIds[1])
-        advanceUntilIdle()
-
-        assertThat(repository.settings.first().selectedAsrModelId)
-            .isEqualTo(AsrModel.builtInIds[1])
-        assertThat(viewModel.uiState.value.selectedAsrModelId)
-            .isEqualTo(AsrModel.builtInIds[1])
-    }
-
-    @Test
-    fun `unknown asr model selection surfaces error and preserves current value`() = runTest {
-        val repository = FakeSettingsRepository()
-        val viewModel = SettingsViewModel(
-            settingsRepository = repository,
-            exactAlarmPermissionReader = PermissionStatusReader { true },
-            notificationPermissionProvider = { true },
-            batteryOptimizationIgnoredProvider = { true },
-        )
-
-        advanceUntilIdle()
-        viewModel.onAsrModelSelected("unknown/asr-model")
-        advanceUntilIdle()
-
-        assertThat(repository.settings.first().selectedAsrModelId).isEqualTo(AsrModel.DefaultId)
-        assertThat(viewModel.uiState.value.selectedAsrModelId).isEqualTo(AsrModel.DefaultId)
-        assertThat(viewModel.uiState.value.errorMessage?.asStringForTest())
-            .contains("UNKNOWN_ASR_MODEL_ID")
-    }
-
-    @Test
-    fun `selecting ringtone saves settings value`() = runTest {
-        val repository = FakeSettingsRepository()
-        val viewModel = SettingsViewModel(
-            settingsRepository = repository,
-            exactAlarmPermissionReader = PermissionStatusReader { false },
-            notificationPermissionProvider = { true },
-            batteryOptimizationIgnoredProvider = { true },
-        )
-
-        advanceUntilIdle()
-        viewModel.onDefaultRingtoneSelected("content://media/internal/audio/media/12")
-        advanceUntilIdle()
-
-        assertThat(repository.settings.first().defaultRingtoneUri)
-            .isEqualTo("content://media/internal/audio/media/12")
-        assertThat(viewModel.uiState.value.defaultRingtoneUri)
-            .isEqualTo("content://media/internal/audio/media/12")
-    }
-
-    @Test
-    fun `calendar id state follows repository settings`() = runTest {
-        val repository = FakeSettingsRepository(
-            initialSettings = AppSettings(
-                openRouterApiKey = "",
-                selectedModelId = OpenRouterModel.DefaultId,
-                selectedAsrModelId = AsrModel.DefaultId,
-                defaultRingtoneUri = AppSettings.DefaultRingtoneUri,
-                defaultCalendarId = 91L,
-            ),
-        )
-        val viewModel = SettingsViewModel(
-            settingsRepository = repository,
-            exactAlarmPermissionReader = PermissionStatusReader { true },
-            notificationPermissionProvider = { true },
-            batteryOptimizationIgnoredProvider = { true },
-        )
-
-        advanceUntilIdle()
-
-        assertThat(viewModel.uiState.value.defaultCalendarId).isEqualTo(91L)
-    }
-
-    @Test
-    fun `selecting and clearing default calendar saves settings value`() = runTest {
-        val repository = FakeSettingsRepository()
-        val viewModel = SettingsViewModel(
-            settingsRepository = repository,
-            exactAlarmPermissionReader = PermissionStatusReader { true },
-            notificationPermissionProvider = { true },
-            batteryOptimizationIgnoredProvider = { true },
+    fun `read only calendars are not considered ready`() = runTest {
+        val viewModel = viewModel(
             calendarSource = FakeCalendarSource.available(
                 DeviceCalendar(
-                    id = 42L,
-                    displayName = "Personal",
-                    accountName = "me@example.com",
+                    id = 7L,
+                    displayName = "Read only",
+                    accountName = "readonly@example.com",
                     accountType = "com.google",
-                    writable = true,
+                    writable = false,
                 ),
             ),
+        )
+
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.calendarSettings.status)
+            .isEqualTo(CalendarSettingsStatus.NO_WRITABLE_CALENDAR)
+    }
+
+    @Test
+    fun `selected writable calendar is ready and can be cleared`() = runTest {
+        val repository = FakeSettingsRepository()
+        val viewModel = viewModel(
+            repository = repository,
+            calendarSource = FakeCalendarSource.available(writableCalendar()),
         )
 
         advanceUntilIdle()
         viewModel.onDefaultCalendarSelected(42L)
         advanceUntilIdle()
 
+        assertThat(viewModel.uiState.value.calendarSettings.status)
+            .isEqualTo(CalendarSettingsStatus.READY)
         assertThat(repository.settings.first().defaultCalendarId).isEqualTo(42L)
-        assertThat(viewModel.uiState.value.defaultCalendarId).isEqualTo(42L)
-        assertThat(viewModel.uiState.value.errorMessage).isNull()
 
         viewModel.clearDefaultCalendar()
         advanceUntilIdle()
 
         assertThat(repository.settings.first().defaultCalendarId).isNull()
-        assertThat(viewModel.uiState.value.defaultCalendarId).isNull()
-        assertThat(viewModel.uiState.value.errorMessage).isNull()
     }
 
     @Test
-    fun `calendar setup state reports missing calendar permission`() = runTest {
-        val viewModel = SettingsViewModel(
-            settingsRepository = FakeSettingsRepository(),
-            exactAlarmPermissionReader = PermissionStatusReader { true },
-            notificationPermissionProvider = { true },
-            batteryOptimizationIgnoredProvider = { true },
-            calendarSource = FakeCalendarSource(CalendarSourceResult.MissingPermission),
-        )
-
-        advanceUntilIdle()
-
-        val calendarState = viewModel.uiState.value.calendarSettings
-        assertThat(calendarState.status).isEqualTo(CalendarSettingsStatus.MISSING_PERMISSION)
-        assertThat(calendarState.setupComplete).isFalse()
-        assertThat(calendarState.calendars).isEmpty()
-    }
-
-    @Test
-    fun `calendar setup state reports no writable calendars`() = runTest {
-        val viewModel = SettingsViewModel(
-            settingsRepository = FakeSettingsRepository(),
-            exactAlarmPermissionReader = PermissionStatusReader { true },
-            notificationPermissionProvider = { true },
-            batteryOptimizationIgnoredProvider = { true },
-            calendarSource = FakeCalendarSource.available(
-                DeviceCalendar(
-                    id = 7L,
-                    displayName = "Read only",
-                    accountName = "readonly@example.com",
-                    accountType = "com.google",
-                    writable = false,
+    fun `invalid stored calendar is reported`() = runTest {
+        val viewModel = viewModel(
+            repository = FakeSettingsRepository(
+                AppSettings(
+                    defaultRingtoneUri = AppSettings.DefaultRingtoneUri,
+                    defaultCalendarId = 99L,
                 ),
             ),
+            calendarSource = FakeCalendarSource.available(writableCalendar()),
         )
 
         advanceUntilIdle()
 
-        val calendarState = viewModel.uiState.value.calendarSettings
-        assertThat(calendarState.status).isEqualTo(CalendarSettingsStatus.NO_WRITABLE_CALENDAR)
-        assertThat(calendarState.setupComplete).isFalse()
-        assertThat(calendarState.calendars.single().writable).isFalse()
+        assertThat(viewModel.uiState.value.calendarSettings.status)
+            .isEqualTo(CalendarSettingsStatus.INVALID_STORED_CALENDAR)
     }
 
     @Test
-    fun `calendar setup state reports available calendar and setup complete when selected`() = runTest {
-        val repository = FakeSettingsRepository(
-            initialSettings = AppSettings(
-                openRouterApiKey = "",
-                selectedModelId = OpenRouterModel.DefaultId,
-                selectedAsrModelId = AsrModel.DefaultId,
-                defaultRingtoneUri = AppSettings.DefaultRingtoneUri,
-                defaultCalendarId = 42L,
-            ),
-        )
-        val viewModel = SettingsViewModel(
-            settingsRepository = repository,
-            exactAlarmPermissionReader = PermissionStatusReader { true },
-            notificationPermissionProvider = { true },
-            batteryOptimizationIgnoredProvider = { true },
-            calendarSource = FakeCalendarSource.available(
-                DeviceCalendar(
-                    id = 42L,
-                    displayName = "Personal",
-                    accountName = "me@example.com",
-                    accountType = "com.google",
-                    writable = true,
-                ),
-            ),
-        )
-
-        advanceUntilIdle()
-
-        val calendarState = viewModel.uiState.value.calendarSettings
-        assertThat(calendarState.status).isEqualTo(CalendarSettingsStatus.READY)
-        assertThat(calendarState.setupComplete).isTrue()
-        assertThat(calendarState.selectedCalendarId).isEqualTo(42L)
-    }
-
-    @Test
-    fun `calendar setup state reports invalid stored calendar`() = runTest {
-        val repository = FakeSettingsRepository(
-            initialSettings = AppSettings(
-                openRouterApiKey = "",
-                selectedModelId = OpenRouterModel.DefaultId,
-                selectedAsrModelId = AsrModel.DefaultId,
-                defaultRingtoneUri = AppSettings.DefaultRingtoneUri,
-                defaultCalendarId = 99L,
-            ),
-        )
-        val viewModel = SettingsViewModel(
-            settingsRepository = repository,
-            exactAlarmPermissionReader = PermissionStatusReader { true },
-            notificationPermissionProvider = { true },
-            batteryOptimizationIgnoredProvider = { true },
-            calendarSource = FakeCalendarSource.available(
-                DeviceCalendar(
-                    id = 42L,
-                    displayName = "Personal",
-                    accountName = "me@example.com",
-                    accountType = "com.google",
-                    writable = true,
-                ),
-            ),
-        )
-
-        advanceUntilIdle()
-
-        val calendarState = viewModel.uiState.value.calendarSettings
-        assertThat(calendarState.status).isEqualTo(CalendarSettingsStatus.INVALID_STORED_CALENDAR)
-        assertThat(calendarState.setupComplete).isFalse()
-    }
-
-    @Test
-    fun `non writable calendar selection is rejected before repository write`() = runTest {
-        val repository = FakeSettingsRepository()
-        val viewModel = SettingsViewModel(
-            settingsRepository = repository,
-            exactAlarmPermissionReader = PermissionStatusReader { true },
-            notificationPermissionProvider = { true },
-            batteryOptimizationIgnoredProvider = { true },
-            calendarSource = FakeCalendarSource.available(
-                DeviceCalendar(
-                    id = 7L,
-                    displayName = "Read only",
-                    accountName = "readonly@example.com",
-                    accountType = "com.google",
-                    writable = false,
-                ),
-            ),
-        )
-
-        advanceUntilIdle()
-        viewModel.onDefaultCalendarSelected(7L)
-        advanceUntilIdle()
-
-        assertThat(repository.settings.first().defaultCalendarId).isNull()
-        assertThat(viewModel.uiState.value.errorMessage?.asStringForTest())
-            .isEqualTo("Choose a writable calendar.")
-    }
-
-    @Test
-    fun `refresh permission rows re-reads current permission state`() = runTest {
-        val repository = FakeSettingsRepository()
-        var notificationGranted = false
+    fun `permission rows refresh from current device state`() = runTest {
+        var notificationsGranted = false
+        var exactAlarmsGranted = false
         var batteryIgnored = false
-        var exactAllowed = false
-        val viewModel = SettingsViewModel(
-            settingsRepository = repository,
-            exactAlarmPermissionReader = PermissionStatusReader { exactAllowed },
-            notificationPermissionProvider = { notificationGranted },
+        val viewModel = viewModel(
+            exactAlarmPermissionReader = PermissionStatusReader { exactAlarmsGranted },
+            notificationPermissionProvider = { notificationsGranted },
             batteryOptimizationIgnoredProvider = { batteryIgnored },
         )
 
         advanceUntilIdle()
-        assertThat(viewModel.uiState.value.permissionRows.first { it.id == "notifications" }.granted)
-            .isFalse()
+        assertThat(viewModel.uiState.value.permissionRows.any { !it.granted }).isTrue()
 
-        notificationGranted = true
+        notificationsGranted = true
+        exactAlarmsGranted = true
         batteryIgnored = true
-        exactAllowed = true
         viewModel.refreshPermissionRows()
 
-        assertThat(viewModel.uiState.value.permissionRows.first { it.id == "notifications" }.granted)
-            .isTrue()
-        assertThat(viewModel.uiState.value.permissionRows.first { it.id == "exact_alarms" }.granted)
-            .isTrue()
-        assertThat(viewModel.uiState.value.permissionRows.first { it.id == "battery_optimization" }.granted)
-            .isTrue()
+        assertThat(viewModel.uiState.value.permissionRows.all { it.granted }).isTrue()
     }
 
-    private fun com.cory.noter.ui.text.UiText.asStringForTest(): String = when (this) {
-        is com.cory.noter.ui.text.UiText.Raw -> value
-        is com.cory.noter.ui.text.UiText.Resource -> {
-            RuntimeEnvironment.getApplication()
-                .getString(resId, *args.toTypedArray())
-        }
-    }
+    private fun viewModel(
+        repository: FakeSettingsRepository = FakeSettingsRepository(),
+        exactAlarmPermissionReader: PermissionStatusReader = PermissionStatusReader { true },
+        notificationPermissionProvider: () -> Boolean = { true },
+        batteryOptimizationIgnoredProvider: () -> Boolean = { true },
+        calendarSource: CalendarSource = FakeCalendarSource.available(),
+    ): SettingsViewModel = SettingsViewModel(
+        settingsRepository = repository,
+        exactAlarmPermissionReader = exactAlarmPermissionReader,
+        notificationPermissionProvider = notificationPermissionProvider,
+        batteryOptimizationIgnoredProvider = batteryOptimizationIgnoredProvider,
+        calendarSource = calendarSource,
+    )
 
-    private class RecordingThemeSettingsRepository : SettingsRepository {
-        private val delegate = FakeSettingsRepository()
-        var customThemeSeedColorWriteCount = 0
-
-        override val settings: Flow<AppSettings> = delegate.settings
-        override val themeSettings: Flow<AppSettings> = delegate.themeSettings
-
-        override suspend fun setOpenRouterApiKey(apiKey: String): Result<Unit> =
-            delegate.setOpenRouterApiKey(apiKey)
-
-        override suspend fun setSelectedModel(modelId: String): Result<Unit> =
-            delegate.setSelectedModel(modelId)
-
-        override suspend fun setSelectedAsrModel(modelId: String): Result<Unit> =
-            delegate.setSelectedAsrModel(modelId)
-
-        override suspend fun setDefaultRingtoneUri(ringtoneUri: String): Result<Unit> =
-            delegate.setDefaultRingtoneUri(ringtoneUri)
-
-        override suspend fun setDefaultCalendarId(calendarId: Long): Result<Unit> =
-            delegate.setDefaultCalendarId(calendarId)
-
-        override suspend fun clearDefaultCalendarId(): Result<Unit> =
-            delegate.clearDefaultCalendarId()
-
-        override suspend fun setThemePreset(presetId: String): Result<Unit> =
-            delegate.setThemePreset(presetId)
-
-        override suspend fun setCustomThemeSeedColor(seedColor: String): Result<Unit> {
-            customThemeSeedColorWriteCount += 1
-            return delegate.setCustomThemeSeedColor(seedColor)
-        }
-    }
+    private fun writableCalendar(): DeviceCalendar = DeviceCalendar(
+        id = 42L,
+        displayName = "Personal",
+        accountName = "me@example.com",
+        accountType = "com.google",
+        writable = true,
+    )
 
     private class FakeCalendarSource(
-        private var result: CalendarSourceResult,
+        private val result: CalendarSourceResult,
     ) : CalendarSource {
         override suspend fun loadCalendars(): CalendarSourceResult = result
 

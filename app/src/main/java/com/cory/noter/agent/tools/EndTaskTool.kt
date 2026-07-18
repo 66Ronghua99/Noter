@@ -31,7 +31,7 @@ class EndTaskTool(
         val arguments = runCatching { json.parseToJsonElement(call.arguments).jsonObject }
             .getOrElse {
                 return AgentToolExecution.Failure(
-                    AgentFailure.ToolExecutionFailed("Invalid JSON"),
+                    AgentFailure.CorrectableToolFailure("Invalid JSON"),
                 )
             }
         val reason = arguments.optionalNonBlankString("reason")

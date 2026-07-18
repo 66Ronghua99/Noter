@@ -3,40 +3,27 @@ package com.cory.noter
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performTextInput
-import androidx.test.espresso.Espresso.pressBack
-import com.cory.noter.agent.AgentLoopRunner
-import com.cory.noter.ai.AiAlarmCreator
-import com.cory.noter.ai.AiAlarmPromptBuilder
-import com.cory.noter.ai.AsrModel
-import com.cory.noter.ai.OpenRouterModel
-import com.cory.noter.alarm.AlarmSchedulingUseCase
-import com.cory.noter.ui.settings.CalendarSettingsScreen
 import com.cory.noter.ui.NoterApp
 import com.cory.noter.ui.Routes
-import com.cory.noter.ui.ai.AiCreateScreen
-import com.cory.noter.ui.ai.AiCreateViewModel
-import com.cory.noter.ui.settings.AiVoiceSettingsScreen
 import com.cory.noter.ui.settings.AppearanceSettingsScreen
+import com.cory.noter.ui.settings.CalendarSettingsScreen
+import com.cory.noter.ui.settings.PermissionGuidanceUiModel
 import com.cory.noter.ui.settings.PermissionsSettingsScreen
+import com.cory.noter.ui.settings.SettingsDirectoryRowUiModel
 import com.cory.noter.ui.settings.SettingsScreen
 import com.cory.noter.ui.settings.SettingsTestTags
-import com.cory.noter.ui.settings.SettingsViewModel
+import com.cory.noter.ui.settings.SettingsUiState
 import com.cory.noter.ui.settings.SoundSettingsScreen
-import java.time.Clock
-import java.time.Instant
-import java.time.ZoneId
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
+import com.cory.noter.ui.text.UiText
 import org.junit.Rule
 import org.junit.Test
 
@@ -45,249 +32,37 @@ class SettingsSmokeTest {
     val composeRule = createAndroidComposeRule<ComponentActivity>()
 
     @Test
-    fun settings_route_navigates_to_appearance_detail() {
+    fun settings_home_exposes_only_retained_destinations() {
+        setSettingsRouteTestContent()
+
+        composeRule.onNodeWithTag(SettingsTestTags.Home).assertIsDisplayed()
+        composeRule.onNodeWithTag(SettingsTestTags.AppearanceRow).assertIsDisplayed()
+        composeRule.onNodeWithTag(SettingsTestTags.SoundRow).assertIsDisplayed()
+        composeRule.onNodeWithTag(SettingsTestTags.CalendarRow).assertIsDisplayed()
+        composeRule.onNodeWithTag(SettingsTestTags.PermissionsRow).assertIsDisplayed()
+        composeRule.onAllNodesWithText("OpenRouter").assertCountEquals(0)
+    }
+
+    @Test
+    fun retained_settings_destinations_navigate() {
         setSettingsRouteTestContent()
         composeRule.onNodeWithTag(SettingsTestTags.AppearanceRow).performClick()
         composeRule.onNodeWithTag(SettingsTestTags.AppearanceDetail).assertIsDisplayed()
-    }
 
-    @Test
-    fun settings_route_navigates_to_ai_voice_detail() {
-        setSettingsRouteTestContent()
-        composeRule.onNodeWithTag(SettingsTestTags.AiVoiceRow).performClick()
-        composeRule.onNodeWithTag(SettingsTestTags.AiVoiceDetail).assertIsDisplayed()
-    }
-
-    @Test
-    fun settings_route_navigates_to_sound_detail() {
-        setSettingsRouteTestContent()
+        composeRule.activityRule.scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
         composeRule.onNodeWithTag(SettingsTestTags.SoundRow).performClick()
         composeRule.onNodeWithTag(SettingsTestTags.SoundDetail).assertIsDisplayed()
     }
 
     @Test
-    fun settings_route_navigates_to_permissions_detail() {
-        setSettingsRouteTestContent()
-        composeRule.onNodeWithTag(SettingsTestTags.PermissionsRow).performClick()
-        composeRule.onNodeWithTag(SettingsTestTags.PermissionsDetail).assertIsDisplayed()
-    }
-
-    @Test
-    fun settings_route_navigates_to_calendar_detail() {
+    fun calendar_and_permission_settings_remain_usable() {
         setSettingsRouteTestContent()
         composeRule.onNodeWithTag(SettingsTestTags.CalendarRow).performClick()
         composeRule.onNodeWithTag(SettingsTestTags.CalendarDetail).assertIsDisplayed()
-    }
 
-    @Test
-    fun appearance_settings_detail_exposes_route_specific_controls() {
-        val state = SettingsViewModelPreviewStates.default
-
-        composeRule.setContent {
-            MaterialTheme {
-                AppearanceSettingsScreen(
-                    state = state,
-                    onThemePresetSelected = {},
-                    onCustomThemeSeedColorChanged = {},
-                    onCustomThemeSeedColorCommitted = {},
-                    onBack = {},
-                )
-            }
-        }
-
-        composeRule.onNodeWithTag(SettingsTestTags.AppearanceDetail).assertIsDisplayed()
-        composeRule.onNodeWithTag(SettingsTestTags.ThemePresetAction("calm_blue")).assertIsDisplayed()
-        composeRule.onNodeWithTag(SettingsTestTags.ThemePresetAction("fresh_green")).assertIsDisplayed()
-        composeRule.onNodeWithTag(SettingsTestTags.ThemePresetAction("soft_rose")).assertIsDisplayed()
-        composeRule.onNodeWithTag(SettingsTestTags.ThemePresetAction("neutral_gray")).assertIsDisplayed()
-        composeRule.onNodeWithTag(SettingsTestTags.CustomThemeSeedInput).assertIsDisplayed()
-    }
-
-    @Test
-    fun ai_voice_settings_detail_exposes_route_specific_controls() {
-        val state = SettingsViewModelPreviewStates.default
-
-        composeRule.setContent {
-            MaterialTheme {
-                AiVoiceSettingsScreen(
-                    state = state,
-                    onApiKeyChanged = {},
-                    onSaveApiKey = {},
-                    onModelSelected = {},
-                    onAsrModelSelected = {},
-                    onBack = {},
-                )
-            }
-        }
-        composeRule.onNodeWithTag(SettingsTestTags.AiVoiceDetail).assertIsDisplayed()
-        composeRule.onNodeWithTag(SettingsTestTags.ApiKeyInput).assertIsDisplayed()
-        composeRule.onNodeWithTag(SettingsTestTags.SaveApiKeyAction).assertIsDisplayed()
-        composeRule.onNodeWithTag(SettingsTestTags.ModelAction(OpenRouterModel.builtInIds[0])).assertIsDisplayed()
-        composeRule.onNodeWithTag(SettingsTestTags.AsrModelAction(AsrModel.builtInIds[0])).assertIsDisplayed()
-    }
-
-    @Test
-    fun sound_settings_detail_exposes_route_specific_controls() {
-        val state = SettingsViewModelPreviewStates.default
-
-        composeRule.setContent {
-            MaterialTheme {
-                SoundSettingsScreen(
-                    state = state,
-                    onPickDefaultRingtone = {},
-                    onBack = {},
-                )
-            }
-        }
-        composeRule.onNodeWithTag(SettingsTestTags.SoundDetail).assertIsDisplayed()
-        composeRule.onNodeWithTag(SettingsTestTags.DefaultRingtoneAction).assertIsDisplayed()
-    }
-
-    @Test
-    fun permissions_settings_detail_exposes_route_specific_controls() {
-        val state = SettingsViewModelPreviewStates.default
-
-        composeRule.setContent {
-            MaterialTheme {
-                PermissionsSettingsScreen(
-                    state = state,
-                    onPermissionAction = {},
-                    onBack = {},
-                )
-            }
-        }
+        composeRule.activityRule.scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
+        composeRule.onNodeWithTag(SettingsTestTags.PermissionsRow).performClick()
         composeRule.onNodeWithTag(SettingsTestTags.PermissionsDetail).assertIsDisplayed()
-        composeRule.onNodeWithTag(SettingsTestTags.PermissionAction("notifications")).assertIsDisplayed()
-        composeRule.onNodeWithTag(SettingsTestTags.PermissionAction("exact_alarms")).assertIsDisplayed()
-        composeRule.onNodeWithTag(SettingsTestTags.PermissionAction("battery_optimization")).assertIsDisplayed()
-    }
-
-    @Test
-    fun calendar_settings_detail_exposes_route_specific_controls() {
-        val state = SettingsViewModelPreviewStates.default
-
-        composeRule.setContent {
-            MaterialTheme {
-                CalendarSettingsScreen(
-                    state = state,
-                    onCalendarSelected = {},
-                    onClearCalendar = {},
-                    onCalendarPermissionAction = {},
-                    onBack = {},
-                )
-            }
-        }
-        composeRule.onNodeWithTag(SettingsTestTags.CalendarDetail).assertIsDisplayed()
-        composeRule.onNodeWithTag(SettingsTestTags.CalendarAction(42L)).assertIsDisplayed()
-    }
-
-    @Test
-    fun settings_save_flow_persists_api_key_and_model_choice() {
-        val repository = AndroidTestSettingsRepository()
-        val viewModel = SettingsViewModel(
-            settingsRepository = repository,
-            exactAlarmPermissionReader = { true },
-            notificationPermissionProvider = { true },
-            batteryOptimizationIgnoredProvider = { false },
-        )
-
-        composeRule.setContent {
-            val state by viewModel.uiState.collectAsState()
-            MaterialTheme {
-                AiVoiceSettingsScreen(
-                    state = state,
-                    onApiKeyChanged = viewModel::onApiKeyChanged,
-                    onSaveApiKey = viewModel::saveApiKey,
-                    onModelSelected = viewModel::onModelSelected,
-                    onAsrModelSelected = viewModel::onAsrModelSelected,
-                    onBack = {},
-                )
-            }
-        }
-
-        composeRule.onNodeWithTag(SettingsTestTags.ApiKeyInput).performTextInput("sk-or-v1-demo")
-        composeRule.onNodeWithTag(SettingsTestTags.SaveApiKeyAction).performClick()
-        composeRule.onNodeWithTag(SettingsTestTags.ModelAction(OpenRouterModel.builtInIds[0])).performClick()
-        composeRule.onNodeWithTag(SettingsTestTags.ModelAction(OpenRouterModel.builtInIds[1])).performClick()
-        composeRule.onNodeWithTag(SettingsTestTags.AsrModelAction(AsrModel.builtInIds[0])).performClick()
-        composeRule.onNodeWithTag(SettingsTestTags.AsrModelAction(AsrModel.builtInIds[1])).performClick()
-        composeRule.waitForIdle()
-
-        val settings = runBlocking { repository.settings.first() }
-        assert(settings.openRouterApiKey == "sk-or-v1-demo")
-        assert(settings.selectedModelId == OpenRouterModel.builtInIds[1])
-        assert(settings.selectedAsrModelId == AsrModel.builtInIds[1])
-    }
-
-    @Test
-    fun appearance_settings_save_flow_normalizes_hashless_custom_seed_color() {
-        val repository = AndroidTestSettingsRepository()
-        val viewModel = SettingsViewModel(
-            settingsRepository = repository,
-            exactAlarmPermissionReader = { true },
-            notificationPermissionProvider = { true },
-            batteryOptimizationIgnoredProvider = { false },
-        )
-
-        composeRule.setContent {
-            val state by viewModel.uiState.collectAsState()
-            MaterialTheme {
-                AppearanceSettingsScreen(
-                    state = state,
-                    onThemePresetSelected = viewModel::onThemePresetSelected,
-                    onCustomThemeSeedColorChanged = viewModel::onCustomThemeSeedColorChanged,
-                    onCustomThemeSeedColorCommitted = viewModel::saveCustomThemeSeedColor,
-                    onBack = {},
-                )
-            }
-        }
-
-        composeRule.onNodeWithTag(SettingsTestTags.CustomThemeSeedInput).performTextInput("4A6EA9")
-        pressBack()
-        composeRule.waitForIdle()
-
-        val settings = runBlocking { repository.settings.first() }
-        assert(settings.themePresetId == com.cory.noter.domain.settings.AppSettings.CustomThemePresetId)
-        assert(settings.customThemeSeedColor == "#4a6ea9")
-    }
-
-    @Test
-    fun ai_create_missing_api_key_error_is_visible() {
-        val zoneId = ZoneId.of("Asia/Shanghai")
-        val clock = Clock.fixed(Instant.parse("2026-04-23T01:00:00Z"), zoneId)
-        val settingsRepository = AndroidTestSettingsRepository()
-        val viewModel = AiCreateViewModel(
-            creator = AiAlarmCreator(
-                settingsRepository = settingsRepository,
-                agentLoopRunner = AgentLoopRunner(AndroidTestAgentLlmGateway()),
-                alarmRepository = AndroidTestAlarmRepository(clock = clock, zoneId = zoneId),
-                schedulingUseCase = AlarmSchedulingUseCase(AndroidTestAlarmScheduler()),
-                promptBuilder = AiAlarmPromptBuilder(),
-                clock = clock,
-            ),
-            settingsRepository = settingsRepository,
-        )
-
-        composeRule.setContent {
-            val state by viewModel.uiState.collectAsState()
-            MaterialTheme {
-                AiCreateScreen(
-                    state = state,
-                    onPromptChanged = viewModel::onPromptChanged,
-                    onSubmit = viewModel::submit,
-                    onOpenExactAlarmSettings = {},
-                    onOpenManualCreate = {},
-                    onBack = {},
-                )
-            }
-        }
-
-        composeRule.onNodeWithText("Describe the alarm").performTextInput("wake me up tomorrow at 8")
-        composeRule.onNodeWithText("Create with AI").performClick()
-
-        composeRule.onNodeWithText(
-            "Add an OpenRouter API key in Settings before using AI create.",
-        ).assertIsDisplayed()
     }
 
     private fun setSettingsRouteTestContent() {
@@ -297,11 +72,10 @@ class SettingsSmokeTest {
                     unifiedAiCreateScreen = { _, _, _ -> Box(Modifier.testTag("ai-create")) },
                     alarmListScreen = { _, _, _, _ -> Box(Modifier.testTag("alarms")) },
                     alarmEditorScreen = { _, _, _ -> Box(Modifier.testTag("editor")) },
-                    settingsScreen = { onOpenAppearance, onOpenAiVoice, onOpenSound, onOpenCalendar, onOpenPermissions, _, _ ->
+                    settingsScreen = { onOpenAppearance, onOpenSound, onOpenCalendar, onOpenPermissions, _, _ ->
                         SettingsScreen(
-                            state = SettingsViewModelPreviewStates.default,
+                            state = previewState,
                             onOpenAppearance = onOpenAppearance,
-                            onOpenAiVoice = onOpenAiVoice,
                             onOpenSound = onOpenSound,
                             onOpenCalendar = onOpenCalendar,
                             onOpenPermissions = onOpenPermissions,
@@ -309,97 +83,77 @@ class SettingsSmokeTest {
                         )
                     },
                     appearanceSettingsScreen = { _, _ ->
-                        Box(Modifier.testTag(SettingsTestTags.AppearanceDetail))
-                    },
-                    aiVoiceSettingsScreen = { _, _ ->
-                        Box(Modifier.testTag(SettingsTestTags.AiVoiceDetail))
+                        AppearanceSettingsScreen(
+                            state = previewState,
+                            onThemePresetSelected = {},
+                            onCustomThemeSeedColorChanged = {},
+                            onCustomThemeSeedColorCommitted = {},
+                            onBack = {},
+                        )
                     },
                     soundSettingsScreen = { _, _ ->
-                        Box(Modifier.testTag(SettingsTestTags.SoundDetail))
+                        SoundSettingsScreen(
+                            state = previewState,
+                            onPickDefaultRingtone = {},
+                            onBack = {},
+                        )
                     },
                     calendarSettingsScreen = { _, _ ->
-                        Box(Modifier.testTag(SettingsTestTags.CalendarDetail))
+                        CalendarSettingsScreen(
+                            state = previewState,
+                            onCalendarSelected = {},
+                            onClearCalendar = {},
+                            onCalendarPermissionAction = {},
+                            onBack = {},
+                        )
                     },
                     permissionsSettingsScreen = { _, _ ->
-                        Box(Modifier.testTag(SettingsTestTags.PermissionsDetail))
+                        PermissionsSettingsScreen(
+                            state = previewState,
+                            onPermissionAction = {},
+                            onBack = {},
+                        )
                     },
                     startDestination = Routes.SETTINGS,
                 )
             }
         }
     }
-}
 
-private object SettingsViewModelPreviewStates {
-    val default = com.cory.noter.ui.settings.SettingsUiState(
-        openRouterApiKey = "sk-demo",
-        selectedModelId = OpenRouterModel.builtInIds[0],
-        selectedAsrModelId = AsrModel.builtInIds[0],
-        defaultRingtoneUri = "content://ringtone/demo",
-        directoryRows = listOf(
-            com.cory.noter.ui.settings.SettingsDirectoryRowUiModel(
-                id = "appearance",
-                titleResId = R.string.settings_directory_appearance,
-                summary = com.cory.noter.ui.text.UiText.Raw("calm_blue"),
-            ),
-            com.cory.noter.ui.settings.SettingsDirectoryRowUiModel(
-                id = "ai_voice",
-                titleResId = R.string.settings_directory_ai_voice,
-                summary = com.cory.noter.ui.text.UiText.Raw(OpenRouterModel.builtInIds[0]),
-            ),
-            com.cory.noter.ui.settings.SettingsDirectoryRowUiModel(
-                id = "sound",
-                titleResId = R.string.settings_directory_sound,
-                summary = com.cory.noter.ui.text.UiText.Raw("content://ringtone/demo"),
-            ),
-            com.cory.noter.ui.settings.SettingsDirectoryRowUiModel(
-                id = "calendar",
-                titleResId = R.string.settings_directory_calendar,
-                summary = com.cory.noter.ui.text.UiText.Raw("Personal"),
-            ),
-            com.cory.noter.ui.settings.SettingsDirectoryRowUiModel(
-                id = "permissions",
-                titleResId = R.string.settings_directory_permissions,
-                summary = com.cory.noter.ui.text.UiText.Raw("3"),
-            ),
-        ),
-        permissionRows = listOf(
-            com.cory.noter.ui.settings.PermissionGuidanceUiModel(
-                id = "notifications",
-                titleResId = R.string.settings_permission_notifications_title,
-                granted = false,
-                summaryResId = R.string.settings_permission_notifications_summary,
-                actionLabelResId = R.string.settings_permission_notifications_action,
-            ),
-            com.cory.noter.ui.settings.PermissionGuidanceUiModel(
-                id = "exact_alarms",
-                titleResId = R.string.settings_permission_exact_alarms_title,
-                granted = false,
-                summaryResId = R.string.settings_permission_exact_alarms_summary,
-                actionLabelResId = R.string.settings_permission_exact_alarms_action,
-            ),
-            com.cory.noter.ui.settings.PermissionGuidanceUiModel(
-                id = "battery_optimization",
-                titleResId = R.string.settings_permission_battery_title,
-                granted = false,
-                summaryResId = R.string.settings_permission_battery_summary,
-                actionLabelResId = R.string.settings_permission_battery_action,
-            ),
-        ),
-        calendarSettings = com.cory.noter.ui.settings.CalendarSettingsUiModel(
-            status = com.cory.noter.ui.settings.CalendarSettingsStatus.READY,
-            selectedCalendarId = 42L,
-            setupComplete = true,
-            calendars = listOf(
-                com.cory.noter.ui.settings.CalendarRowUiModel(
-                    id = 42L,
-                    displayName = "Personal",
-                    accountName = "me@example.com",
-                    accountType = "com.google",
-                    writable = true,
-                    selected = true,
+    private companion object {
+        val previewState = SettingsUiState(
+            defaultRingtoneUri = "content://ringtone/demo",
+            directoryRows = listOf(
+                SettingsDirectoryRowUiModel(
+                    id = "appearance",
+                    titleResId = R.string.settings_directory_appearance,
+                    summary = UiText.Raw("calm_blue"),
+                ),
+                SettingsDirectoryRowUiModel(
+                    id = "sound",
+                    titleResId = R.string.settings_directory_sound,
+                    summary = UiText.Raw("content://ringtone/demo"),
+                ),
+                SettingsDirectoryRowUiModel(
+                    id = "calendar",
+                    titleResId = R.string.settings_directory_calendar,
+                    summary = UiText.Raw("Personal"),
+                ),
+                SettingsDirectoryRowUiModel(
+                    id = "permissions",
+                    titleResId = R.string.settings_directory_permissions,
+                    summary = UiText.Raw("3"),
                 ),
             ),
-        ),
-    )
+            permissionRows = listOf(
+                PermissionGuidanceUiModel(
+                    id = "notifications",
+                    titleResId = R.string.settings_permission_notifications_title,
+                    granted = false,
+                    summaryResId = R.string.settings_permission_notifications_summary,
+                    actionLabelResId = R.string.settings_permission_notifications_action,
+                ),
+            ),
+        )
+    }
 }

@@ -29,8 +29,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.cory.noter.ai.AsrModel
-import com.cory.noter.ai.OpenRouterModel
 import com.cory.noter.di.AppContainer
 import com.cory.noter.domain.settings.AppSettings
 import com.cory.noter.ui.NoterApp
@@ -43,7 +41,6 @@ import com.cory.noter.ui.voice.VoiceModeContent
 import com.cory.noter.ui.alarm_list.AlarmListViewModel
 import com.cory.noter.ui.editor.AlarmEditorScreen
 import com.cory.noter.ui.editor.AlarmEditorViewModel
-import com.cory.noter.ui.settings.AiVoiceSettingsScreen
 import com.cory.noter.ui.settings.AppearanceSettingsScreen
 import com.cory.noter.ui.settings.CalendarSettingsScreen
 import com.cory.noter.ui.settings.PermissionsSettingsScreen
@@ -62,9 +59,6 @@ class MainActivity : ComponentActivity() {
         setContent {
             val settings by appContainer.settingsRepository.themeSettings.collectAsState(
                 initial = AppSettings(
-                    openRouterApiKey = "",
-                    selectedModelId = OpenRouterModel.DefaultId,
-                    selectedAsrModelId = AsrModel.DefaultId,
                     defaultRingtoneUri = AppSettings.DefaultRingtoneUri,
                 ),
             )
@@ -138,7 +132,7 @@ private fun NoterRoot(
                 onDone = onDone,
             )
         },
-        settingsScreen = { onOpenAppearance, onOpenAiVoice, onOpenSound, onOpenCalendar, onOpenPermissions, onBack, settingsViewModelStoreOwner ->
+        settingsScreen = { onOpenAppearance, onOpenSound, onOpenCalendar, onOpenPermissions, onBack, settingsViewModelStoreOwner ->
             SettingsRoute(
                 settingsViewModelStoreOwner = settingsViewModelStoreOwner,
                 appContainer = appContainer,
@@ -146,7 +140,6 @@ private fun NoterRoot(
                 batteryOptimizationIgnoredProvider = batteryOptimizationIgnoredProvider,
                 destination = SettingsDestination.Home(
                     onOpenAppearance = onOpenAppearance,
-                    onOpenAiVoice = onOpenAiVoice,
                     onOpenSound = onOpenSound,
                     onOpenCalendar = onOpenCalendar,
                     onOpenPermissions = onOpenPermissions,
@@ -161,16 +154,6 @@ private fun NoterRoot(
                 notificationPermissionProvider = notificationPermissionProvider,
                 batteryOptimizationIgnoredProvider = batteryOptimizationIgnoredProvider,
                 destination = SettingsDestination.Appearance,
-                onBack = onBack,
-            )
-        },
-        aiVoiceSettingsScreen = { onBack, settingsViewModelStoreOwner ->
-            SettingsRoute(
-                settingsViewModelStoreOwner = settingsViewModelStoreOwner,
-                appContainer = appContainer,
-                notificationPermissionProvider = notificationPermissionProvider,
-                batteryOptimizationIgnoredProvider = batteryOptimizationIgnoredProvider,
-                destination = SettingsDestination.AiVoice,
                 onBack = onBack,
             )
         },
@@ -231,7 +214,6 @@ private fun UnifiedAiCreateRoute(
         factory = factoryOf {
             AiCreateViewModel(
                 creator = appContainer.aiAlarmCreator,
-                settingsRepository = appContainer.settingsRepository,
                 backgroundScheduler = appContainer.aiCreateBackgroundScheduler,
             )
         },
@@ -441,7 +423,6 @@ private fun SettingsRoute(
     val destinationKey = when (destination) {
         is SettingsDestination.Home -> "home"
         SettingsDestination.Appearance -> "appearance"
-        SettingsDestination.AiVoice -> "ai_voice"
         SettingsDestination.Sound -> "sound"
         SettingsDestination.Calendar -> "calendar"
         SettingsDestination.Permissions -> "permissions"
@@ -487,7 +468,6 @@ private fun SettingsRoute(
             SettingsScreen(
                 state = state,
                 onOpenAppearance = destination.onOpenAppearance,
-                onOpenAiVoice = destination.onOpenAiVoice,
                 onOpenSound = destination.onOpenSound,
                 onOpenCalendar = destination.onOpenCalendar,
                 onOpenPermissions = destination.onOpenPermissions,
@@ -501,17 +481,6 @@ private fun SettingsRoute(
                 onThemePresetSelected = viewModel::onThemePresetSelected,
                 onCustomThemeSeedColorChanged = viewModel::onCustomThemeSeedColorChanged,
                 onCustomThemeSeedColorCommitted = viewModel::saveCustomThemeSeedColor,
-                onBack = onBack,
-            )
-        }
-
-        SettingsDestination.AiVoice -> {
-            AiVoiceSettingsScreen(
-                state = state,
-                onApiKeyChanged = viewModel::onApiKeyChanged,
-                onSaveApiKey = viewModel::saveApiKey,
-                onModelSelected = viewModel::onModelSelected,
-                onAsrModelSelected = viewModel::onAsrModelSelected,
                 onBack = onBack,
             )
         }
@@ -583,14 +552,12 @@ private fun SettingsRoute(
 private sealed interface SettingsDestination {
     data class Home(
         val onOpenAppearance: () -> Unit,
-        val onOpenAiVoice: () -> Unit,
         val onOpenSound: () -> Unit,
         val onOpenCalendar: () -> Unit,
         val onOpenPermissions: () -> Unit,
     ) : SettingsDestination
 
     data object Appearance : SettingsDestination
-    data object AiVoice : SettingsDestination
     data object Sound : SettingsDestination
     data object Calendar : SettingsDestination
     data object Permissions : SettingsDestination

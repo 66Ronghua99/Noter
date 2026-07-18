@@ -36,8 +36,7 @@ import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.longOrNull
 
 sealed interface AiCreateResult {
-    data object MissingApiKey : AiCreateResult
-    data object MissingModel : AiCreateResult
+    data class ServiceFailure(val code: String, val retryable: Boolean) : AiCreateResult
     data class NetworkFailure(val reason: String) : AiCreateResult
     data class RateLimited(val reason: String) : AiCreateResult
     data class RemoteFailure(val code: Int, val reason: String) : AiCreateResult
@@ -153,16 +152,6 @@ class AiAlarmCreator(
 ) {
     suspend fun createFromText(userRequest: String): AiCreateResult {
         val settings = settingsRepository.settings.first()
-        val apiKey = settings.openRouterApiKey.trim()
-        if (apiKey.isEmpty()) {
-            return AiCreateResult.MissingApiKey
-        }
-
-        val modelId = settings.selectedModelId.trim()
-        if (modelId.isEmpty() || modelId !in OpenRouterModel.builtInIds) {
-            return AiCreateResult.MissingModel
-        }
-
         val toolRegistry = AgentToolRegistry(
             listOf(
                 CreateAlarmTool(
@@ -185,8 +174,6 @@ class AiAlarmCreator(
 
         val result = agentLoopRunner.run(
             AgentRunRequest(
-                apiKey = apiKey,
-                modelId = modelId,
                 initialMessages = listOf(
                     AgentMessage(
                         AgentMessageRole.SYSTEM,
@@ -389,7 +376,9 @@ class AiAlarmCreator(
         is AgentFailure.NetworkFailure -> AiCreateResult.NetworkFailure(reason)
         is AgentFailure.RateLimited -> AiCreateResult.RateLimited(reason)
         is AgentFailure.RemoteFailure -> AiCreateResult.RemoteFailure(code, reason)
+        is AgentFailure.ServiceFailure -> AiCreateResult.ServiceFailure(code, retryable)
         is AgentFailure.ToolExecutionFailed -> AiCreateResult.InvalidResponse(reason)
+        is AgentFailure.CorrectableToolFailure -> AiCreateResult.InvalidResponse(reason)
         is AgentFailure.ClarificationRequired -> AiCreateResult.ClarificationRequired(reason)
         is AgentFailure.CreateFailed -> AiCreateResult.CreateFailed(reason)
         is AgentFailure.MissingToolCall -> AiCreateResult.InvalidResponse(reason)

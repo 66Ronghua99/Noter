@@ -120,7 +120,7 @@ class AlarmManagementToolsTest {
         assertThat(result).isInstanceOf(AgentToolExecution.Failure::class.java)
         val failure = result as AgentToolExecution.Failure
         assertThat(failure.failure).isEqualTo(
-            AgentFailure.ToolExecutionFailed("pause_alarm mode must be one of next_occurrence, indefinite."),
+            AgentFailure.CorrectableToolFailure("pause_alarm mode must be one of next_occurrence, indefinite."),
         )
         assertThat(repository.get(alarm.id)!!.pauseMode).isEqualTo(AlarmPauseMode.NONE)
     }

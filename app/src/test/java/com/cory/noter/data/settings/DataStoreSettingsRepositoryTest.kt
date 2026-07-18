@@ -1,324 +1,127 @@
 package com.cory.noter.data.settings
 
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
-import com.cory.noter.ai.AsrModel
-import com.cory.noter.ai.OpenRouterModel
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import com.cory.noter.domain.settings.AppSettings
 import com.google.common.truth.Truth.assertThat
 import java.nio.file.Files
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 
 class DataStoreSettingsRepositoryTest {
     @Test
-    fun `default settings use deepseek v4 flash model`() = runTest {
-        val repository = createRepository(backgroundScope)
+    fun `migration removes exactly legacy keys and preserves unrelated preferences`() = runTest {
+        val file = Files.createTempFile("settings-migration", ".preferences_pb").toFile()
+        val dataStore = createDataStore(file, backgroundScope)
+        dataStore.edit { preferences ->
+            preferences[LEGACY_API_KEY] = "obsolete-secret"
+            preferences[LEGACY_CHAT_MODEL] = "unknown/chat-model"
+            preferences[LEGACY_ASR_MODEL] = "unknown/asr-model"
+            preferences[RINGTONE] = "content://media/alarm"
+            preferences[CALENDAR_ID] = 42L
+            preferences[THEME] = "fresh_green"
+            preferences[SENTINEL] = "keep-me"
+        }
 
+        val repository = DataStoreSettingsRepository(dataStore)
         val settings = repository.settings.first()
+        val stored = dataStore.data.first()
 
-        assertThat(settings.openRouterApiKey).isEmpty()
-        assertThat(settings.selectedModelId).isEqualTo(OpenRouterModel.DefaultId)
-        assertThat(settings.selectedAsrModelId).isEqualTo(AsrModel.DefaultId)
-        assertThat(settings.defaultRingtoneUri).isEqualTo(AppSettings.DefaultRingtoneUri)
-        assertThat(settings.defaultCalendarId).isNull()
-        assertThat(settings.themePresetId).isEqualTo(AppSettings.DefaultThemePresetId)
-        assertThat(settings.customThemeSeedColor).isNull()
+        assertThat(settings.defaultRingtoneUri).isEqualTo("content://media/alarm")
+        assertThat(settings.defaultCalendarId).isEqualTo(42L)
+        assertThat(settings.themePresetId).isEqualTo("fresh_green")
+        assertThat(stored[LEGACY_API_KEY]).isNull()
+        assertThat(stored[LEGACY_CHAT_MODEL]).isNull()
+        assertThat(stored[LEGACY_ASR_MODEL]).isNull()
+        assertThat(stored[RINGTONE]).isEqualTo("content://media/alarm")
+        assertThat(stored[CALENDAR_ID]).isEqualTo(42L)
+        assertThat(stored[THEME]).isEqualTo("fresh_green")
+        assertThat(stored[SENTINEL]).isEqualTo("keep-me")
     }
 
     @Test
-    fun `built in asr models include default and secondary options`() {
-        assertThat(AsrModel.builtInIds).containsExactly(
-            "nvidia/parakeet-tdt-0.6b-v3",
-            "qwen/qwen3-asr-flash-2026-02-10",
-            "mistralai/voxtral-mini-transcribe",
-        ).inOrder()
-        assertThat(AsrModel.DefaultId).isEqualTo("nvidia/parakeet-tdt-0.6b-v3")
-        assertThat(AsrModel.ChineseDefaultId).isEqualTo("qwen/qwen3-asr-flash-2026-02-10")
-    }
+    fun `migration is idempotent when the repository is recreated`() = runTest {
+        val file = Files.createTempFile("settings-migration", ".preferences_pb").toFile()
+        val firstScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        val secondScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        try {
+            val firstStore = createDataStore(file, firstScope)
+            firstStore.edit { preferences ->
+                preferences[LEGACY_API_KEY] = "obsolete-secret"
+                preferences[LEGACY_CHAT_MODEL] = "unknown/chat-model"
+                preferences[LEGACY_ASR_MODEL] = "unknown/asr-model"
+                preferences[SENTINEL] = "keep-me"
+            }
 
-    @Test
-    fun `saving api key persists it in settings flow`() = runTest {
-        val repository = createRepository(backgroundScope)
+            DataStoreSettingsRepository(firstStore).settings.first()
+            val afterFirstMigration = firstStore.data.first().asMap()
+            firstScope.cancel()
 
-        val result = repository.setOpenRouterApiKey("sk-or-v1-123")
+            val secondStore = createDataStore(file, secondScope)
+            DataStoreSettingsRepository(secondStore).settings.first()
+            val afterSecondMigration = secondStore.data.first().asMap()
 
-        assertThat(result.isSuccess).isTrue()
-        assertThat(repository.settings.first().openRouterApiKey).isEqualTo("sk-or-v1-123")
-    }
-
-    @Test
-    fun `saving selected model persists known built in model`() = runTest {
-        val repository = createRepository(backgroundScope)
-
-        val result = repository.setSelectedModel("deepseek/deepseek-v3.2")
-
-        assertThat(result.isSuccess).isTrue()
-        assertThat(repository.settings.first().selectedModelId).isEqualTo("deepseek/deepseek-v3.2")
-    }
-
-    @Test
-    fun `saving selected asr model persists known built in asr model`() = runTest {
-        val repository = createRepository(backgroundScope)
-
-        val result = repository.setSelectedAsrModel("mistralai/voxtral-mini-transcribe")
-
-        assertThat(result.isSuccess).isTrue()
-        assertThat(repository.settings.first().selectedAsrModelId)
-            .isEqualTo("mistralai/voxtral-mini-transcribe")
-    }
-
-    @Test
-    fun `unknown model id is rejected and does not replace prior selection`() = runTest {
-        val repository = createRepository(backgroundScope)
-
-        val result = repository.setSelectedModel("unknown/model")
-
-        assertThat(result.isFailure).isTrue()
-        assertThat(result.exceptionOrNull()).isInstanceOf(IllegalArgumentException::class.java)
-        assertThat(repository.settings.first().selectedModelId).isEqualTo(OpenRouterModel.DefaultId)
-    }
-
-    @Test
-    fun `unknown asr model id is rejected and does not replace prior selection`() = runTest {
-        val repository = createRepository(backgroundScope)
-
-        val result = repository.setSelectedAsrModel("unknown/asr-model")
-
-        assertThat(result.isFailure).isTrue()
-        assertThat(result.exceptionOrNull()).isInstanceOf(IllegalArgumentException::class.java)
-        assertThat(repository.settings.first().selectedAsrModelId).isEqualTo(AsrModel.DefaultId)
-    }
-
-    @Test
-    fun `saving ringtone uri persists it in settings flow`() = runTest {
-        val repository = createRepository(backgroundScope)
-
-        val result = repository.setDefaultRingtoneUri("content://media/internal/audio/media/25")
-
-        assertThat(result.isSuccess).isTrue()
-        assertThat(
-            repository.settings.first().defaultRingtoneUri,
-        ).isEqualTo("content://media/internal/audio/media/25")
-    }
-
-    @Test
-    fun `saving default calendar id persists it in settings flow`() = runTest {
-        val repository = createRepository(backgroundScope)
-
-        val result = repository.setDefaultCalendarId(42L)
-
-        assertThat(result.isSuccess).isTrue()
-        assertThat(repository.settings.first().defaultCalendarId).isEqualTo(42L)
-    }
-
-    @Test
-    fun `clearing default calendar id removes it from settings flow`() = runTest {
-        val repository = createRepository(backgroundScope)
-
-        assertThat(repository.setDefaultCalendarId(42L).isSuccess).isTrue()
-        val result = repository.clearDefaultCalendarId()
-
-        assertThat(result.isSuccess).isTrue()
-        assertThat(repository.settings.first().defaultCalendarId).isNull()
-    }
-
-    @Test
-    fun `saving theme preset persists it and clears custom seed color`() = runTest {
-        val repository = createRepository(backgroundScope)
-
-        assertThat(repository.setCustomThemeSeedColor("#b65b70").isSuccess).isTrue()
-        val result = repository.setThemePreset("fresh_green")
-
-        assertThat(result.isSuccess).isTrue()
-        assertThat(repository.settings.first().themePresetId).isEqualTo("fresh_green")
-        assertThat(repository.settings.first().customThemeSeedColor).isNull()
-    }
-
-    @Test
-    fun `saving custom theme seed persists custom theme state`() = runTest {
-        val repository = createRepository(backgroundScope)
-
-        val result = repository.setCustomThemeSeedColor("#4a6ea9")
-
-        assertThat(result.isSuccess).isTrue()
-        assertThat(repository.settings.first().themePresetId).isEqualTo(AppSettings.CustomThemePresetId)
-        assertThat(repository.settings.first().customThemeSeedColor).isEqualTo("#4a6ea9")
-    }
-
-    @Test
-    fun `unknown theme preset write is rejected and preserves prior theme`() = runTest {
-        val repository = createRepository(backgroundScope)
-
-        val result = repository.setThemePreset("electric_ultraviolet")
-
-        assertThat(result.isFailure).isTrue()
-        assertThat(result.exceptionOrNull()).isInstanceOf(IllegalArgumentException::class.java)
-        assertThat(result.exceptionOrNull()).hasMessageThat().contains("UNKNOWN_THEME_PRESET_ID")
-        assertThat(repository.settings.first().themePresetId).isEqualTo(AppSettings.DefaultThemePresetId)
-    }
-
-    @Test
-    fun `invalid custom theme seed write is rejected and preserves prior theme`() = runTest {
-        val repository = createRepository(backgroundScope)
-
-        val result = repository.setCustomThemeSeedColor("not-a-color")
-
-        assertThat(result.isFailure).isTrue()
-        assertThat(result.exceptionOrNull()).isInstanceOf(IllegalArgumentException::class.java)
-        assertThat(result.exceptionOrNull()).hasMessageThat().contains("INVALID_THEME_SEED_COLOR")
-        assertThat(repository.settings.first().themePresetId).isEqualTo(AppSettings.DefaultThemePresetId)
-        assertThat(repository.settings.first().customThemeSeedColor).isNull()
-    }
-
-    @Test
-    fun `unknown stored theme preset falls back to default for compatibility`() = runTest {
-        val file = Files.createTempFile("settings-test", ".preferences_pb").toFile()
-        val dataStore = PreferenceDataStoreFactory.create(
-            scope = backgroundScope,
-            produceFile = { file },
-        )
-        dataStore.edit { preferences ->
-            preferences[stringPreferencesKey("theme_preset_id")] = "old-theme-id"
+            assertThat(afterSecondMigration).isEqualTo(afterFirstMigration)
+            assertThat(afterSecondMigration[SENTINEL]).isEqualTo("keep-me")
+            assertThat(afterSecondMigration).containsKey(stringPreferencesKey("sentinel"))
+        } finally {
+            firstScope.cancel()
+            secondScope.cancel()
         }
-        val repository = DataStoreSettingsRepository(dataStore)
-
-        val settings = repository.settings.first()
-
-        assertThat(settings.themePresetId).isEqualTo(AppSettings.DefaultThemePresetId)
-        assertThat(settings.customThemeSeedColor).isNull()
     }
 
     @Test
-    fun `invalid stored custom theme seed falls back to default for compatibility`() = runTest {
-        val file = Files.createTempFile("settings-test", ".preferences_pb").toFile()
-        val dataStore = PreferenceDataStoreFactory.create(
-            scope = backgroundScope,
-            produceFile = { file },
-        )
+    fun `unknown legacy model values cannot fail settings decoding`() = runTest {
+        val file = Files.createTempFile("settings-migration", ".preferences_pb").toFile()
+        val dataStore = createDataStore(file, backgroundScope)
         dataStore.edit { preferences ->
-            preferences[stringPreferencesKey("theme_preset_id")] = AppSettings.CustomThemePresetId
-            preferences[stringPreferencesKey("custom_theme_seed_color")] = "not-a-color"
+            preferences[LEGACY_CHAT_MODEL] = "provider/private-model"
+            preferences[LEGACY_ASR_MODEL] = "provider/private-asr"
         }
-        val repository = DataStoreSettingsRepository(dataStore)
 
-        val settings = repository.settings.first()
-
-        assertThat(settings.themePresetId).isEqualTo(AppSettings.DefaultThemePresetId)
-        assertThat(settings.customThemeSeedColor).isNull()
-    }
-
-    @Test
-    fun `invalid stored model id fails explicitly on read`() = runTest {
-        val file = Files.createTempFile("settings-test", ".preferences_pb").toFile()
-        val dataStore = PreferenceDataStoreFactory.create(
-            scope = backgroundScope,
-            produceFile = { file },
-        )
-        dataStore.edit { preferences ->
-            preferences[stringPreferencesKey("selected_model_id")] = "unknown/model"
-        }
-        val repository = DataStoreSettingsRepository(dataStore)
-
-        val error = runCatching {
-            repository.settings.first()
-        }.exceptionOrNull()
-
-        assertThat(error).isInstanceOf(IllegalArgumentException::class.java)
-        assertThat(error).hasMessageThat().contains("UNKNOWN_MODEL_ID")
-    }
-
-    @Test
-    fun `theme settings ignore invalid stored model id`() = runTest {
-        val file = Files.createTempFile("settings-test", ".preferences_pb").toFile()
-        val dataStore = PreferenceDataStoreFactory.create(
-            scope = backgroundScope,
-            produceFile = { file },
-        )
-        dataStore.edit { preferences ->
-            preferences[stringPreferencesKey("selected_model_id")] = "unknown/model"
-            preferences[stringPreferencesKey("theme_preset_id")] = "fresh_green"
-        }
-        val repository = DataStoreSettingsRepository(dataStore)
-
-        val themeSettings = repository.themeSettings.first()
-
-        assertThat(themeSettings.themePresetId).isEqualTo("fresh_green")
-        assertThat(themeSettings.customThemeSeedColor).isNull()
-    }
-
-    @Test
-    fun `invalid stored asr model id fails explicitly on read`() = runTest {
-        val file = Files.createTempFile("settings-test", ".preferences_pb").toFile()
-        val dataStore = PreferenceDataStoreFactory.create(
-            scope = backgroundScope,
-            produceFile = { file },
-        )
-        dataStore.edit { preferences ->
-            preferences[stringPreferencesKey("selected_asr_model_id")] = "unknown/asr-model"
-        }
-        val repository = DataStoreSettingsRepository(dataStore)
-
-        val error = runCatching {
-            repository.settings.first()
-        }.exceptionOrNull()
-
-        assertThat(error).isInstanceOf(IllegalArgumentException::class.java)
-        assertThat(error).hasMessageThat().contains("UNKNOWN_ASR_MODEL_ID")
-    }
-
-    @Test
-    fun `settings persist across repository recreation`() = runTest {
-        val file = Files.createTempFile("settings-test", ".preferences_pb").toFile()
-        val firstScope = CoroutineScope(StandardTestDispatcher(testScheduler))
-        val firstRepository = createRepository(file, firstScope)
-
-        assertThat(firstRepository.setOpenRouterApiKey("sk-or-v1-999").isSuccess).isTrue()
-        assertThat(firstRepository.setSelectedModel("deepseek/deepseek-v3.2").isSuccess).isTrue()
-        assertThat(firstRepository.setSelectedAsrModel("mistralai/voxtral-mini-transcribe").isSuccess)
-            .isTrue()
-        assertThat(
-            firstRepository.setDefaultRingtoneUri("content://media/internal/audio/media/99").isSuccess,
-        ).isTrue()
-        firstScope.cancel()
-
-        val secondScope = CoroutineScope(StandardTestDispatcher(testScheduler))
-        val secondRepository = createRepository(file, secondScope)
-
-        val settings = secondRepository.settings.first()
+        val settings = DataStoreSettingsRepository(dataStore).settings.first()
 
         assertThat(settings).isEqualTo(
+            AppSettings(defaultRingtoneUri = AppSettings.DefaultRingtoneUri),
+        )
+    }
+
+    @Test
+    fun `retained settings continue to persist`() = runTest {
+        val file = Files.createTempFile("settings-persistence", ".preferences_pb").toFile()
+        val repository = DataStoreSettingsRepository(createDataStore(file, backgroundScope))
+
+        assertThat(repository.setDefaultRingtoneUri("content://media/alarm").isSuccess).isTrue()
+        assertThat(repository.setDefaultCalendarId(7L).isSuccess).isTrue()
+        assertThat(repository.setCustomThemeSeedColor("#b65b70").isSuccess).isTrue()
+
+        assertThat(repository.settings.first()).isEqualTo(
             AppSettings(
-                openRouterApiKey = "sk-or-v1-999",
-                selectedModelId = "deepseek/deepseek-v3.2",
-                selectedAsrModelId = "mistralai/voxtral-mini-transcribe",
-                defaultRingtoneUri = "content://media/internal/audio/media/99",
-                defaultCalendarId = null,
-                themePresetId = AppSettings.DefaultThemePresetId,
-                customThemeSeedColor = null,
+                defaultRingtoneUri = "content://media/alarm",
+                defaultCalendarId = 7L,
+                themePresetId = AppSettings.CustomThemePresetId,
+                customThemeSeedColor = "#b65b70",
             ),
         )
-        secondScope.cancel()
     }
 
-    private fun createRepository(scope: CoroutineScope): DataStoreSettingsRepository {
-        val file = Files.createTempFile("settings-test", ".preferences_pb").toFile()
-        return createRepository(file, scope)
-    }
+    private fun createDataStore(file: java.io.File, scope: CoroutineScope) =
+        PreferenceDataStoreFactory.create(scope = scope, produceFile = { file })
 
-    private fun createRepository(
-        file: java.io.File,
-        scope: CoroutineScope,
-    ): DataStoreSettingsRepository {
-        val dataStore = PreferenceDataStoreFactory.create(
-            scope = scope,
-            produceFile = { file },
-        )
-        return DataStoreSettingsRepository(dataStore)
+    private companion object {
+        val LEGACY_API_KEY = stringPreferencesKey("open_router_api_key")
+        val LEGACY_CHAT_MODEL = stringPreferencesKey("selected_model_id")
+        val LEGACY_ASR_MODEL = stringPreferencesKey("selected_asr_model_id")
+        val RINGTONE = stringPreferencesKey("default_ringtone_uri")
+        val CALENDAR_ID = longPreferencesKey("default_calendar_id")
+        val THEME = stringPreferencesKey("theme_preset_id")
+        val SENTINEL = stringPreferencesKey("sentinel")
     }
 }

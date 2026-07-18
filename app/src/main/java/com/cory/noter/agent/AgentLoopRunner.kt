@@ -2,6 +2,8 @@ package com.cory.noter.agent
 
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
 class AgentLoopRunner(
     private val gateway: AgentLlmGateway,
@@ -36,13 +38,12 @@ class AgentLoopRunner(
         var toolExecutions = 0
         var writeToolExecutions = 0
         var nextToolChoice: AgentToolChoice = request.toolChoice
+        var correctiveTurnUsed = false
 
-        while (modelTurns < config.maxModelTurns) {
+        modelLoop@ while (modelTurns < config.maxModelTurns) {
             modelTurns += 1
             val llmResult = gateway.complete(
                 AgentLlmRequest(
-                    apiKey = request.apiKey,
-                    modelId = request.modelId,
                     messages = messages.toList(),
                     tools = request.toolRegistry.specs,
                     toolChoice = nextToolChoice,
@@ -55,6 +56,10 @@ class AgentLoopRunner(
                 is AgentLlmResult.RateLimited -> return committedOrFailed(toolResults, AgentFailure.RateLimited(llmResult.reason))
                 is AgentLlmResult.RemoteFailure -> return committedOrFailed(toolResults, AgentFailure.RemoteFailure(llmResult.code, llmResult.reason))
                 is AgentLlmResult.InvalidResponse -> return committedOrFailed(toolResults, AgentFailure.ModelFailure(llmResult.reason))
+                is AgentLlmResult.ServiceFailure -> return committedOrFailed(
+                    toolResults,
+                    AgentFailure.ServiceFailure(llmResult.code, llmResult.retryable),
+                )
             }
 
             if (assistantMessage.role != AgentMessageRole.ASSISTANT) {
@@ -109,6 +114,16 @@ class AgentLoopRunner(
                     }
 
                     is AgentToolExecution.Failure -> {
+                        if (
+                            execution.failure is AgentFailure.CorrectableToolFailure &&
+                                !correctiveTurnUsed &&
+                                toolResults.none { it.committed }
+                        ) {
+                            correctiveTurnUsed = true
+                            messages += execution.failure.toCorrectionMessage(toolCall)
+                            nextToolChoice = request.toolChoice
+                            continue@modelLoop
+                        }
                         execution.committedResult?.let { toolResults += it }
                         return committedOrFailed(toolResults, execution.failure)
                     }
@@ -140,6 +155,22 @@ class AgentLoopRunner(
         toolCallId = toolCallId,
         toolName = toolName,
     )
+
+    private fun AgentFailure.CorrectableToolFailure.toCorrectionMessage(call: AgentToolCall): AgentMessage =
+        AgentMessage(
+            role = AgentMessageRole.TOOL,
+            content = Json.encodeToString(
+                JsonObject.serializer(),
+                buildJsonObject {
+                    put("status", "invalid_tool_arguments")
+                    put("toolCallId", call.id)
+                    put("toolName", call.name)
+                    put("reason", reason)
+                },
+            ),
+            toolCallId = call.id,
+            toolName = call.name,
+        )
 
     private fun AgentToolSpec.countsAsWriteExecution(): Boolean =
         !endsRun && risk != AgentToolRisk.READ

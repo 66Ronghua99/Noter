@@ -8,13 +8,13 @@ import androidx.room.Room
 import com.cory.noter.NoterApplication
 import com.cory.noter.agent.AgentLlmGateway
 import com.cory.noter.agent.AgentLoopRunner
-import com.cory.noter.ai.AndroidOpenRouterDebugLogger
 import com.cory.noter.ai.AiAlarmCreator
 import com.cory.noter.ai.AiCreateBackgroundScheduler
 import com.cory.noter.ai.AiCreateResultNotifier
 import com.cory.noter.ai.WorkManagerAiCreateBackgroundScheduler
-import com.cory.noter.ai.OpenRouterAgentClient
-import com.cory.noter.ai.OpenRouterAsrClient
+import com.cory.noter.ai.NoterAgentClient
+import com.cory.noter.ai.NoterAsrClient
+import com.cory.noter.ai.RetryingAgentLlmGateway
 import com.cory.noter.alarm.AlarmRingingCoordinator
 import com.cory.noter.alarm.AlarmManagementUseCase
 import com.cory.noter.alarm.AlarmScheduler
@@ -37,16 +37,14 @@ import com.cory.noter.notifications.AndroidAiCreateResultNotifier
 import com.cory.noter.permissions.AndroidPermissionStatusReader
 import com.cory.noter.permissions.PermissionStatusReader
 import com.cory.noter.voice.AndroidMicrophonePermissionChecker
-import com.cory.noter.voice.AndroidSystemSpeechRecognizer
 import com.cory.noter.voice.AndroidTemporaryAudioRecorder
 import com.cory.noter.voice.AndroidVoiceCaptureDebugLogger
 import com.cory.noter.voice.AndroidVoiceAsrLanguageProvider
 import com.cory.noter.voice.BackgroundVoiceAiCreateEnqueuer
 import com.cory.noter.voice.FileTemporaryAudioCleanup
 import com.cory.noter.voice.MicrophonePermissionChecker
-import com.cory.noter.voice.OpenRouterVoiceAsrTranscriber
+import com.cory.noter.voice.NoterVoiceAsrTranscriber
 import com.cory.noter.voice.RemoteAsrTranscriber
-import com.cory.noter.voice.SystemSpeechRecognizer
 import com.cory.noter.voice.TemporaryAudioCleanup
 import com.cory.noter.voice.TemporaryAudioRecorder
 import com.cory.noter.voice.VoiceAsrLanguageProvider
@@ -132,16 +130,14 @@ class AppContainer(
         )
     }
 
-    val openRouterAgentClient: AgentLlmGateway by lazy {
-        OpenRouterAgentClient(
-            debugLogger = AndroidOpenRouterDebugLogger(
-                enabled = applicationContext.isDebuggableApplication(),
-            ),
-        )
+    val noterAgentClient: NoterAgentClient by lazy { NoterAgentClient() }
+
+    val noterAgentGateway: AgentLlmGateway by lazy {
+        RetryingAgentLlmGateway(noterAgentClient)
     }
 
     val agentLoopRunner: AgentLoopRunner by lazy {
-        AgentLoopRunner(openRouterAgentClient)
+        AgentLoopRunner(noterAgentGateway)
     }
 
     val aiAlarmCreator: AiAlarmCreator by lazy {
@@ -171,20 +167,10 @@ class AppContainer(
         AndroidTemporaryAudioRecorder(applicationContext)
     }
 
-    val systemSpeechRecognizer: SystemSpeechRecognizer by lazy {
-        AndroidSystemSpeechRecognizer(applicationContext)
-    }
-
-    val openRouterAsrClient: OpenRouterAsrClient by lazy {
-        OpenRouterAsrClient(
-            debugLogger = AndroidOpenRouterDebugLogger(
-                enabled = applicationContext.isDebuggableApplication(),
-            ),
-        )
-    }
+    val noterAsrClient: NoterAsrClient by lazy { NoterAsrClient() }
 
     val remoteAsrTranscriber: RemoteAsrTranscriber by lazy {
-        OpenRouterVoiceAsrTranscriber(openRouterAsrClient)
+        NoterVoiceAsrTranscriber(noterAsrClient)
     }
 
     val temporaryAudioCleanup: TemporaryAudioCleanup by lazy {
@@ -207,9 +193,7 @@ class AppContainer(
 
     val voiceCaptureController: VoiceCaptureController by lazy {
         VoiceCaptureCoordinator(
-            settingsRepository = settingsRepository,
             temporaryAudioRecorder = temporaryAudioRecorder,
-            systemSpeechRecognizer = systemSpeechRecognizer,
             remoteAsrTranscriber = remoteAsrTranscriber,
             temporaryAudioCleanup = temporaryAudioCleanup,
             aiCreateEnqueuer = voiceAiCreateEnqueuer,

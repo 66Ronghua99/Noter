@@ -124,7 +124,7 @@ class CreateAlarmToolTest {
 
         assertThat(result).isInstanceOf(AgentToolExecution.Failure::class.java)
         val failure = result as AgentToolExecution.Failure
-        assertThat(failure.failure).isEqualTo(AgentFailure.ToolExecutionFailed("Invalid JSON"))
+        assertThat(failure.failure).isEqualTo(AgentFailure.CorrectableToolFailure("Invalid JSON"))
         assertThat(failure.committedResult).isNull()
         assertThat(repository.createCalls).isEqualTo(0)
     }
@@ -335,7 +335,7 @@ class CreateAlarmToolTest {
         assertThat(result).isInstanceOf(AgentToolExecution.Failure::class.java)
         val failure = result as AgentToolExecution.Failure
         assertThat(failure.failure).isEqualTo(
-            AgentFailure.ToolExecutionFailed("Alarm validation failed: EXPIRED_ONE_TIME_ALARM"),
+            AgentFailure.CorrectableToolFailure("Alarm validation failed: EXPIRED_ONE_TIME_ALARM"),
         )
         assertThat(failure.committedResult).isNull()
         assertThat(repository.createCalls).isEqualTo(0)
@@ -376,7 +376,7 @@ class CreateAlarmToolTest {
 
         assertThat(result).isInstanceOf(AgentToolExecution.Failure::class.java)
         val failure = result as AgentToolExecution.Failure
-        assertThat(failure.failure).isEqualTo(AgentFailure.ToolExecutionFailed("calendarSync is required"))
+        assertThat(failure.failure).isEqualTo(AgentFailure.CorrectableToolFailure("calendarSync is required"))
         assertThat(failure.committedResult).isNull()
         assertThat(repository.createCalls).isEqualTo(0)
     }

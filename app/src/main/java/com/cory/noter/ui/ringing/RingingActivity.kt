@@ -14,8 +14,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.cory.noter.R
 import com.cory.noter.NoterApplication
-import com.cory.noter.ai.AsrModel
-import com.cory.noter.ai.OpenRouterModel
 import com.cory.noter.alarm.RingingService
 import com.cory.noter.domain.settings.AppSettings
 import com.cory.noter.ui.theme.NoterTheme
@@ -31,9 +29,6 @@ class RingingActivity : ComponentActivity() {
             val appContainer = (application as NoterApplication).appContainer
             val settings by appContainer.settingsRepository.themeSettings.collectAsState(
                 initial = AppSettings(
-                    openRouterApiKey = "",
-                    selectedModelId = OpenRouterModel.DefaultId,
-                    selectedAsrModelId = AsrModel.DefaultId,
                     defaultRingtoneUri = AppSettings.DefaultRingtoneUri,
                 ),
             )

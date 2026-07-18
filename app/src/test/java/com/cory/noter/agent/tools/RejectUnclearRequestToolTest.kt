@@ -65,7 +65,7 @@ class RejectUnclearRequestToolTest {
 
         assertThat(result).isEqualTo(
             AgentToolExecution.Failure(
-                AgentFailure.ToolExecutionFailed("reject_unclear_request requires a nonblank reason."),
+                AgentFailure.CorrectableToolFailure("reject_unclear_request requires a nonblank reason."),
             ),
         )
     }

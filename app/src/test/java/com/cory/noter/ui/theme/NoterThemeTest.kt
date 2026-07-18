@@ -91,9 +91,6 @@ class NoterThemeTest {
         themePresetId: String,
         customThemeSeedColor: String? = null,
     ): AppSettings = AppSettings(
-        openRouterApiKey = "",
-        selectedModelId = "",
-        selectedAsrModelId = "",
         defaultRingtoneUri = AppSettings.DefaultRingtoneUri,
         themePresetId = themePresetId,
         customThemeSeedColor = customThemeSeedColor,

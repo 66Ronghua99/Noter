@@ -3,6 +3,7 @@ package com.cory.noter.ai
 import android.content.Context
 import android.util.Log
 import androidx.test.core.app.ApplicationProvider
+import androidx.work.BackoffPolicy
 import androidx.work.ListenableWorker
 import androidx.work.Configuration
 import androidx.work.WorkManager
@@ -40,10 +41,13 @@ class AiCreateBackgroundSchedulerTest {
             .get()
 
         assertThat(workInfos).hasSize(1)
-        val inputData = requireNotNull(workSpecInputData(context, workInfos.single().id.toString()))
+        val workSpec = requireNotNull(workSpec(context, workInfos.single().id.toString()))
+        val inputData = workSpec.input
 
         assertThat(inputData.getString(WorkManagerAiCreateBackgroundScheduler.KEY_PROMPT))
             .isEqualTo(prompt)
+        assertThat(workSpec.backoffPolicy).isEqualTo(BackoffPolicy.EXPONENTIAL)
+        assertThat(workSpec.backoffDelayDuration).isEqualTo(10_000L)
     }
 
     @Test
@@ -64,7 +68,7 @@ class AiCreateBackgroundSchedulerTest {
         val runtime = RecordingRuntime(expected)
         AiCreateWorker.runtimeFactory = { runtime }
         val prompt = "tomorrow at 8 am remind me to take medicine"
-        val worker = buildWorker(prompt)
+        val worker = buildWorker(prompt, runAttemptCount = 0)
 
         val result = worker.doWork()
 
@@ -90,7 +94,7 @@ class AiCreateBackgroundSchedulerTest {
         )
         val runtime = RecordingRuntime(expected)
         AiCreateWorker.runtimeFactory = { runtime }
-        val worker = buildWorker("tomorrow at 8 am remind me to take medicine")
+        val worker = buildWorker("tomorrow at 8 am remind me to take medicine", runAttemptCount = 0)
 
         val result = worker.doWork()
 
@@ -103,33 +107,46 @@ class AiCreateBackgroundSchedulerTest {
     }
 
     @Test
-    fun `worker retries transient ai create failures and still notifies result`() = runTest {
+    fun `worker retries transient ai create failures without intermediate terminal notification`() = runTest {
         val transientResults = listOf(
-            AiCreateResult.NetworkFailure("timeout") to "notifyResult:${AiCreateResult.NetworkFailure("timeout")}",
-            AiCreateResult.RateLimited("slow down") to "notifyResult:${AiCreateResult.RateLimited("slow down")}",
-            AiCreateResult.RemoteFailure(502, "upstream") to "notifyResult:${AiCreateResult.RemoteFailure(502, "upstream")}",
+            AiCreateResult.NetworkFailure("timeout"),
+            AiCreateResult.RateLimited("slow down"),
+            AiCreateResult.RemoteFailure(502, "upstream"),
         )
 
-        transientResults.forEach { (aiResult, notifyEvent) ->
+        transientResults.forEach { aiResult ->
             val runtime = RecordingRuntime(aiResult)
             AiCreateWorker.runtimeFactory = { runtime }
 
-            val result = buildWorker("retry me").doWork()
+            val result = buildWorker("retry me", runAttemptCount = 0).doWork()
 
             assertThat(result).isInstanceOf(ListenableWorker.Result.Retry::class.java)
             assertThat(runtime.events).containsExactly(
                 "notifyStarted",
                 "createFromText:retry me",
-                notifyEvent,
             ).inOrder()
         }
     }
 
     @Test
+    fun `worker emits one terminal notification on the final retry attempt`() = runTest {
+        val expected = AiCreateResult.NetworkFailure("timeout")
+        val runtime = RecordingRuntime(expected)
+        AiCreateWorker.runtimeFactory = { runtime }
+
+        val result = buildWorker("final retry", runAttemptCount = AiCreateWorker.MAX_ATTEMPTS - 1).doWork()
+
+        assertThat(result).isInstanceOf(ListenableWorker.Result.Failure::class.java)
+        assertThat(runtime.events).containsExactly(
+            "createFromText:final retry",
+            "notifyResult:$expected",
+        ).inOrder()
+    }
+
+    @Test
     fun `worker fails permanent ai create failures and succeeds committed outcomes`() = runTest {
         val permanentResults = listOf(
-            AiCreateResult.MissingApiKey,
-            AiCreateResult.MissingModel,
+            AiCreateResult.ServiceFailure("unauthorized", false),
             AiCreateResult.RemoteFailure(400, "bad request"),
             AiCreateResult.RemoteFailure(401, "unauthorized"),
             AiCreateResult.RemoteFailure(404, "model not found"),
@@ -142,7 +159,7 @@ class AiCreateBackgroundSchedulerTest {
             val runtime = RecordingRuntime(aiResult)
             AiCreateWorker.runtimeFactory = { runtime }
 
-            val result = buildWorker("permanent").doWork()
+            val result = buildWorker("permanent", runAttemptCount = 0).doWork()
 
             assertThat(result).isInstanceOf(ListenableWorker.Result.Failure::class.java)
             assertThat(runtime.events).containsExactly(
@@ -181,7 +198,7 @@ class AiCreateBackgroundSchedulerTest {
             val runtime = RecordingRuntime(aiResult)
             AiCreateWorker.runtimeFactory = { runtime }
 
-            val result = buildWorker("committed").doWork()
+            val result = buildWorker("committed", runAttemptCount = 0).doWork()
 
             assertThat(result).isInstanceOf(ListenableWorker.Result.Success::class.java)
             assertThat(runtime.events).containsExactly(
@@ -192,16 +209,15 @@ class AiCreateBackgroundSchedulerTest {
         }
     }
 
-    private fun workSpecInputData(
+    private fun workSpec(
         context: Context,
         workSpecId: String,
     ) = WorkManagerImpl.getInstance(context)
         .workDatabase
         .workSpecDao()
         .getWorkSpec(workSpecId)
-        ?.input
 
-    private fun buildWorker(prompt: String): AiCreateWorker =
+    private fun buildWorker(prompt: String, runAttemptCount: Int = 0): AiCreateWorker =
         TestListenableWorkerBuilder<AiCreateWorker>(
             ApplicationProvider.getApplicationContext(),
         )
@@ -210,6 +226,7 @@ class AiCreateBackgroundSchedulerTest {
                     WorkManagerAiCreateBackgroundScheduler.KEY_PROMPT to prompt,
                 ),
             )
+            .setRunAttemptCount(runAttemptCount)
             .build()
 
     private class RecordingRuntime(

@@ -95,10 +95,7 @@ class VoiceHomeSmokeTest {
         composeRule.setContent {
             MaterialTheme {
                 TestNoterApp(
-                    textState = AiCreateUiState(
-                        selectedModelId = "demo-model",
-                        prompt = prompt,
-                    ),
+                    textState = AiCreateUiState(prompt = prompt),
                     onPromptChanged = { prompt = it },
                     onSubmit = { submitCount += 1 },
                 )
@@ -130,7 +127,6 @@ class VoiceHomeSmokeTest {
             MaterialTheme {
                 TestNoterApp(
                     textState = AiCreateUiState(
-                        selectedModelId = "demo-model",
                         isLoading = true,
                         statusMessage = UiText.Raw("Creating alarm..."),
                         errorMessage = UiText.Raw("Exact alarm permission is required."),
@@ -519,7 +515,7 @@ class VoiceHomeSmokeTest {
     @Composable
     private fun TestNoterApp(
         voiceState: VoiceHomeUiState = VoiceHomeUiState(status = VoiceHomeStatus.Idle),
-        textState: AiCreateUiState = AiCreateUiState(selectedModelId = "demo-model"),
+        textState: AiCreateUiState = AiCreateUiState(),
         onPromptChanged: (String) -> Unit = {},
         onSubmit: () -> Unit = {},
         onOpenExactAlarmSettings: () -> Unit = {},
@@ -574,13 +570,10 @@ class VoiceHomeSmokeTest {
             alarmEditorScreen = { _, _, _ ->
                 Box(modifier = Modifier.testTag(AppRouteTestTags.Editor))
             },
-            settingsScreen = { _, _, _, _, _, _, _ ->
+            settingsScreen = { _, _, _, _, _, _ ->
                 Box(modifier = Modifier.testTag(AppRouteTestTags.Settings))
             },
             appearanceSettingsScreen = { _, _ ->
-                Box(modifier = Modifier.testTag(AppRouteTestTags.Settings))
-            },
-            aiVoiceSettingsScreen = { _, _ ->
                 Box(modifier = Modifier.testTag(AppRouteTestTags.Settings))
             },
             soundSettingsScreen = { _, _ ->

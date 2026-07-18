@@ -1,0 +1,46 @@
+services:
+  fake-upstream:
+    image: node:20-alpine
+    environment:
+      PORT: "8787"
+    networks:
+      - default
+      - noter_private
+    volumes:
+      - ./tests/fake-upstream.mjs:/tmp/fake-upstream.mjs:ro
+    command: ["node", "/tmp/fake-upstream.mjs"]
+
+  api:
+    build:
+      context: ../..
+      dockerfile: deploy/production/Dockerfile
+    image: noter-api-smoke
+    env_file: []
+    environment:
+      NOTER_CLIENT_TOKEN: smoke-client-token
+      NOTER_API_DOMAIN: localhost
+      CHAT_UPSTREAM_URL: http://fake-upstream:8787/v1/chat/completions
+      CHAT_UPSTREAM_API_KEY: smoke-chat-key
+      CHAT_UPSTREAM_MODEL: smoke-chat-model
+      ASR_UPSTREAM_URL: http://fake-upstream:8787/v1/audio/transcriptions
+      ASR_UPSTREAM_API_KEY: smoke-asr-key
+      ASR_UPSTREAM_MODEL: smoke-asr-model
+      CHAT_MAX_OUTPUT_TOKENS: "512"
+      CHAT_UPSTREAM_TIMEOUT_MS: "5000"
+      ASR_UPSTREAM_TIMEOUT_MS: "5000"
+      CHAT_RATE_LIMIT_PER_MINUTE: "100"
+      ASR_RATE_LIMIT_PER_MINUTE: "100"
+      CHAT_MAX_CONCURRENCY: "8"
+      ASR_MAX_CONCURRENCY: "4"
+      NOTER_LOG_LEVEL: warn
+    depends_on:
+      fake-upstream:
+        condition: service_started
+
+  caddy:
+    ports:
+      - "127.0.0.1:18080:80"
+    volumes:
+      - ./Caddyfile.smoke:/etc/caddy/Caddyfile:ro
+    environment:
+      NOTER_API_DOMAIN: localhost

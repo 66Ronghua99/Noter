@@ -18,10 +18,15 @@ class AiCreateWorker(
         }
 
         val runtime = runtimeFactory(applicationContext)
-        runtime.notifyStarted()
+        if (runAttemptCount == 0) {
+            runtime.notifyStarted()
+        }
         val result = runtime.createFromText(prompt)
+        if (result.isRetryable() && runAttemptCount < MAX_ATTEMPTS - 1) {
+            return Result.retry()
+        }
         runtime.notifyResult(result)
-        return result.toWorkerResult()
+        return result.toFinalWorkerResult()
     }
 
     internal interface Runtime {
@@ -50,24 +55,29 @@ class AiCreateWorker(
     }
 
     internal companion object {
+        const val MAX_ATTEMPTS = 3
         var runtimeFactory: (Context) -> Runtime = ::productionRuntime
 
         fun productionRuntime(context: Context): Runtime = AppContainerRuntime(context)
     }
 
-    private fun AiCreateResult.toWorkerResult(): Result = when (this) {
+    private fun AiCreateResult.isRetryable(): Boolean = when (this) {
         is AiCreateResult.NetworkFailure,
         is AiCreateResult.RateLimited,
-        -> Result.retry()
+        -> true
 
-        is AiCreateResult.RemoteFailure -> if (code in 500..599) {
-            Result.retry()
-        } else {
-            Result.failure()
-        }
+        is AiCreateResult.RemoteFailure -> code in 500..599
+        is AiCreateResult.ServiceFailure -> retryable
+        else -> false
+    }
 
-        AiCreateResult.MissingApiKey,
-        AiCreateResult.MissingModel,
+    private fun AiCreateResult.toFinalWorkerResult(): Result = when (this) {
+        is AiCreateResult.NetworkFailure,
+        is AiCreateResult.RateLimited,
+        is AiCreateResult.RemoteFailure,
+        is AiCreateResult.ServiceFailure,
+        -> Result.failure()
+
         is AiCreateResult.InvalidResponse,
         is AiCreateResult.ClarificationRequired,
         is AiCreateResult.CreateFailed,

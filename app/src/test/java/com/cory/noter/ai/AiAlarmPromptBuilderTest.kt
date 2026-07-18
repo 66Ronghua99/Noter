@@ -7,17 +7,6 @@ import org.junit.Test
 
 class AiAlarmPromptBuilderTest {
     @Test
-    fun `built in model ids match paid tool capable catalog`() {
-        assertThat(OpenRouterModel.builtInIds).containsExactly(
-            "deepseek/deepseek-v4-flash",
-            "deepseek/deepseek-v3.2",
-        ).inOrder()
-        assertThat(OpenRouterModel.DefaultId).isEqualTo("deepseek/deepseek-v4-flash")
-        assertThat(OpenRouterModel.builtInIds.none { it.contains(":free") || it == "openrouter/free" })
-            .isTrue()
-    }
-
-    @Test
     fun `system prompt includes stable rules without per request context`() {
         val prompt = AiAlarmPromptBuilder().buildSystemPrompt()
 

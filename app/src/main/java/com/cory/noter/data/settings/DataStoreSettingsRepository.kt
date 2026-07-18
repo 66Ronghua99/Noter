@@ -5,23 +5,27 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
-import com.cory.noter.ai.AsrModel
-import com.cory.noter.ai.OpenRouterModel
 import com.cory.noter.domain.settings.AppSettings
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 
 class DataStoreSettingsRepository(
     private val dataStore: DataStore<Preferences>,
 ) : SettingsRepository {
-    override val settings: Flow<AppSettings> = dataStore.data.map { preferences ->
-        val storedModelId = preferences[SELECTED_MODEL_ID]
-        val storedAsrModelId = preferences[SELECTED_ASR_MODEL_ID]
+    private val migratedData: Flow<Preferences> = flow {
+        dataStore.edit { preferences ->
+            preferences.remove(OPEN_ROUTER_API_KEY)
+            preferences.remove(SELECTED_MODEL_ID)
+            preferences.remove(SELECTED_ASR_MODEL_ID)
+        }
+        emitAll(dataStore.data)
+    }
+
+    override val settings: Flow<AppSettings> = migratedData.map { preferences ->
         val themeSettings = readThemeSettings(preferences)
         AppSettings(
-            openRouterApiKey = preferences[OPEN_ROUTER_API_KEY] ?: "",
-            selectedModelId = storedModelId?.also(::requireKnownModelId) ?: OpenRouterModel.DefaultId,
-            selectedAsrModelId = storedAsrModelId?.also(::requireKnownAsrModelId) ?: AsrModel.DefaultId,
             defaultRingtoneUri = preferences[DEFAULT_RINGTONE_URI] ?: AppSettings.DefaultRingtoneUri,
             defaultCalendarId = preferences[DEFAULT_CALENDAR_ID],
             themePresetId = themeSettings.presetId,
@@ -29,31 +33,8 @@ class DataStoreSettingsRepository(
         )
     }
 
-    override val themeSettings: Flow<AppSettings> = dataStore.data.map { preferences ->
+    override val themeSettings: Flow<AppSettings> = migratedData.map { preferences ->
         readThemeSettings(preferences).toAppSettings()
-    }
-
-    override suspend fun setOpenRouterApiKey(apiKey: String): Result<Unit> = runCatching {
-        dataStore.edit { preferences ->
-            preferences[OPEN_ROUTER_API_KEY] = apiKey
-        }
-        Unit
-    }
-
-    override suspend fun setSelectedModel(modelId: String): Result<Unit> = runCatching {
-        requireKnownModelId(modelId)
-        dataStore.edit { preferences ->
-            preferences[SELECTED_MODEL_ID] = modelId
-        }
-        Unit
-    }
-
-    override suspend fun setSelectedAsrModel(modelId: String): Result<Unit> = runCatching {
-        requireKnownAsrModelId(modelId)
-        dataStore.edit { preferences ->
-            preferences[SELECTED_ASR_MODEL_ID] = modelId
-        }
-        Unit
     }
 
     override suspend fun setDefaultRingtoneUri(ringtoneUri: String): Result<Unit> = runCatching {
@@ -105,18 +86,6 @@ class DataStoreSettingsRepository(
         val CUSTOM_THEME_SEED_COLOR = stringPreferencesKey("custom_theme_seed_color")
     }
 
-    private fun requireKnownModelId(modelId: String) {
-        require(modelId in OpenRouterModel.builtInIds) {
-            "UNKNOWN_MODEL_ID: $modelId"
-        }
-    }
-
-    private fun requireKnownAsrModelId(modelId: String) {
-        require(modelId in AsrModel.builtInIds) {
-            "UNKNOWN_ASR_MODEL_ID: $modelId"
-        }
-    }
-
     private fun requireKnownThemePresetId(presetId: String) {
         require(presetId in AppSettings.BuiltInThemePresetIds) {
             "UNKNOWN_THEME_PRESET_ID: $presetId"
@@ -155,9 +124,6 @@ class DataStoreSettingsRepository(
         val customSeedColor: String? = null,
     ) {
         fun toAppSettings(): AppSettings = AppSettings(
-            openRouterApiKey = "",
-            selectedModelId = OpenRouterModel.DefaultId,
-            selectedAsrModelId = AsrModel.DefaultId,
             defaultRingtoneUri = AppSettings.DefaultRingtoneUri,
             defaultCalendarId = null,
             themePresetId = presetId,

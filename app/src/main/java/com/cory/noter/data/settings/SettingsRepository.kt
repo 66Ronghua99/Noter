@@ -8,12 +8,6 @@ interface SettingsRepository {
 
     val themeSettings: Flow<AppSettings>
 
-    suspend fun setOpenRouterApiKey(apiKey: String): Result<Unit>
-
-    suspend fun setSelectedModel(modelId: String): Result<Unit>
-
-    suspend fun setSelectedAsrModel(modelId: String): Result<Unit>
-
     suspend fun setDefaultRingtoneUri(ringtoneUri: String): Result<Unit>
 
     suspend fun setDefaultCalendarId(calendarId: Long): Result<Unit>

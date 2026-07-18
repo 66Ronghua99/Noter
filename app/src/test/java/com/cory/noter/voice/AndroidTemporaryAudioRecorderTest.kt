@@ -1,18 +1,12 @@
 package com.cory.noter.voice
 
-import android.content.Intent
-import android.speech.RecognitionListener
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
 import java.io.File
 import java.io.IOException
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.async
-import kotlinx.coroutines.cancelAndJoin
 import kotlin.io.path.createTempDirectory
 import kotlin.io.path.deleteIfExists
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.runCurrent
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -32,7 +26,7 @@ class AndroidTemporaryAudioRecorderTest {
         val result = recorder.start()
 
         assertThat(result).isInstanceOf(VoiceRecordingStartResult.Failed::class.java)
-        assertThat((result as VoiceRecordingStartResult.Failed).reason).contains("prepare failed")
+        assertThat((result as VoiceRecordingStartResult.Failed).reason).isEqualTo("Audio recording failed.")
         assertThat(mediaRecorder.released).isTrue()
         assertThat(tempFile.exists()).isFalse()
     }
@@ -49,7 +43,7 @@ class AndroidTemporaryAudioRecorderTest {
         }
 
         assertThat(result.exceptionOrNull()).isInstanceOf(IOException::class.java)
-        assertThat(result.exceptionOrNull()!!.message).contains(directory.absolutePath)
+        assertThat(result.exceptionOrNull()!!.message).isEqualTo("Failed to delete temporary voice audio.")
         assertThat(directory.exists()).isTrue()
 
         child.toPath().deleteIfExists()
@@ -74,23 +68,6 @@ class AndroidTemporaryAudioRecorderTest {
         assertThat(stopResult).isInstanceOf(VoiceRecordingStopResult.Failed::class.java)
         assertThat((stopResult as VoiceRecordingStopResult.Failed).reason).contains("Audio recording failed")
         assertThat(mediaRecorder.released).isTrue()
-    }
-
-    @OptIn(ExperimentalCoroutinesApi::class)
-    @Test
-    fun `system speech recognition destroys recognizer when transcription await is cancelled`() = runTest {
-        val recognizer = RecordingSpeechRecognizer()
-        val recognition = AndroidActiveSystemSpeechRecognition(
-            recognizer = recognizer,
-            resultTimeoutMillis = 10_000L,
-        )
-
-        val job = async { recognition.stopAndTranscribe() }
-        runCurrent()
-        assertThat(recognizer.stopListeningCalls).isEqualTo(1)
-        job.cancelAndJoin()
-
-        assertThat(recognizer.destroyCalls).isEqualTo(1)
     }
 
     private class FailingVoiceMediaRecorder : VoiceMediaRecorder {
@@ -139,22 +116,4 @@ class AndroidTemporaryAudioRecorderTest {
         }
     }
 
-    private class RecordingSpeechRecognizer : VoiceSpeechRecognizer {
-        var stopListeningCalls = 0
-        var destroyCalls = 0
-
-        override fun setRecognitionListener(listener: RecognitionListener) = Unit
-
-        override fun startListening(intent: Intent) = Unit
-
-        override fun stopListening() {
-            stopListeningCalls += 1
-        }
-
-        override fun cancel() = Unit
-
-        override fun destroy() {
-            destroyCalls += 1
-        }
-    }
 }

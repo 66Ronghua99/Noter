@@ -1,14 +1,15 @@
 package com.cory.noter.di
 
 import androidx.test.core.app.ApplicationProvider
-import com.cory.noter.ai.OpenRouterAsrClient
+import com.cory.noter.ai.NoterAgentClient
+import com.cory.noter.ai.NoterAsrClient
+import com.cory.noter.ai.RetryingAgentLlmGateway
 import com.cory.noter.ai.WorkManagerAiCreateBackgroundScheduler
 import com.cory.noter.voice.AndroidMicrophonePermissionChecker
-import com.cory.noter.voice.AndroidSystemSpeechRecognizer
 import com.cory.noter.voice.AndroidTemporaryAudioRecorder
 import com.cory.noter.voice.BackgroundVoiceAiCreateEnqueuer
 import com.cory.noter.voice.FileTemporaryAudioCleanup
-import com.cory.noter.voice.OpenRouterVoiceAsrTranscriber
+import com.cory.noter.voice.NoterVoiceAsrTranscriber
 import com.cory.noter.voice.VoiceCaptureCoordinator
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
@@ -26,8 +27,8 @@ class AppContainerTest {
         val secondSettingsRepository = container.settingsRepository
         val firstScheduler = container.alarmScheduler
         val secondScheduler = container.alarmScheduler
-        val firstAgentClient = container.openRouterAgentClient
-        val secondAgentClient = container.openRouterAgentClient
+        val firstAgentClient = container.noterAgentClient
+        val secondAgentClient = container.noterAgentClient
         val firstAgentLoopRunner = container.agentLoopRunner
         val secondAgentLoopRunner = container.agentLoopRunner
         val firstReconciliation = container.startupReconciliation
@@ -53,12 +54,12 @@ class AppContainerTest {
             .isInstanceOf(AndroidMicrophonePermissionChecker::class.java)
         assertThat(container.temporaryAudioRecorder)
             .isInstanceOf(AndroidTemporaryAudioRecorder::class.java)
-        assertThat(container.systemSpeechRecognizer)
-            .isInstanceOf(AndroidSystemSpeechRecognizer::class.java)
-        assertThat(container.openRouterAsrClient)
-            .isInstanceOf(OpenRouterAsrClient::class.java)
+        assertThat(container.noterAgentClient)
+            .isInstanceOf(NoterAgentClient::class.java)
+        assertThat(container.noterAsrClient)
+            .isInstanceOf(NoterAsrClient::class.java)
         assertThat(container.remoteAsrTranscriber)
-            .isInstanceOf(OpenRouterVoiceAsrTranscriber::class.java)
+            .isInstanceOf(NoterVoiceAsrTranscriber::class.java)
         assertThat(container.temporaryAudioCleanup)
             .isInstanceOf(FileTemporaryAudioCleanup::class.java)
         assertThat(container.voiceAiCreateEnqueuer)
@@ -72,6 +73,11 @@ class AppContainerTest {
 
         val runnerGatewayField = firstAgentLoopRunner.javaClass.getDeclaredField("gateway")
         runnerGatewayField.isAccessible = true
-        assertThat(runnerGatewayField.get(firstAgentLoopRunner)).isSameInstanceAs(firstAgentClient)
+        assertThat(runnerGatewayField.get(firstAgentLoopRunner))
+            .isInstanceOf(RetryingAgentLlmGateway::class.java)
+        val retryDelegateField = RetryingAgentLlmGateway::class.java.getDeclaredField("delegate")
+        retryDelegateField.isAccessible = true
+        assertThat(retryDelegateField.get(runnerGatewayField.get(firstAgentLoopRunner)))
+            .isSameInstanceAs(firstAgentClient)
     }
 }

@@ -31,7 +31,6 @@ import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
-import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
@@ -40,10 +39,7 @@ import androidx.compose.material.icons.outlined.BatterySaver
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -79,25 +75,19 @@ import com.cory.noter.ui.text.asString
 object SettingsTestTags {
     const val Home = "SettingsHome"
     const val AppearanceRow = "SettingsAppearanceRow"
-    const val AiVoiceRow = "SettingsAiVoiceRow"
     const val SoundRow = "SettingsSoundRow"
     const val CalendarRow = "SettingsCalendarRow"
     const val PermissionsRow = "SettingsPermissionsRow"
     const val AppearanceDetail = "SettingsAppearanceDetail"
-    const val AiVoiceDetail = "SettingsAiVoiceDetail"
     const val SoundDetail = "SettingsSoundDetail"
     const val CalendarDetail = "SettingsCalendarDetail"
     const val CalendarPermissionAction = "SettingsCalendarPermissionAction"
     const val CalendarClearAction = "SettingsCalendarClearAction"
     const val PermissionsDetail = "SettingsPermissionsDetail"
-    const val ApiKeyInput = "SettingsApiKeyInput"
-    const val SaveApiKeyAction = "SettingsSaveApiKeyAction"
     const val CustomThemeSeedInput = "SettingsCustomThemeSeedInput"
     const val DefaultRingtoneAction = "SettingsDefaultRingtoneAction"
 
     fun ThemePresetAction(presetId: String): String = "SettingsThemePresetAction:$presetId"
-    fun ModelAction(modelId: String): String = "SettingsModelAction:$modelId"
-    fun AsrModelAction(modelId: String): String = "SettingsAsrModelAction:$modelId"
     fun CalendarAction(calendarId: Long): String = "SettingsCalendarAction:$calendarId"
     fun PermissionAction(permissionId: String): String = "SettingsPermissionAction:$permissionId"
 }
@@ -106,7 +96,6 @@ object SettingsTestTags {
 fun SettingsScreen(
     state: SettingsUiState,
     onOpenAppearance: () -> Unit,
-    onOpenAiVoice: () -> Unit,
     onOpenSound: () -> Unit,
     onOpenCalendar: () -> Unit,
     onOpenPermissions: () -> Unit,
@@ -134,7 +123,6 @@ fun SettingsScreen(
                 state.directoryRows.forEach { row ->
                     val onClick = when (row.id) {
                         "appearance" -> onOpenAppearance
-                        "ai_voice" -> onOpenAiVoice
                         "sound" -> onOpenSound
                         "calendar" -> onOpenCalendar
                         "permissions" -> onOpenPermissions
@@ -191,105 +179,6 @@ fun AppearanceSettingsScreen(
 
             SectionLabel(text = stringResource(R.string.settings_theme_preview))
             ThemePreviewCard(state = state)
-
-            SettingsError(state.errorMessage)
-        }
-    }
-}
-
-@Composable
-fun AiVoiceSettingsScreen(
-    state: SettingsUiState,
-    onApiKeyChanged: (String) -> Unit,
-    onSaveApiKey: () -> Unit,
-    onModelSelected: (String) -> Unit,
-    onAsrModelSelected: (String) -> Unit,
-    onBack: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    SettingsScaffold(
-        title = stringResource(R.string.settings_ai_voice_title),
-        onBack = onBack,
-        modifier = modifier.testTag(SettingsTestTags.AiVoiceDetail),
-    ) { contentModifier ->
-        Column(
-            modifier = contentModifier.verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(20.dp),
-        ) {
-            PageHeader(
-                title = stringResource(R.string.settings_ai_voice_title),
-                subtitle = stringResource(R.string.settings_ai_voice_subtitle),
-            )
-
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                ),
-                shape = MaterialTheme.shapes.large,
-            ) {
-                Column(
-                    modifier = Modifier.padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                ) {
-                    FormField(
-                        label = stringResource(R.string.settings_openrouter_api_key),
-                        hint = stringResource(R.string.settings_api_key_hint),
-                    ) {
-                        OutlinedTextField(
-                            value = state.openRouterApiKey,
-                            onValueChange = onApiKeyChanged,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .testTag(SettingsTestTags.ApiKeyInput),
-                            singleLine = true,
-                            shape = MaterialTheme.shapes.medium,
-                        )
-                    }
-
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-
-                    FormField(
-                        label = stringResource(R.string.settings_model),
-                        hint = null,
-                    ) {
-                        ModelDropdown(
-                            options = state.modelOptions,
-                            selectedOption = state.selectedModelId,
-                            onOptionSelected = onModelSelected,
-                            testTagBuilder = SettingsTestTags::ModelAction,
-                        )
-                    }
-
-                    FormField(
-                        label = stringResource(R.string.settings_asr_model),
-                        hint = null,
-                    ) {
-                        ModelDropdown(
-                            options = state.asrModelOptions,
-                            selectedOption = state.selectedAsrModelId,
-                            onOptionSelected = onAsrModelSelected,
-                            testTagBuilder = SettingsTestTags::AsrModelAction,
-                        )
-                    }
-                }
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                TextButton(onClick = onBack) {
-                    Text(text = stringResource(R.string.common_cancel))
-                }
-                Button(
-                    modifier = Modifier.testTag(SettingsTestTags.SaveApiKeyAction),
-                    onClick = onSaveApiKey,
-                ) {
-                    Text(text = stringResource(R.string.settings_save_api_key))
-                }
-            }
 
             SettingsError(state.errorMessage)
         }
@@ -563,7 +452,6 @@ private fun SettingsDirectoryRow(
 ) {
     val icon = when (row.id) {
         "appearance" -> Icons.Default.Palette
-        "ai_voice" -> Icons.Default.Psychology
         "sound" -> Icons.AutoMirrored.Filled.VolumeUp
         "calendar" -> Icons.Default.Schedule
         "permissions" -> Icons.Default.Security
@@ -950,49 +838,6 @@ private fun ThemePreviewCard(state: SettingsUiState) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ModelDropdown(
-    options: List<String>,
-    selectedOption: String,
-    onOptionSelected: (String) -> Unit,
-    testTagBuilder: (String) -> String,
-) {
-    var expanded by remember { mutableStateOf(false) }
-
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = it },
-    ) {
-        OutlinedTextField(
-            value = selectedOption,
-            onValueChange = {},
-            modifier = Modifier
-                .fillMaxWidth()
-                .menuAnchor()
-                .testTag(testTagBuilder(selectedOption)),
-            readOnly = true,
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            shape = MaterialTheme.shapes.medium,
-        )
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-        ) {
-            options.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(text = option) },
-                    onClick = {
-                        onOptionSelected(option)
-                        expanded = false
-                    },
-                    modifier = Modifier.testTag(testTagBuilder(option)),
-                )
-            }
-        }
-    }
-}
-
 @Composable
 private fun FormField(
     label: String,
@@ -1136,7 +981,6 @@ private fun SettingsError(errorMessage: UiText?) {
 private val SettingsDirectoryRowUiModel.tag: String
     get() = when (id) {
         "appearance" -> SettingsTestTags.AppearanceRow
-        "ai_voice" -> SettingsTestTags.AiVoiceRow
         "sound" -> SettingsTestTags.SoundRow
         "calendar" -> SettingsTestTags.CalendarRow
         "permissions" -> SettingsTestTags.PermissionsRow

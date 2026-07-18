@@ -101,7 +101,7 @@ class PauseAlarmTool(
     override suspend fun execute(call: AgentToolCall): AgentToolExecution {
         val arguments = parser.parsePause(call.arguments).getOrElse { error ->
             return AgentToolExecution.Failure(
-                AgentFailure.ToolExecutionFailed(error.message ?: "Invalid pause_alarm arguments."),
+                AgentFailure.CorrectableToolFailure(error.message ?: "Invalid pause_alarm arguments."),
             )
         }
 
@@ -141,7 +141,7 @@ class ResumeAlarmTool(
     override suspend fun execute(call: AgentToolCall): AgentToolExecution {
         val alarmId = parser.parseAlarmId(call.arguments).getOrElse { error ->
             return AgentToolExecution.Failure(
-                AgentFailure.ToolExecutionFailed(error.message ?: "Invalid resume_alarm arguments."),
+                AgentFailure.CorrectableToolFailure(error.message ?: "Invalid resume_alarm arguments."),
             )
         }
 

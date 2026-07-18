@@ -1,7 +1,6 @@
 package com.cory.noter.ui.editor
 
 import com.cory.noter.R
-import com.cory.noter.ai.OpenRouterModel
 import com.cory.noter.alarm.AlarmSchedulingUseCase
 import com.cory.noter.alarm.FakeAlarmScheduler
 import com.cory.noter.alarm.ScheduleResult

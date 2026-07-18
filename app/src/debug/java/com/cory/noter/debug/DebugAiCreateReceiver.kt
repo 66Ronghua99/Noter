@@ -18,17 +18,12 @@ class DebugAiCreateReceiver : BroadcastReceiver() {
         val pendingResult = goAsync()
         val appContainer = (context.applicationContext as NoterApplication).appContainer
         val prompt = intent.getStringExtra(EXTRA_PROMPT).orEmpty().trim()
-        val model = intent.getStringExtra(EXTRA_MODEL).orEmpty().trim()
 
         scope.launch {
             try {
                 if (prompt.isEmpty()) {
                     Log.w(TAG, "missing prompt extra")
                     return@launch
-                }
-                if (model.isNotEmpty()) {
-                    appContainer.settingsRepository.setSelectedModel(model).getOrThrow()
-                    Log.d(TAG, "selected model=$model")
                 }
                 Log.d(TAG, "enqueue.start promptChars=${prompt.length}")
                 appContainer.aiCreateBackgroundScheduler.enqueue(prompt)
@@ -44,7 +39,6 @@ class DebugAiCreateReceiver : BroadcastReceiver() {
     private companion object {
         const val ACTION = "com.cory.noter.DEBUG_AI_CREATE"
         const val EXTRA_PROMPT = "prompt"
-        const val EXTRA_MODEL = "model"
         const val TAG = "NoterDebugAiCreate"
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     }

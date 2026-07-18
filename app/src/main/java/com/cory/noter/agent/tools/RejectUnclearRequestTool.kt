@@ -31,12 +31,12 @@ class RejectUnclearRequestTool(
         val arguments = runCatching { json.parseToJsonElement(call.arguments).jsonObject }
             .getOrElse {
                 return AgentToolExecution.Failure(
-                    AgentFailure.ToolExecutionFailed("Invalid JSON"),
+                    AgentFailure.CorrectableToolFailure("Invalid JSON"),
                 )
             }
         val reason = arguments.requiredNonBlankString("reason")
             ?: return AgentToolExecution.Failure(
-                AgentFailure.ToolExecutionFailed("reject_unclear_request requires a nonblank reason."),
+                AgentFailure.CorrectableToolFailure("reject_unclear_request requires a nonblank reason."),
             )
         val retryHint = arguments.optionalNonBlankString("retryHint")
 

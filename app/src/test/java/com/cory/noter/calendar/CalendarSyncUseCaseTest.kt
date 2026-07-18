@@ -186,9 +186,6 @@ class CalendarSyncUseCaseTest {
     private fun useCase(
         settingsRepository: FakeSettingsRepository = FakeSettingsRepository(
             initialSettings = AppSettings(
-                openRouterApiKey = "",
-                selectedModelId = "openai/gpt-4.1-mini",
-                selectedAsrModelId = "openai/gpt-4o-mini-transcribe",
                 defaultRingtoneUri = AppSettings.DefaultRingtoneUri,
                 defaultCalendarId = 42L,
             ),

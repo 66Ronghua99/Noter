@@ -127,9 +127,6 @@ class AndroidTestAlarmRepository(
 
 class AndroidTestSettingsRepository(
     initial: AppSettings = AppSettings(
-        openRouterApiKey = "",
-        selectedModelId = com.cory.noter.ai.OpenRouterModel.DefaultId,
-        selectedAsrModelId = com.cory.noter.ai.AsrModel.DefaultId,
         defaultRingtoneUri = AppSettings.DefaultRingtoneUri,
     ),
 ) : SettingsRepository {
@@ -137,18 +134,6 @@ class AndroidTestSettingsRepository(
 
     override val settings: Flow<AppSettings> = mutableSettings
     override val themeSettings: Flow<AppSettings> = mutableSettings
-
-    override suspend fun setOpenRouterApiKey(apiKey: String): Result<Unit> = runCatching {
-        mutableSettings.update { it.copy(openRouterApiKey = apiKey) }
-    }
-
-    override suspend fun setSelectedModel(modelId: String): Result<Unit> = runCatching {
-        mutableSettings.update { it.copy(selectedModelId = modelId) }
-    }
-
-    override suspend fun setSelectedAsrModel(modelId: String): Result<Unit> = runCatching {
-        mutableSettings.update { it.copy(selectedAsrModelId = modelId) }
-    }
 
     override suspend fun setDefaultRingtoneUri(ringtoneUri: String): Result<Unit> = runCatching {
         mutableSettings.update { it.copy(defaultRingtoneUri = ringtoneUri) }

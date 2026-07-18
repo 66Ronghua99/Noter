@@ -58,7 +58,7 @@ class CreateAlarmTool(
                 }
 
                 else -> AgentToolExecution.Failure(
-                    AgentFailure.ToolExecutionFailed(error.message ?: "Invalid create_alarm arguments."),
+                    AgentFailure.CorrectableToolFailure(error.message ?: "Invalid create_alarm arguments."),
                 )
             }
         }
@@ -73,7 +73,7 @@ class CreateAlarmTool(
         )
         if (validationErrors.isNotEmpty()) {
             return AgentToolExecution.Failure(
-                AgentFailure.ToolExecutionFailed(
+                AgentFailure.CorrectableToolFailure(
                     "Alarm validation failed: ${validationErrors.joinToString(", ")}",
                 ),
             )

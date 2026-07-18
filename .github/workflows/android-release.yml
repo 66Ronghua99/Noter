@@ -19,6 +19,8 @@ jobs:
       SIGNING_KEY_ALIAS: ${{ secrets.ANDROID_SIGNING_KEY_ALIAS }}
       SIGNING_STORE_PASSWORD: ${{ secrets.ANDROID_SIGNING_STORE_PASSWORD }}
       SIGNING_KEY_PASSWORD: ${{ secrets.ANDROID_SIGNING_KEY_PASSWORD }}
+      NOTER_API_BASE_URL: ${{ vars.NOTER_API_BASE_URL }}
+      NOTER_CLIENT_TOKEN: ${{ secrets.NOTER_CLIENT_TOKEN }}
 
     steps:
       - name: Check out repository
@@ -35,6 +37,14 @@ jobs:
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
+
+      - name: Validate first-party API inputs
+        run: |
+          set -euo pipefail
+          if [[ -z "${NOTER_API_BASE_URL//[[:space:]]/}" || -z "${NOTER_CLIENT_TOKEN//[[:space:]]/}" ]]; then
+            echo "NOTER_API_BASE_URL repository variable and NOTER_CLIENT_TOKEN secret are required for release builds." >&2
+            exit 1
+          fi
 
       - name: Run quality gate
         run: ./gradlew testDebugUnitTest lintDebug assembleRelease

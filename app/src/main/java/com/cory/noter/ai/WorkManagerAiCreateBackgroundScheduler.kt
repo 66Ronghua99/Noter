@@ -1,10 +1,12 @@
 package com.cory.noter.ai
 
 import android.content.Context
+import androidx.work.BackoffPolicy
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.workDataOf
+import java.util.concurrent.TimeUnit
 
 class WorkManagerAiCreateBackgroundScheduler(
     context: Context,
@@ -15,6 +17,11 @@ class WorkManagerAiCreateBackgroundScheduler(
     override fun enqueue(prompt: String) {
         val request = OneTimeWorkRequestBuilder<AiCreateWorker>()
             .setInputData(workDataOf(KEY_PROMPT to prompt))
+            .setBackoffCriteria(
+                BackoffPolicy.EXPONENTIAL,
+                BACKOFF_INITIAL_DELAY_SECONDS,
+                TimeUnit.SECONDS,
+            )
             .addTag(TAG)
             .build()
         workManager.enqueueUniqueWork(
@@ -28,5 +35,6 @@ class WorkManagerAiCreateBackgroundScheduler(
         const val UNIQUE_WORK_NAME = "ai_create_alarm"
         const val TAG = "ai_create_alarm"
         const val KEY_PROMPT = "prompt"
+        const val BACKOFF_INITIAL_DELAY_SECONDS = 10L
     }
 }

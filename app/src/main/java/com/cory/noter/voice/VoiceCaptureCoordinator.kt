@@ -1,11 +1,8 @@
 package com.cory.noter.voice
 
-import com.cory.noter.ai.AsrModel
-import com.cory.noter.data.settings.SettingsRepository
 import java.util.logging.Level
 import java.util.logging.Logger
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.flow.first
 
 fun interface MicrophonePermissionChecker {
     fun isGranted(): Boolean
@@ -29,16 +26,6 @@ interface ActiveTemporaryAudioRecording {
     suspend fun stop(): VoiceRecordingStopResult
 
     suspend fun cancel(): VoiceRecordingStopResult
-}
-
-interface SystemSpeechRecognizer {
-    suspend fun start(): SystemSpeechStartResult
-}
-
-interface ActiveSystemSpeechRecognition {
-    suspend fun stopAndTranscribe(): SystemSpeechResult
-
-    suspend fun cancel()
 }
 
 interface RemoteAsrTranscriber {
@@ -77,8 +64,6 @@ class RecordedVoiceAudio(
 )
 
 class VoiceAsrRequest(
-    val apiKey: String,
-    val modelId: String,
     val languageCode: String,
     val audio: RecordedVoiceAudio,
 )
@@ -97,22 +82,10 @@ sealed interface VoiceRecordingStopResult {
     data object Cancelled : VoiceRecordingStopResult
 }
 
-sealed interface SystemSpeechStartResult {
-    data class Started(val recognition: ActiveSystemSpeechRecognition) : SystemSpeechStartResult
-
-    data class Failed(val reason: String) : SystemSpeechStartResult
-}
-
-sealed interface SystemSpeechResult {
-    data class Transcript(val text: String) : SystemSpeechResult
-
-    data class Failed(val reason: String) : SystemSpeechResult
-}
-
 sealed interface VoiceAsrResult {
     data class Transcript(val text: String) : VoiceAsrResult
 
-    data class Failed(val reason: String) : VoiceAsrResult
+    data class Failed(val failure: VoiceCaptureFailure) : VoiceAsrResult
 }
 
 sealed interface VoiceCaptureResult {
@@ -132,9 +105,11 @@ sealed interface VoiceCaptureFailure {
 
     data object BlankTranscript : VoiceCaptureFailure
 
-    data object MissingApiKey : VoiceCaptureFailure
+    data object ServiceUnavailable : VoiceCaptureFailure
 
-    data class UnsupportedAsrModel(val modelId: String) : VoiceCaptureFailure
+    data object UpdateRequired : VoiceCaptureFailure
+
+    data object UploadTooLarge : VoiceCaptureFailure
 
     data class RecordingFailed(val reason: String) : VoiceCaptureFailure
 
@@ -142,9 +117,7 @@ sealed interface VoiceCaptureFailure {
 }
 
 class VoiceCaptureCoordinator(
-    private val settingsRepository: SettingsRepository,
     private val temporaryAudioRecorder: TemporaryAudioRecorder,
-    private val systemSpeechRecognizer: SystemSpeechRecognizer,
     private val remoteAsrTranscriber: RemoteAsrTranscriber,
     private val temporaryAudioCleanup: TemporaryAudioCleanup,
     private val aiCreateEnqueuer: VoiceAiCreateEnqueuer,
@@ -152,92 +125,55 @@ class VoiceCaptureCoordinator(
     private val debugLogger: VoiceCaptureDebugLogger = VoiceCaptureDebugLogger.None,
 ) : VoiceCaptureController {
     private val logger = Logger.getLogger(VoiceCaptureCoordinator::class.java.name)
-    private var activeCapture: ActiveVoiceCapture? = null
+    private var activeCapture: ActiveTemporaryAudioRecording? = null
 
     override suspend fun start(): VoiceCaptureResult {
         if (activeCapture != null) {
             return VoiceCaptureResult.Failed(VoiceCaptureFailure.AlreadyRecording)
         }
-
-        val recording = when (val startResult = temporaryAudioRecorder.start()) {
-            is VoiceRecordingStartResult.Started -> {
-                debugLogger.debug("voice.recording.started handle=${startResult.recording.handle.id}")
-                startResult.recording
-            }
+        val recording = when (val result = temporaryAudioRecorder.start()) {
+            is VoiceRecordingStartResult.Started -> result.recording
             is VoiceRecordingStartResult.Failed -> {
-                debugLogger.debug("voice.recording.start.failed reason=${startResult.reason}")
-                return VoiceCaptureResult.Failed(VoiceCaptureFailure.RecordingFailed(startResult.reason))
+                debugLogger.debug("voice.recording.start.failed")
+                return VoiceCaptureResult.Failed(VoiceCaptureFailure.RecordingFailed(result.reason))
             }
         }
-
-        val systemSpeech = when (val speechStart = systemSpeechRecognizer.start()) {
-            is SystemSpeechStartResult.Started -> {
-                debugLogger.debug("voice.systemStt.started")
-                speechStart.recognition
-            }
-            is SystemSpeechStartResult.Failed -> {
-                debugLogger.debug("voice.systemStt.start.failed reason=${speechStart.reason}")
-                null
-            }
-        }
-
-        activeCapture = ActiveVoiceCapture(
-            recording = recording,
-            systemSpeechRecognition = systemSpeech,
-        )
+        activeCapture = recording
+        debugLogger.debug("voice.recording.started handle=${recording.handle.id}")
         return VoiceCaptureResult.RecordingStarted
     }
 
     override suspend fun release(): VoiceCaptureResult {
-        val capture = activeCapture ?: return VoiceCaptureResult.Failed(VoiceCaptureFailure.NoActiveRecording)
+        val recording = activeCapture ?: return VoiceCaptureResult.Failed(VoiceCaptureFailure.NoActiveRecording)
         activeCapture = null
-
-        return when (val stopResult = capture.recording.stop()) {
-            is VoiceRecordingStopResult.Recorded -> processRecordedAudio(capture, stopResult.audio)
+        return when (val result = recording.stop()) {
+            is VoiceRecordingStopResult.Recorded -> processRecordedAudio(result.audio)
             is VoiceRecordingStopResult.Failed -> {
-                debugLogger.debug("voice.recording.stop.failed reason=${stopResult.reason}")
-                capture.systemSpeechRecognition?.cancel()
-                cleanupWithoutMasking(capture.recording.handle)
-                VoiceCaptureResult.Failed(VoiceCaptureFailure.RecordingFailed(stopResult.reason))
+                cleanupWithoutMasking(recording.handle)
+                VoiceCaptureResult.Failed(VoiceCaptureFailure.RecordingFailed(result.reason))
             }
             VoiceRecordingStopResult.Cancelled -> {
-                capture.systemSpeechRecognition?.cancel()
-                cleanupWithoutMasking(capture.recording.handle)
+                cleanupWithoutMasking(recording.handle)
                 VoiceCaptureResult.Cancelled
             }
         }
     }
 
     override suspend fun cancel(): VoiceCaptureResult {
-        val capture = activeCapture ?: return VoiceCaptureResult.Failed(VoiceCaptureFailure.NoActiveRecording)
+        val recording = activeCapture ?: return VoiceCaptureResult.Failed(VoiceCaptureFailure.NoActiveRecording)
         activeCapture = null
-
-        capture.systemSpeechRecognition?.cancel()
-        capture.recording.cancel()
-        cleanupWithoutMasking(capture.recording.handle)
+        recording.cancel()
+        cleanupWithoutMasking(recording.handle)
         return VoiceCaptureResult.Cancelled
     }
 
-    private suspend fun processRecordedAudio(
-        capture: ActiveVoiceCapture,
-        audio: RecordedVoiceAudio,
-    ): VoiceCaptureResult {
-        try {
-            val systemSpeech = capture.systemSpeechRecognition
-            if (systemSpeech != null) {
-                return when (val speechResult = systemSpeech.stopAndTranscribe()) {
-                    is SystemSpeechResult.Transcript -> {
-                        debugLogger.debug("voice.systemStt.transcript chars=${speechResult.text.trim().length}")
-                        enqueueTranscriptOrFail(speechResult.text)
-                    }
-                    is SystemSpeechResult.Failed -> {
-                        debugLogger.debug("voice.systemStt.result.failed reason=${speechResult.reason}")
-                        transcribeWithRemoteAsr(audio)
-                    }
-                }
+    private suspend fun processRecordedAudio(audio: RecordedVoiceAudio): VoiceCaptureResult {
+        return try {
+            val languageCode = asrLanguageProvider.languageCode().trim().ifBlank { "en" }
+            when (val result = remoteAsrTranscriber.transcribe(VoiceAsrRequest(languageCode, audio))) {
+                is VoiceAsrResult.Transcript -> enqueueTranscriptOrFail(result.text)
+                is VoiceAsrResult.Failed -> VoiceCaptureResult.Failed(result.failure)
             }
-
-            return transcribeWithRemoteAsr(audio)
         } finally {
             cleanupWithoutMasking(audio.handle)
         }
@@ -251,66 +187,16 @@ class VoiceCaptureCoordinator(
                 throw error
             }
             debugLogger.warn("voice.cleanup.failed handle=${handle.id}", error)
-            logger.log(Level.WARNING, "Temporary voice audio cleanup failed for ${handle.id}.", error)
-        }
-    }
-
-    private suspend fun transcribeWithRemoteAsr(audio: RecordedVoiceAudio): VoiceCaptureResult {
-        val settings = settingsRepository.settings.first()
-        val apiKey = settings.openRouterApiKey.trim()
-        if (apiKey.isEmpty()) {
-            debugLogger.debug("voice.remoteAsr.missingApiKey")
-            return VoiceCaptureResult.Failed(VoiceCaptureFailure.MissingApiKey)
-        }
-
-        val selectedModelId = settings.selectedAsrModelId.trim()
-        if (selectedModelId !in AsrModel.builtInIds) {
-            debugLogger.debug("voice.remoteAsr.unsupportedModel model=$selectedModelId")
-            return VoiceCaptureResult.Failed(VoiceCaptureFailure.UnsupportedAsrModel(selectedModelId))
-        }
-
-        val languageCode = asrLanguageProvider.languageCode().trim().ifBlank { "en" }
-        val modelId = AsrModel.resolveForLanguage(selectedModelId, languageCode)
-
-        debugLogger.debug(
-            "voice.remoteAsr.request model=$modelId selectedModel=$selectedModelId " +
-                "language=$languageCode audioBytes=${audio.bytes.size}",
-        )
-        return when (
-            val asrResult = remoteAsrTranscriber.transcribe(
-                VoiceAsrRequest(
-                    apiKey = apiKey,
-                    modelId = modelId,
-                    languageCode = languageCode,
-                    audio = audio,
-                ),
-            )
-        ) {
-            is VoiceAsrResult.Transcript -> {
-                debugLogger.debug("voice.remoteAsr.transcript chars=${asrResult.text.trim().length}")
-                enqueueTranscriptOrFail(asrResult.text)
-            }
-            is VoiceAsrResult.Failed -> {
-                debugLogger.debug("voice.remoteAsr.failed reason=${asrResult.reason}")
-                VoiceCaptureResult.Failed(VoiceCaptureFailure.AsrFailed(asrResult.reason))
-            }
+            logger.log(Level.WARNING, "Temporary voice audio cleanup failed.", error)
         }
     }
 
     private fun enqueueTranscriptOrFail(transcript: String): VoiceCaptureResult {
-        val normalizedTranscript = transcript.trim()
-        if (normalizedTranscript.isEmpty()) {
-            debugLogger.debug("voice.transcript.blank")
+        val normalized = transcript.trim()
+        if (normalized.isEmpty()) {
             return VoiceCaptureResult.Failed(VoiceCaptureFailure.BlankTranscript)
         }
-
-        aiCreateEnqueuer.enqueue(normalizedTranscript)
-        debugLogger.debug("voice.transcript.enqueued chars=${normalizedTranscript.length}")
-        return VoiceCaptureResult.Enqueued(normalizedTranscript)
+        aiCreateEnqueuer.enqueue(normalized)
+        return VoiceCaptureResult.Enqueued(normalized)
     }
-
-    private data class ActiveVoiceCapture(
-        val recording: ActiveTemporaryAudioRecording,
-        val systemSpeechRecognition: ActiveSystemSpeechRecognition?,
-    )
 }

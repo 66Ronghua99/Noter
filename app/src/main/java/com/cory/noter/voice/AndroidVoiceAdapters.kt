@@ -1,25 +1,17 @@
 package com.cory.noter.voice
 
 import android.Manifest
-import android.annotation.SuppressLint
 import android.content.Context
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.MediaRecorder
 import android.os.Build
-import android.os.Bundle
 import android.os.LocaleList
-import android.speech.RecognitionListener
-import android.speech.RecognizerIntent
-import android.speech.SpeechRecognizer
 import android.util.Log
 import androidx.core.content.ContextCompat
 import com.cory.noter.ai.AiCreateBackgroundScheduler
 import java.io.File
 import java.io.IOException
 import java.util.Locale
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.withTimeoutOrNull
 
 class AndroidMicrophonePermissionChecker(
     context: Context,
@@ -45,7 +37,7 @@ class FileTemporaryAudioCleanup : TemporaryAudioCleanup {
     override suspend fun cleanup(handle: TemporaryAudioHandle) {
         val file = File(handle.id)
         if (file.exists() && !file.delete()) {
-            throw IOException("Failed to delete temporary voice audio: ${file.absolutePath}")
+            throw IOException("Failed to delete temporary voice audio.")
         }
     }
 }
@@ -117,48 +109,11 @@ class AndroidTemporaryAudioRecorder internal constructor(
         } catch (error: IOException) {
             recorder.releaseIgnoringFailure()
             file?.delete()
-            VoiceRecordingStartResult.Failed("Audio recording failed: ${error.message.orEmpty()}")
+            VoiceRecordingStartResult.Failed("Audio recording failed.")
         } catch (error: RuntimeException) {
             recorder.releaseIgnoringFailure()
             file?.delete()
-            VoiceRecordingStartResult.Failed("Audio recording failed: ${error.message.orEmpty()}")
-        }
-    }
-}
-
-class AndroidSystemSpeechRecognizer(
-    context: Context,
-    private val intentFactory: () -> Intent = {
-        Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
-        }
-    },
-    private val resultTimeoutMillis: Long = 10_000L,
-    private val speechRecognizerFactory: (Context) -> VoiceSpeechRecognizer = { recognizerContext ->
-        AndroidVoiceSpeechRecognizer(SpeechRecognizer.createSpeechRecognizer(recognizerContext))
-    },
-) : SystemSpeechRecognizer {
-    private val applicationContext = context.applicationContext
-
-    @SuppressLint("MissingPermission")
-    override suspend fun start(): SystemSpeechStartResult {
-        if (!SpeechRecognizer.isRecognitionAvailable(applicationContext)) {
-            return SystemSpeechStartResult.Failed("System speech recognition is unavailable.")
-        }
-
-        val recognizer = speechRecognizerFactory(applicationContext)
-        val session = AndroidActiveSystemSpeechRecognition(
-            recognizer = recognizer,
-            resultTimeoutMillis = resultTimeoutMillis,
-        )
-        recognizer.setRecognitionListener(session)
-        return try {
-            recognizer.startListening(intentFactory())
-            SystemSpeechStartResult.Started(session)
-        } catch (error: RuntimeException) {
-            recognizer.destroy()
-            SystemSpeechStartResult.Failed("System speech recognition failed to start: ${error.message.orEmpty()}")
+            VoiceRecordingStartResult.Failed("Audio recording failed.")
         }
     }
 }
@@ -174,26 +129,20 @@ private class AndroidActiveTemporaryAudioRecording(
         if (released) {
             return VoiceRecordingStopResult.Failed("Audio recording is already closed.")
         }
-
         return try {
             recorder.stop()
             val recordedBytes = file.readBytes()
             recorder.release()
             released = true
-            VoiceRecordingStopResult.Recorded(
-                RecordedVoiceAudio(
-                    handle = handle,
-                    bytes = recordedBytes,
-                ),
-            )
+            VoiceRecordingStopResult.Recorded(RecordedVoiceAudio(handle, recordedBytes))
         } catch (error: IOException) {
             recorder.releaseIgnoringFailure()
             released = true
-            VoiceRecordingStopResult.Failed("Audio recording failed: ${error.message.orEmpty()}")
+            VoiceRecordingStopResult.Failed("Audio recording failed.")
         } catch (error: RuntimeException) {
             recorder.releaseIgnoringFailure()
             released = true
-            VoiceRecordingStopResult.Failed("Audio recording failed: ${error.message.orEmpty()}")
+            VoiceRecordingStopResult.Failed("Audio recording failed.")
         }
     }
 
@@ -229,37 +178,21 @@ internal interface VoiceMediaRecorder {
 private class AndroidVoiceMediaRecorder(
     private val recorder: MediaRecorder,
 ) : VoiceMediaRecorder {
-    override fun setAudioSource(source: Int) {
-        recorder.setAudioSource(source)
-    }
+    override fun setAudioSource(source: Int) = recorder.setAudioSource(source)
 
-    override fun setOutputFormat(format: Int) {
-        recorder.setOutputFormat(format)
-    }
+    override fun setOutputFormat(format: Int) = recorder.setOutputFormat(format)
 
-    override fun setAudioEncoder(encoder: Int) {
-        recorder.setAudioEncoder(encoder)
-    }
+    override fun setAudioEncoder(encoder: Int) = recorder.setAudioEncoder(encoder)
 
-    override fun setOutputFile(path: String) {
-        recorder.setOutputFile(path)
-    }
+    override fun setOutputFile(path: String) = recorder.setOutputFile(path)
 
-    override fun prepare() {
-        recorder.prepare()
-    }
+    override fun prepare() = recorder.prepare()
 
-    override fun start() {
-        recorder.start()
-    }
+    override fun start() = recorder.start()
 
-    override fun stop() {
-        recorder.stop()
-    }
+    override fun stop() = recorder.stop()
 
-    override fun release() {
-        recorder.release()
-    }
+    override fun release() = recorder.release()
 }
 
 private fun newMediaRecorder(context: Context): MediaRecorder =
@@ -270,105 +203,8 @@ private fun newMediaRecorder(context: Context): MediaRecorder =
         MediaRecorder()
     }
 
-internal class AndroidActiveSystemSpeechRecognition(
-    private val recognizer: VoiceSpeechRecognizer,
-    private val resultTimeoutMillis: Long,
-) : ActiveSystemSpeechRecognition,
-    RecognitionListener {
-    private val result = CompletableDeferred<SystemSpeechResult>()
-    private var destroyed = false
-
-    override suspend fun stopAndTranscribe(): SystemSpeechResult {
-        runCatching { recognizer.stopListening() }
-        return try {
-            withTimeoutOrNull(resultTimeoutMillis) { result.await() }
-                ?: SystemSpeechResult.Failed("System speech recognition timed out.")
-        } finally {
-            destroy()
-        }
-    }
-
-    override suspend fun cancel() {
-        if (!result.isCompleted) {
-            result.complete(SystemSpeechResult.Failed("System speech recognition cancelled."))
-        }
-        runCatching { recognizer.cancel() }
-        destroy()
-    }
-
-    override fun onResults(results: Bundle?) {
-        val transcript = results
-            ?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-            ?.firstOrNull()
-            .orEmpty()
-        result.complete(SystemSpeechResult.Transcript(transcript))
-    }
-
-    override fun onError(error: Int) {
-        result.complete(SystemSpeechResult.Failed("System speech recognition failed: $error"))
-    }
-
-    override fun onReadyForSpeech(params: Bundle?) = Unit
-
-    override fun onBeginningOfSpeech() = Unit
-
-    override fun onRmsChanged(rmsdB: Float) = Unit
-
-    override fun onBufferReceived(buffer: ByteArray?) = Unit
-
-    override fun onEndOfSpeech() = Unit
-
-    override fun onPartialResults(partialResults: Bundle?) = Unit
-
-    override fun onEvent(eventType: Int, params: Bundle?) = Unit
-
-    private fun destroy() {
-        if (!destroyed) {
-            recognizer.destroy()
-            destroyed = true
-        }
-    }
-}
-
-interface VoiceSpeechRecognizer {
-    fun setRecognitionListener(listener: RecognitionListener)
-
-    fun startListening(intent: Intent)
-
-    fun stopListening()
-
-    fun cancel()
-
-    fun destroy()
-}
-
-private class AndroidVoiceSpeechRecognizer(
-    private val recognizer: SpeechRecognizer,
-) : VoiceSpeechRecognizer {
-    override fun setRecognitionListener(listener: RecognitionListener) {
-        recognizer.setRecognitionListener(listener)
-    }
-
-    override fun startListening(intent: Intent) {
-        recognizer.startListening(intent)
-    }
-
-    override fun stopListening() {
-        recognizer.stopListening()
-    }
-
-    override fun cancel() {
-        recognizer.cancel()
-    }
-
-    override fun destroy() {
-        recognizer.destroy()
-    }
-}
-
 private fun VoiceMediaRecorder?.releaseIgnoringFailure() {
     runCatching { this?.release() }
 }
 
-private fun LocaleList.firstOrNullCompat(): Locale? =
-    if (isEmpty) null else get(0)
+private fun LocaleList.firstOrNullCompat(): Locale? = if (isEmpty) null else get(0)
